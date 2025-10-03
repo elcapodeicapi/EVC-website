@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Profile</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <h1>My Profile</h1>
+    <div id="profile"></div>
+
+    <script>
+      async function loadProfile() {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          document.getElementById("profile").innerHTML = "⚠️ Not logged in";
+          return;
+        }
+
+        const res = await fetch("http://localhost:4000/auth/me", {
+          headers: { Authorization: "Bearer " + token },
+        });
+
+        if (!res.ok) {
+          document.getElementById("profile").innerHTML =
+            "❌ Failed to load profile";
+          return;
+        }
+
+        const user = await res.json();
+        document.getElementById("profile").innerHTML = `
+        <p><b>Name:</b> ${user.name || "-"}</p>
+        <p><b>Email:</b> ${user.email}</p>
+        <p><b>Role:</b> ${user.role}</p>
+        <p><b>Member since:</b> ${new Date(
+          user.createdAt
+        ).toLocaleDateString()}</p>
+      `;
+      }
+
+      loadProfile();
+    </script>
+    <script>
+      async function loadNavbar() {
+        try {
+          const res = await fetch("./Navbar.html");
+          if (!res.ok) throw new Error("Failed to load navbar");
+          document.getElementById("navbar").innerHTML = await res.text();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      loadNavbar();
+
+      function logout() {
+        localStorage.removeItem("token");
+        window.location.href = "Login.html";
+      }
+    </script>
+  </body>
+</html>
