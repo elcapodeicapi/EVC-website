@@ -1,45 +1,129 @@
 import React, { useState } from "react";
-import Navbar from "./Navbar";
+import { Link, useNavigate } from "react-router-dom";
+import { LogIn } from "lucide-react";
 import { post } from "../lib/api";
+import LegacyPageLayout from "./LegacyPageLayout";
 
 const Login = () => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
+	const navigate = useNavigate();
 
-	const onSubmit = async (e) => {
-		e.preventDefault();
+	const onSubmit = async (event) => {
+		event.preventDefault();
 		setLoading(true);
+		setError("");
 		try {
-					const data = await post("/auth/login", { email, password });
+			const data = await post("/auth/login", { email, password });
 			if (data.token) {
 				localStorage.setItem("token", data.token);
-				alert("Logged in as " + data.user.role);
-			window.location.href = "/dashboard";
+				if (data.user) {
+					localStorage.setItem("user", JSON.stringify(data.user));
+				}
+				navigate("/dashboard", { replace: true });
 			} else {
-				alert(data.error || "Login failed");
+				setError(data.error || "Inloggen is niet gelukt. Probeer het opnieuw.");
 			}
 		} catch (err) {
-			alert("Login failed");
+			setError("Inloggen is niet gelukt. Controleer je gegevens.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	return (
-		<div>
-			<Navbar />
-			<div className="content">
-				<h1>Login</h1>
-				<form onSubmit={onSubmit}>
-					<input type="email" placeholder="Email" required value={email} onChange={(e)=>setEmail(e.target.value)} />
-					<br />
-					<input type="password" placeholder="Password" required value={password} onChange={(e)=>setPassword(e.target.value)} />
-					<br />
-					<button type="submit" disabled={loading}>{loading?"Logging in...":"Login"}</button>
+		<LegacyPageLayout
+			kicker="Inloggen"
+			title="Welkom terug bij EVC"
+			description="Log in om je traject te volgen, bewijsstukken te uploaden en contact te houden met je coach."
+			actions={[
+				<Link
+					key="register"
+					to="/register"
+					className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-500 hover:text-brand-600"
+				>
+					Nieuw account aanmaken
+				</Link>,
+			]}
+		>
+			<section className="mx-auto w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-brand-600">
+						<LogIn className="h-5 w-5" />
+					</div>
+					<div>
+						<h2 className="text-xl font-semibold text-slate-900">Log in op je account</h2>
+						<p className="text-sm text-slate-500">Gebruik het e-mailadres waarmee je bent aangemeld voor het traject.</p>
+					</div>
+				</div>
+
+				<form onSubmit={onSubmit} className="mt-6 space-y-5">
+					{error ? (
+						<div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+							{error}
+						</div>
+					) : null}
+					<div className="grid gap-2">
+						<label htmlFor="login-email" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+							E-mail
+						</label>
+						<input
+							id="login-email"
+							type="email"
+							placeholder="jij@voorbeeld.nl"
+							value={email}
+							onChange={(event) => setEmail(event.target.value)}
+							className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+							required
+						/>
+					</div>
+					<div className="grid gap-2">
+						<label htmlFor="login-password" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+							Wachtwoord
+						</label>
+						<input
+							id="login-password"
+							type="password"
+							placeholder="Vul je wachtwoord in"
+							value={password}
+							onChange={(event) => setPassword(event.target.value)}
+							className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+							required
+						/>
+					</div>
+					<div className="flex items-center justify-between text-sm">
+						<label className="flex items-center gap-2 text-slate-600">
+							<input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+							<span>Onthoud mij</span>
+						</label>
+						<button
+							type="button"
+							onClick={() => alert("Neem contact op met support om je wachtwoord te resetten.")}
+							className="font-medium text-brand-600 transition hover:text-brand-500"
+						>
+							Wachtwoord vergeten?
+						</button>
+					</div>
+					<button
+						type="submit"
+						disabled={loading}
+						className="mt-4 w-full rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+					>
+						{loading ? "Bezig met inloggen..." : "Inloggen"}
+					</button>
 				</form>
-			</div>
-		</div>
+
+				<p className="mt-6 text-center text-sm text-slate-500">
+					Nog geen account?{" "}
+					<Link to="/register" className="font-semibold text-brand-600 hover:text-brand-500">
+						Registreer hier
+					</Link>
+					.
+				</p>
+			</section>
+		</LegacyPageLayout>
 	);
 };
 

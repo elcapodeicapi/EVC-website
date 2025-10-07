@@ -11,8 +11,6 @@ const TaskEvidence = sequelize.define(
   },
   {
     tableName: "TaskEvidences",
-    // Disable timestamps to avoid "no column named createdAt/updatedAt" if the legacy table lacks them
-    timestamps: false,
     // Redundant given composite PK, but keeps intent explicit if schema changes later
     indexes: [{ unique: true, fields: ["TaskId", "EvidenceId"] }],
   }
