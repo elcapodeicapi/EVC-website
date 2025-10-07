@@ -1,6 +1,17 @@
 {
+  "name": "evc-root",
+  "private": true,
   "dependencies": {
     "bcrypt": "^6.0.0",
     "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "scripts": {
+    "start": "concurrently -n API,WEB -c green,cyan \"node Backend/server.js\" \"npm --prefix cliet run dev\"",
+    "start:api": "node Backend/server.js",
+    "start:web": "npm --prefix cliet run dev",
+    "build": "npm --prefix cliet run build"
   }
 }

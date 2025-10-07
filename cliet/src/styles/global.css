@@ -1,0 +1,11 @@
+/* Ported base styles from Frontend/styles.css (add/adjust as needed) */
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; }
+.main-navbar, nav { display: flex; align-items: center; gap: 24px; padding: 12px 16px; background: #222; color: #fff; }
+.main-navbar .logo, nav .logo { font-weight: bold; }
+.main-navbar ul, nav ul { list-style: none; display: flex; gap: 12px; margin: 0; padding: 0; }
+.main-navbar a, nav a { color: #fff; text-decoration: none; }
+.content { padding: 16px; }
+.task { margin-bottom: 16px; }
+.task textarea { width: 100%; min-height: 90px; }
+.task-actions { display: flex; gap: 8px; margin-top: 8px; }
+.task-evidence { margin-top: 6px; color: #333; }
