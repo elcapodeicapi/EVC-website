@@ -59,10 +59,19 @@
               <h3>${task.title}</h3>
               <p>${task.description}</p>
               <textarea data-taskid="${task.id}">${noteText}</textarea>
-              <button onclick="saveResponse(${task.id})">Save</button>
+              <div class="task-actions">
+                <button onclick="saveResponse(${task.id})">Save</button>
+                <button onclick="openUploadModal(${task.id})">Upload evidence</button>
+              </div>
+              <div class="task-evidence">
+                <strong>Evidence:</strong> <span id="evidence-list-${task.id}">Loading...</span>
+              </div>
               <hr>
             </div>
           `;
+
+          // Load current evidence linked to this task (if logged in)
+          await loadEvidenceForTask(task.id);
         }
       }
 
@@ -89,6 +98,147 @@
       }
 
       loadTasks();
+    </script>
+
+    <!-- Simple upload modal -->
+    <div
+      id="uploadModal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+      "
+    >
+      <div
+        style="
+          background: #fff;
+          padding: 16px;
+          max-width: 420px;
+          margin: 10% auto;
+          border-radius: 6px;
+        "
+      >
+        <h3>Upload Evidence</h3>
+        <form id="evidenceUploadForm" enctype="multipart/form-data">
+          <input
+            type="text"
+            name="name"
+            placeholder="Evidence name"
+            required
+          /><br /><br />
+          <input
+            type="text"
+            name="type"
+            placeholder="Type (e.g. pdf, image)"
+          /><br /><br />
+          <input type="file" name="file" required /><br /><br />
+          <div style="display: flex; gap: 8px; justify-content: flex-end">
+            <button type="button" onclick="closeUploadModal()">Cancel</button>
+            <button type="submit">Upload</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      let currentTaskIdForUpload = null;
+
+      function openUploadModal(taskId) {
+        currentTaskIdForUpload = taskId;
+        document.getElementById("uploadModal").style.display = "block";
+      }
+
+      function closeUploadModal() {
+        document.getElementById("uploadModal").style.display = "none";
+        const form = document.getElementById("evidenceUploadForm");
+        if (form) form.reset();
+        currentTaskIdForUpload = null;
+      }
+
+      async function loadEvidenceForTask(taskId) {
+        const token = localStorage.getItem("token");
+        const target = document.getElementById(`evidence-list-${taskId}`);
+        if (!target) return;
+        if (!token) {
+          target.textContent = "(login to view)";
+          return;
+        }
+        try {
+          const res = await fetch(
+            `http://localhost:4000/taskevidence/by-task/${taskId}`,
+            {
+              headers: { Authorization: "Bearer " + token },
+            }
+          );
+          if (!res.ok) {
+            target.textContent = "None";
+            return;
+          }
+          const items = await res.json();
+          if (!items || !items.length) {
+            target.textContent = "None";
+          } else {
+            target.textContent = items.map((e) => e.name).join(", ");
+          }
+        } catch (e) {
+          target.textContent = "None";
+        }
+      }
+
+      document
+        .getElementById("evidenceUploadForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (!currentTaskIdForUpload) return;
+          const token = localStorage.getItem("token");
+          const formData = new FormData(e.target);
+
+          // 1) Upload evidence file
+          const uploadRes = await fetch(
+            "http://localhost:4000/evidence/upload",
+            {
+              method: "POST",
+              headers: token ? { Authorization: "Bearer " + token } : {},
+              body: formData,
+            }
+          );
+          if (!uploadRes.ok) {
+            alert("❌ Upload failed");
+            return;
+          }
+          const ev = await uploadRes.json();
+
+          // 2) Assign to task
+          const assignRes = await fetch(
+            "http://localhost:4000/taskevidence/assign",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: "Bearer " + token } : {}),
+              },
+              body: JSON.stringify({
+                taskId: currentTaskIdForUpload,
+                evidenceId: ev.id,
+              }),
+            }
+          );
+          if (!assignRes.ok) {
+            let details = "";
+            try {
+              const err = await assignRes.json();
+              details = err && err.error ? `\n${err.error}` : "";
+            } catch (_) {}
+            alert("❌ Failed to assign evidence" + details);
+            return;
+          }
+
+          // 3) Refresh evidence list for this task and close modal
+          await loadEvidenceForTask(currentTaskIdForUpload);
+          closeUploadModal();
+          alert("✅ Evidence uploaded and assigned!");
+        });
     </script>
     <script>
       async function loadNavbar() {

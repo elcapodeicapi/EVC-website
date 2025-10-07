@@ -1,11 +1,22 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../Data/database");
-const Task = require("./Task");
-const Evidence = require("./Evidence");
 
-const TaskEvidence = sequelize.define("TaskEvidence", {
-  // no extra fields needed, Sequelize will create TaskId + EvidenceId
-});
+// Canonical join table uses plural table name
+// Align with existing SQLite table that likely has only TaskId and EvidenceId (no id column)
+const TaskEvidence = sequelize.define(
+  "TaskEvidence",
+  {
+    TaskId: { type: DataTypes.INTEGER, allowNull: false, primaryKey: true },
+    EvidenceId: { type: DataTypes.INTEGER, allowNull: false, primaryKey: true },
+  },
+  {
+    tableName: "TaskEvidences",
+    // Disable timestamps to avoid "no column named createdAt/updatedAt" if the legacy table lacks them
+    timestamps: false,
+    // Redundant given composite PK, but keeps intent explicit if schema changes later
+    indexes: [{ unique: true, fields: ["TaskId", "EvidenceId"] }],
+  }
+);
 
 
 

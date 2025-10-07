@@ -10,6 +10,7 @@ const evidenceRoutes = require("./routes/evidence");
 const messageRoutes = require("./routes/messages");
 const authRoutes = require("./routes/auth");
 const responseRoutes = require("./routes/responses");
+const taskEvidenceRoutes = require("./routes/taskEvidence");
 
 const app = express();
 app.use(cors());
@@ -26,6 +27,7 @@ app.use("/evidence", evidenceRoutes);
 app.use("/messages", messageRoutes);
 app.use("/auth", authRoutes);
 app.use("/responses", responseRoutes);
+app.use("/taskevidence", authenticate, taskEvidenceRoutes);
 
 // Start server
 (async () => {

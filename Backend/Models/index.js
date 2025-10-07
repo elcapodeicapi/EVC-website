@@ -6,27 +6,28 @@ const Evidence = require("./Evidence");
 const Message = require("./Message");
 const TaskEvidence = require("./TaskEvidence");
 
-// User ↔ Task (assigned tasks)
+// User → Task (assigned tasks)
 User.hasMany(Task, { foreignKey: "assignedTo" });
 Task.belongsTo(User, { foreignKey: "assignedTo" });
 
-// User ↔ Response
+// User → Response
 User.hasMany(Response, { foreignKey: "UserId" });
 Response.belongsTo(User, { foreignKey: "UserId" });
 
-// Task ↔ Response
+// Task → Response
 Task.hasMany(Response, { foreignKey: "TaskId" });
 Response.belongsTo(Task, { foreignKey: "TaskId" });
 
-// User ↔ Evidence
+// User → Evidence (owner/creator)
 User.hasMany(Evidence, { foreignKey: "UserId" });
 Evidence.belongsTo(User, { foreignKey: "UserId" });
 
-// Task ↔ Evidence (many-to-many through TaskEvidence)
-Task.belongsToMany(Evidence, { through: TaskEvidence });
-Evidence.belongsToMany(Task, { through: TaskEvidence });
+// Task ↔ Evidence (many-to-many through a single, canonical table)
+// Use the explicit join model to match schema (composite PK, no timestamps)
+Task.belongsToMany(Evidence, { through: TaskEvidence, foreignKey: "TaskId", otherKey: "EvidenceId" });
+Evidence.belongsToMany(Task, { through: TaskEvidence, foreignKey: "EvidenceId", otherKey: "TaskId" });
 
-// Message ↔ User (sender and receiver)
+// Message → User (sender and receiver)
 Message.belongsTo(User, { as: "fromUser", foreignKey: "fromUserId" });
 Message.belongsTo(User, { as: "toUser", foreignKey: "toUserId" });
 

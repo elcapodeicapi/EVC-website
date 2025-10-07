@@ -18,13 +18,13 @@ const upload = multer({ storage });
 router.post("/upload", authenticate, upload.single("file"), async (req, res) => {
   try {
     const { name, type } = req.body;
-    const filePath = "/uploads/" + req.file.filename;
+    const file_path = "/uploads/" + req.file.filename;
 
     const evidence = await Evidence.create({
       name,
       type,
-      filePath,
-      UserId: req.user.id
+      file_path,
+      UserId: req.user.id,
     });
 
     res.json(evidence);
