@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import { post } from "../lib/api";
+import { auth } from "../firebase";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import LegacyPageLayout from "./LegacyPageLayout";
 
 const Register = () => {
@@ -15,22 +17,35 @@ const Register = () => {
 	const onSubmit = async (event) => {
 		event.preventDefault();
 		setLoading(true);
-		try {
-			const data = await post("/auth/register", { name, email, password, role });
-			if (data.error) {
-				alert("❌ Fout: " + data.error);
-			} else if (data.token) {
-				localStorage.setItem("token", data.token);
-				localStorage.setItem("user", JSON.stringify(data.user));
-				navigate("/dashboard", { replace: true });
-			} else {
+			try {
+				// Create Firebase user (supports emulator in dev)
+				const cred = await createUserWithEmailAndPassword(auth, email, password);
+				if (name) {
+					try { await updateProfile(cred.user, { displayName: name }); } catch (_) { /* noop */ }
+				}
+				const idToken = await cred.user.getIdToken();
+				// Exchange for API JWT and SQL mirroring
+				const data = await post("/auth/register/firebase", { idToken, role, name });
+				if (data?.token) {
+					localStorage.setItem("token", data.token);
+					if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+					navigate("/dashboard", { replace: true });
+					return;
+				}
+				// Fallback to legacy register if exchange fails
+				const legacy = await post("/auth/register", { name, email, password, role });
+				if (legacy?.token) {
+					localStorage.setItem("token", legacy.token);
+					if (legacy.user) localStorage.setItem("user", JSON.stringify(legacy.user));
+					navigate("/dashboard", { replace: true });
+					return;
+				}
+				alert(data?.error || legacy?.error || "Registratie mislukt");
+			} catch (err) {
 				alert("Registratie mislukt");
+			} finally {
+				setLoading(false);
 			}
-		} catch (err) {
-			alert("Registratie mislukt");
-		} finally {
-			setLoading(false);
-		}
 	};
 
 	return (

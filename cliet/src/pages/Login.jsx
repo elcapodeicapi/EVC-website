@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
 import { post } from "../lib/api";
+import { auth } from "../firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import LegacyPageLayout from "./LegacyPageLayout";
 
 const Login = () => {
@@ -15,22 +17,32 @@ const Login = () => {
 		event.preventDefault();
 		setLoading(true);
 		setError("");
-		try {
-			const data = await post("/auth/login", { email, password });
-			if (data.token) {
-				localStorage.setItem("token", data.token);
-				if (data.user) {
-					localStorage.setItem("user", JSON.stringify(data.user));
+			try {
+				// Try Firebase Auth first (works with emulator in dev)
+				const cred = await signInWithEmailAndPassword(auth, email, password);
+				const idToken = await cred.user.getIdToken();
+				// Exchange for API JWT
+				const data = await post("/auth/login/firebase", { idToken });
+				if (data?.token) {
+					localStorage.setItem("token", data.token);
+					if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+					navigate("/dashboard", { replace: true });
+					return;
 				}
-				navigate("/dashboard", { replace: true });
-			} else {
-				setError(data.error || "Inloggen is niet gelukt. Probeer het opnieuw.");
+				// Fallback to legacy login if exchange fails
+				const legacy = await post("/auth/login", { email, password });
+				if (legacy?.token) {
+					localStorage.setItem("token", legacy.token);
+					if (legacy.user) localStorage.setItem("user", JSON.stringify(legacy.user));
+					navigate("/dashboard", { replace: true });
+					return;
+				}
+				setError(data?.error || legacy?.error || "Inloggen is niet gelukt. Probeer het opnieuw.");
+			} catch (err) {
+				setError("Inloggen is niet gelukt. Controleer je gegevens.");
+			} finally {
+				setLoading(false);
 			}
-		} catch (err) {
-			setError("Inloggen is niet gelukt. Controleer je gegevens.");
-		} finally {
-			setLoading(false);
-		}
 	};
 
 	return (

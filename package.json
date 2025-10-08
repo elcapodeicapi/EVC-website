@@ -3,7 +3,8 @@
   "private": true,
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "path-match": "^1.2.4"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
