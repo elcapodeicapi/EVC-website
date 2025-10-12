@@ -13,7 +13,9 @@ import {
 
 export const adminNavItems = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
+  { label: "Trajectbeheer", to: "/admin/trajects", icon: FileText },
   { label: "Assignments", to: "/admin/assignments", icon: FileSpreadsheet },
+  { label: "User management", to: "/admin/users", icon: Users },
   { label: "Profile", to: "/admin/profile", icon: IdCard },
 ];
 
@@ -27,6 +29,7 @@ export const coachNavItems = [
 ];
 
 export const customerNavItems = [
+  { label: "Wat is de procedure?", to: "/customer/procedure", icon: LayoutDashboard },
   { label: "Planning", to: "/customer/planning", icon: CalendarCheck },
   { label: "Messages", to: "/customer/messages", icon: MessageSquare },
   { label: "Profile", to: "/customer/profile", icon: IdCard },

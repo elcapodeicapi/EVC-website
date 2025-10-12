@@ -31,6 +31,15 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    firebaseUid: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
+    trajectId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     indexes: [

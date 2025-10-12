@@ -12,7 +12,6 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import Dashboard from "./Dashboard";
 import Login from "./Login";
-import Register from "./Register";
 import Profile from "./Profile";
 import Planning from "./Planning";
 import Messages from "./Messages";
@@ -20,7 +19,11 @@ import Evidence from "./Evidence";
 import Home from "./Home";
 import AdminOverview from "./admin/Overview";
 import AdminAssignments from "./admin/Assignments";
+import AdminTrajects from "./admin/Trajects";
 import AdminProfile from "./admin/Profile";
+import AdminUsers from "./admin/Users";
+import TestCreateAccount from "./TestCreateAccount";
+import CustomerProcedure from "./customer/Procedure";
 import CustomerPlanning from "./customer/Planning";
 import CustomerMessages from "./customer/Messages";
 import CustomerProfile from "./customer/Profile";
@@ -36,7 +39,6 @@ import {
 	coachNavItems,
 	customerNavItems,
 	adminProfile,
-	adminUsers,
 	customers,
 	coaches,
 } from "../data/mockData";
@@ -215,7 +217,7 @@ const App = () => {
 			<Routes>
 				<Route path="/" element={<Home />} />
 				<Route path="/login" element={<Login />} />
-				<Route path="/register" element={<Register />} />
+				<Route path="/testing/create-account" element={<TestCreateAccount />} />
 				<Route path="/dashboard" element={<Dashboard />} />
 				<Route path="/profile" element={<Profile />} />
 				<Route path="/planning" element={<Planning />} />
@@ -225,7 +227,9 @@ const App = () => {
 				<Route path="/admin" element={<AdminLayout />}>
 					<Route index element={<AdminOverview />} />
 					<Route path="assignments" element={<AdminAssignments />} />
+					<Route path="trajects" element={<AdminTrajects />} />
 					<Route path="profile" element={<AdminProfile />} />
+					<Route path="users" element={<AdminUsers />} />
 				</Route>
 
 				<Route path="/coach" element={<CoachLayout />}>
@@ -239,7 +243,8 @@ const App = () => {
 				</Route>
 
 				<Route path="/customer" element={<CustomerLayout />}>
-					<Route index element={<Navigate to="/customer/planning" replace />} />
+					<Route index element={<Navigate to="/customer/procedure" replace />} />
+					<Route path="procedure" element={<CustomerProcedure />} />
 					<Route path="planning" element={<CustomerPlanning />} />
 					<Route path="messages" element={<CustomerMessages />} />
 					<Route path="profile" element={<CustomerProfile />} />
@@ -247,7 +252,6 @@ const App = () => {
 
 				{/* Backward-compat: old .html paths */}
 				<Route path="/Login.html" element={<Navigate to="/login" replace />} />
-				<Route path="/Register.html" element={<Navigate to="/register" replace />} />
 				<Route path="/Dashboard.html" element={<Navigate to="/dashboard" replace />} />
 				<Route path="/Profile.html" element={<Navigate to="/profile" replace />} />
 				<Route path="/Planning.html" element={<Navigate to="/planning" replace />} />

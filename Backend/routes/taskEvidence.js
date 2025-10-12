@@ -1,12 +1,12 @@
 const express = require("express");
 const { UniqueConstraintError } = require("sequelize");
 const { TaskEvidence, Evidence, Task } = require("../Models");
-const { authenticate } = require("../Middleware/authMiddleware");
+const { authenticate, authorizeRoles } = require("../Middleware/authMiddleware");
 
 const router = express.Router();
 
 // POST /taskevidence/assign
-router.post("/assign", authenticate, async (req, res) => {
+router.post("/assign", authenticate, authorizeRoles("admin", "coach"), async (req, res) => {
   try {
     const taskId = parseInt(req.body.taskId, 10);
     const evidenceId = parseInt(req.body.evidenceId, 10);
@@ -48,24 +48,29 @@ router.post("/assign", authenticate, async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // GET /taskevidence/by-task/:taskId -> list evidence linked to a task
-router.get("/by-task/:taskId", authenticate, async (req, res) => {
-  try {
-    const { taskId } = req.params;
-    const task = await Task.findByPk(taskId, {
-      include: [{ model: Evidence, through: { attributes: [] } }],
-    });
-    if (!task) return res.status(404).json({ error: "Task not found" });
-    const list = task.Evidences || task.Evidence || [];
-    res.json(list);
-  } catch (err) {
-    res.status(500).json({
-      error: err.message,
-      name: err.name,
-      code: err.code,
-      sql: err.sql,
-    });
+router.get(
+  "/by-task/:taskId",
+  authenticate,
+  authorizeRoles("admin", "coach", "customer", "user"),
+  async (req, res) => {
+    try {
+      const { taskId } = req.params;
+      const task = await Task.findByPk(taskId, {
+        include: [{ model: Evidence, through: { attributes: [] } }],
+      });
+      if (!task) return res.status(404).json({ error: "Task not found" });
+      const list = task.Evidences || task.Evidence || [];
+      res.json(list);
+    } catch (err) {
+      res.status(500).json({
+        error: err.message,
+        name: err.name,
+        code: err.code,
+        sql: err.sql,
+      });
+    }
   }
-});
+);
+
+module.exports = router;

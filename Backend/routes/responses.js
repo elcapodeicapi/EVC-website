@@ -1,9 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate } = require("../Middleware/authMiddleware");
+const { authenticate, authorizeRoles } = require("../Middleware/authMiddleware");
 const responseController = require("../controllers/responseController");
 
-router.get("/:taskId", authenticate, responseController.getResponseForTask);
-router.post("/:taskId", authenticate, responseController.saveOrUpdateResponse);
+router.get(
+	"/:taskId",
+	authenticate,
+	authorizeRoles("admin", "coach", "customer", "user"),
+	responseController.getResponseForTask
+);
+router.post(
+	"/:taskId",
+	authenticate,
+	authorizeRoles("admin", "coach", "customer", "user"),
+	responseController.saveOrUpdateResponse
+);
 
 module.exports = router;

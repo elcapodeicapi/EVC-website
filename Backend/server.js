@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const { sequelize, User, Task, Evidence, Message, Response } = require("./Models");
-const { authenticate, requireAdmin } = require("./Middleware/authMiddleware");
 const { db: fbDb, auth: fbAuth } = require("./firebase");
 
 const taskRoutes = require("./routes/tasks");
@@ -11,6 +10,8 @@ const messageRoutes = require("./routes/messages");
 const authRoutes = require("./routes/auth");
 const responseRoutes = require("./routes/responses");
 const taskEvidenceRoutes = require("./routes/taskEvidence");
+const customerRoutes = require("./routes/customer");
+const trajectRoutes = require("./routes/trajects");
 
 const app = express();
 app.use(cors());
@@ -23,12 +24,13 @@ const clientDistPath = path.resolve(__dirname, "../cliet/dist");
 app.use(express.static(clientDistPath));
 
 app.use("/tasks", taskRoutes);
-app.use("/evidence", authenticate, evidenceRoutes);
 app.use("/evidence", evidenceRoutes);
 app.use("/messages", messageRoutes);
 app.use("/auth", authRoutes);
 app.use("/responses", responseRoutes);
-app.use("/taskevidence", authenticate, taskEvidenceRoutes);
+app.use("/taskevidence", taskEvidenceRoutes);
+app.use("/customer", customerRoutes);
+app.use("/trajects", trajectRoutes);
 
 const matchAll = require("path-match")({ sensitive: false, strict: false });
 const isNonApiRoute = matchAll("/*");
@@ -42,6 +44,7 @@ app.use((req, res, next) => {
     "/messages",
     "/responses",
     "/taskevidence",
+    "/trajects",
     "/uploads",
   ];
   if (apiPrefixes.some((p) => req.path.startsWith(p))) return next();
@@ -51,8 +54,7 @@ app.use((req, res, next) => {
 
 // Start server
 (async () => {
-  // Then run a normal sync without alter
-  await sequelize.sync();  // sync models to DB, altering tables if needed
+  await sequelize.sync();
   app.listen(5000, () => console.log("API running at http://localhost:5000"));
 })();
 

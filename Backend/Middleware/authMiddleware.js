@@ -16,10 +16,21 @@ exports.authenticate = (req, res, next) => {
   });
 };
 
-// Only allow admin role
-exports.requireAdmin = (req, res, next) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Admin only" });
-  }
-  next();
+// Allow only specific roles (admin is always allowed)
+exports.authorizeRoles = (...allowedRoles) => {
+  const normalized = allowedRoles.map((role) => role.toLowerCase());
+  return (req, res, next) => {
+    if (!req.user?.role) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const currentRole = String(req.user.role).toLowerCase();
+    if (currentRole === "admin") return next();
+    if (normalized.length === 0 || normalized.includes(currentRole)) {
+      return next();
+    }
+    return res.status(403).json({ error: "Forbidden" });
+  };
 };
+
+// Backwards compatibility helper
+exports.requireAdmin = exports.authorizeRoles("admin");

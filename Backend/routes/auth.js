@@ -1,15 +1,28 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
-const { authenticate } = require("../Middleware/authMiddleware");
+const { authenticate, authorizeRoles } = require("../Middleware/authMiddleware");
 const { auth: adminAuth } = require("../firebase");
 
-
-// router.post("/register", authController.register);
-router.post("/register/firebase", authController.firebaseRegister);
-// router.post("/login", authController.login);
 router.post("/login/firebase", authController.firebaseLogin);
+router.post("/login", authController.login);
 router.get("/me", authenticate, authController.me);
+
+// Admin-managed accounts
+router.post(
+	"/admin/users",
+	// authenticate,
+	// authorizeRoles("admin"),
+	// ⚠️ Temporary: open access during testing to allow creating bootstrap admin accounts.
+	authController.adminCreateUser
+);
+
+router.get(
+	"/admin/users",
+	authenticate,
+	authorizeRoles("admin"),
+	authController.adminListUsers
+);
 
 // Optional: quick health route to list providers (useful when testing emulators)
 router.get("/providers", async (req, res) => {

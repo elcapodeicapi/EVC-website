@@ -29,7 +29,8 @@ const Register = () => {
 				if (data?.token) {
 					localStorage.setItem("token", data.token);
 					if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
-					navigate("/dashboard", { replace: true });
+					const redirectPath = data.redirectPath || "/dashboard";
+					navigate(redirectPath, { replace: true });
 					return;
 				}
 				// Fallback to legacy register if exchange fails
@@ -37,7 +38,8 @@ const Register = () => {
 				if (legacy?.token) {
 					localStorage.setItem("token", legacy.token);
 					if (legacy.user) localStorage.setItem("user", JSON.stringify(legacy.user));
-					navigate("/dashboard", { replace: true });
+					const redirectPath = legacy.redirectPath || "/dashboard";
+					navigate(redirectPath, { replace: true });
 					return;
 				}
 				alert(data?.error || legacy?.error || "Registratie mislukt");

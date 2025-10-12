@@ -25,18 +25,15 @@ const Home = () => {
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <Link
-                to="/register"
+                to="/login"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-brand-600 shadow-lg shadow-brand-900/10 transition hover:-translate-y-0.5 hover:bg-slate-50"
               >
-                Start nu
+                Naar login
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/40 px-5 py-3 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10"
-              >
-                Ik heb al een account
-              </Link>
+              <span className="inline-flex items-center justify-center gap-2 rounded-full border border-white/40 px-5 py-3 text-sm font-semibold text-white/80">
+                Nieuwe accounts? Neem contact op met het EVC-team
+              </span>
             </div>
           </div>
           <div className="relative isolate">

@@ -5,6 +5,7 @@ const Response = require("./Response");
 const Evidence = require("./Evidence");
 const Message = require("./Message");
 const TaskEvidence = require("./TaskEvidence");
+const CustomerProfile = require("./CustomerProfile");
 
 // User → Task (assigned tasks)
 User.hasMany(Task, { foreignKey: "assignedTo" });
@@ -31,6 +32,10 @@ Evidence.belongsToMany(Task, { through: TaskEvidence, foreignKey: "EvidenceId", 
 Message.belongsTo(User, { as: "fromUser", foreignKey: "fromUserId" });
 Message.belongsTo(User, { as: "toUser", foreignKey: "toUserId" });
 
+// Customer profile ↔ User
+User.hasOne(CustomerProfile, { foreignKey: "UserId", as: "customerProfile", onDelete: "CASCADE" });
+CustomerProfile.belongsTo(User, { foreignKey: "UserId", as: "user" });
+
 module.exports = {
   sequelize,
   User,
@@ -39,4 +44,5 @@ module.exports = {
   Evidence,
   Message,
   TaskEvidence,
+  CustomerProfile,
 };
