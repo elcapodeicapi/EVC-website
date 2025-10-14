@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
 	BrowserRouter,
 	Routes,
@@ -38,20 +38,74 @@ import {
 	adminNavItems,
 	coachNavItems,
 	customerNavItems,
-	adminProfile,
 	customers,
-	coaches,
 } from "../data/mockData";
-
-const CURRENT_CUSTOMER_ID = "cust-1";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
+import { subscribeAdminProfile } from "../lib/firestoreAdmin";
+import { subscribeCustomerContext } from "../lib/firestoreCustomer";
+import { get } from "../lib/api";
 
 const AdminLayout = () => {
 	const navigate = useNavigate();
+	const [uid, setUid] = useState(null);
+	const [profile, setProfile] = useState(null);
+	const [profileError, setProfileError] = useState(null);
 
 	const handleLogout = () => {
 		localStorage.removeItem("token");
 		navigate("/login", { replace: true });
 	};
+
+	useEffect(() => {
+		let mounted = true;
+		const storedUser = localStorage.getItem("user");
+		if (storedUser) {
+			try {
+				const parsed = JSON.parse(storedUser);
+				if (parsed?.firebaseUid && mounted) {
+					setUid(parsed.firebaseUid);
+				}
+			} catch (_) {
+				// ignore parsing issues
+			}
+		}
+		const unsubscribeAuth = onAuthStateChanged(auth, (current) => {
+			if (!mounted) return;
+			if (current?.uid) {
+				setUid((prev) => prev || current.uid);
+			}
+		});
+		return () => {
+			mounted = false;
+			unsubscribeAuth();
+		};
+	}, []);
+
+	useEffect(() => {
+		if (!uid) {
+			setProfile(null);
+			return undefined;
+		}
+		const unsubscribe = subscribeAdminProfile(uid, ({ data, error }) => {
+			if (error) {
+				setProfileError(error);
+				setProfile(null);
+				return;
+			}
+			setProfileError(null);
+			setProfile(data || null);
+		});
+		return () => {
+			if (typeof unsubscribe === "function") unsubscribe();
+		};
+	}, [uid]);
+
+	const displayName = profile?.name || profile?.email || "Admin";
+	const displayRole = profile?.role
+		? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
+		: "Administrator";
+	const subtitle = profileError ? "Administrator" : displayRole;
 
 	return (
 		<DashboardLayout
@@ -78,7 +132,7 @@ const AdminLayout = () => {
 			topbar={
 				<Topbar
 					title="Administration overview"
-					user={{ name: adminProfile.name, subtitle: adminProfile.role, role: "Admin" }}
+								user={{ name: displayName, subtitle, role: "Admin" }}
 					rightSlot={
 						<div className="hidden items-center gap-3 md:flex">
 							<button
@@ -158,17 +212,117 @@ const CoachLayout = () => {
 };
 
 const CustomerLayout = () => {
-	const customer = useMemo(
-		() => customers.find((item) => item.id === CURRENT_CUSTOMER_ID) ?? customers[0],
-		[]
-	);
+	const [sqlUser, setSqlUser] = useState(() => {
+		try {
+			return JSON.parse(localStorage.getItem("user") || "null");
+		} catch (_) {
+			return null;
+		}
+	});
+	const [loadingUser, setLoadingUser] = useState(!sqlUser);
+	const [userError, setUserError] = useState(null);
+	const [customerDoc, setCustomerDoc] = useState(null);
+	const [coachDoc, setCoachDoc] = useState(null);
+	const [assignmentDoc, setAssignmentDoc] = useState(null);
+	const [firestoreError, setFirestoreError] = useState(null);
 
-	const coach = useMemo(
-		() => coaches.find((item) => item.id === customer?.coachId),
-		[customer?.coachId]
-	);
+	useEffect(() => {
+		let active = true;
+		const loadUser = async () => {
+			setLoadingUser(true);
+			try {
+				const data = await get("/auth/me");
+				if (!active) return;
+				setSqlUser((prev) => {
+					const merged = { ...(prev || {}), ...(data || {}) };
+					try {
+						localStorage.setItem("user", JSON.stringify(merged));
+					} catch (_) {
+						// ignore storage failures
+					}
+					return merged;
+				});
+				setUserError(null);
+			} catch (error) {
+				if (!active) return;
+				setUserError(error);
+			} finally {
+				if (active) setLoadingUser(false);
+			}
+		};
 
-	const subtitle = coach ? `Coach: ${coach.name}` : "Customer";
+		loadUser();
+		return () => {
+			active = false;
+		};
+	}, []);
+
+	const firebaseUid = sqlUser?.firebaseUid || null;
+
+	useEffect(() => {
+		if (!firebaseUid) {
+			setCustomerDoc(null);
+			setCoachDoc(null);
+			setAssignmentDoc(null);
+			setFirestoreError(null);
+			return undefined;
+		}
+
+		const unsubscribe = subscribeCustomerContext(firebaseUid, ({ customer, coach, assignment, error }) => {
+			if (error) {
+				setFirestoreError(error);
+				return;
+			}
+			setFirestoreError(null);
+			if (customer !== undefined) setCustomerDoc(customer || null);
+			if (coach !== undefined) setCoachDoc(coach || null);
+			if (assignment !== undefined) setAssignmentDoc(assignment || null);
+		});
+
+		return () => {
+			if (typeof unsubscribe === "function") {
+				unsubscribe();
+			}
+		};
+	}, [firebaseUid]);
+
+	const resolvedCustomer = useMemo(() => {
+		if (customerDoc) return customerDoc;
+		if (!sqlUser) return null;
+		return {
+			id: sqlUser.firebaseUid || String(sqlUser.id || ""),
+			name: sqlUser.name || sqlUser.email || "Customer",
+			email: sqlUser.email || "",
+			role: sqlUser.role || "customer",
+			trajectId: sqlUser.trajectId || null,
+		};
+	}, [customerDoc, sqlUser]);
+
+	const resolvedCoach = useMemo(() => {
+		if (coachDoc) return coachDoc;
+		return null;
+	}, [coachDoc]);
+
+	const activityLabel = useMemo(() => {
+		if (!resolvedCustomer?.lastActivity) return "-";
+		const value = resolvedCustomer.lastActivity;
+		if (value instanceof Date) {
+			return value.toLocaleString();
+		}
+		if (typeof value === "string") return value;
+		return "-";
+	}, [resolvedCustomer?.lastActivity]);
+
+	const subtitleParts = [];
+	if (resolvedCoach?.name) subtitleParts.push(`Coach: ${resolvedCoach.name}`);
+	if (assignmentDoc?.status) subtitleParts.push(assignmentDoc.status);
+	const subtitle = subtitleParts.join(" • ") || "Customer";
+
+	const topbarUser = {
+		name: resolvedCustomer?.name || "Customer",
+		subtitle,
+		role: "Customer",
+	};
 
 	return (
 		<DashboardLayout
@@ -186,19 +340,15 @@ const CustomerLayout = () => {
 			topbar={
 				<Topbar
 					title="Jouw EVC-traject"
-					user={{
-						name: customer?.name ?? "Customer",
-						subtitle,
-						role: "Customer",
-					}}
+					user={topbarUser}
 					rightSlot={
 						<div className="flex items-center gap-3 text-sm text-slate-500">
 							<span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
-								Laatste activiteit: {customer?.lastActivity ?? "-"}
+								Laatste activiteit: {activityLabel}
 							</span>
-							{coach ? (
+							{resolvedCoach ? (
 								<span className="hidden rounded-full bg-brand-50 px-3 py-1 font-medium text-brand-600 sm:inline">
-									Coach {coach.name}
+									Coach {resolvedCoach.name}
 								</span>
 							) : null}
 						</div>
@@ -206,7 +356,17 @@ const CustomerLayout = () => {
 				/>
 			}
 		>
-			<Outlet context={{ customer, coach }} />
+			<Outlet
+				context={{
+					customer: resolvedCustomer,
+					coach: resolvedCoach,
+					assignment: assignmentDoc,
+					account: sqlUser,
+					loadingUser,
+					userError,
+					firestoreError,
+				}}
+			/>
 		</DashboardLayout>
 	);
 };

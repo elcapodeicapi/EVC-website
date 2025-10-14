@@ -104,7 +104,7 @@ exports.me = async (req, res) => {
   try {
     const { User } = require("../Models");
     const user = await User.findByPk(req.user.id, {
-      attributes: ["id", "email", "role", "name", "createdAt"]
+      attributes: ["id", "email", "role", "name", "createdAt", "firebaseUid", "trajectId"]
     });
 
     if (!user) return res.status(404).json({ error: "User not found" });

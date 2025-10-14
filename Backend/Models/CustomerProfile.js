@@ -49,6 +49,21 @@ const CustomerProfile = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    educations: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
+    certificates: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
+    workExperience: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
   },
   {
     tableName: "CustomerProfiles",

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, RefreshCcw } from "lucide-react";
-import { get, post } from "../../lib/api";
+import { CircleCheck, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import { get, post, put } from "../../lib/api";
 import { uid } from "../../lib/utils";
 
 const createCompetency = () => ({
@@ -8,6 +8,23 @@ const createCompetency = () => ({
   code: "",
   title: "",
   description: "",
+  desiredOutcome: "",
+  subjectKnowledge: "",
+  behavioralComponents: "",
+});
+
+const createCompetencyGroup = () => ({
+  id: uid(),
+  code: "",
+  title: "",
+  competencies: [createCompetency()],
+});
+
+const createEmptyForm = () => ({
+  id: null,
+  name: "",
+  description: "",
+  competencyGroups: [createCompetencyGroup()],
 });
 
 const formatDate = (value) => {
@@ -27,33 +44,93 @@ const formatDate = (value) => {
   }
 };
 
+const sanitizeGroupFromDetail = (group, fallbackOrder = 0) => ({
+  id: uid(),
+  code: group?.code || "",
+  title: group?.title || "",
+  order: group?.order ?? fallbackOrder,
+  competencies: Array.isArray(group?.competencies) && group.competencies.length > 0
+    ? [...group.competencies]
+        .sort((a, b) => (a?.order ?? a?.competencyOrder ?? 0) - (b?.order ?? b?.competencyOrder ?? 0))
+        .map((competency) => ({
+          id: uid(),
+          code: competency?.code || "",
+          title: competency?.title || "",
+          description: competency?.description || "",
+          desiredOutcome: competency?.desiredOutcome || "",
+          subjectKnowledge: competency?.subjectKnowledge || "",
+          behavioralComponents: competency?.behavioralComponents || "",
+        }))
+    : [createCompetency()],
+});
+
 const AdminTrajects = () => {
   const [trajects, setTrajects] = useState([]);
   const [loadingTrajects, setLoadingTrajects] = useState(true);
   const [loadError, setLoadError] = useState(null);
 
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    desiredOutcome: "",
-    subjectKnowledge: "",
-    behavioralComponents: "",
-    competencies: [createCompetency()],
-  });
+  const [selectedTrajectId, setSelectedTrajectId] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState(null);
+
+  const [form, setForm] = useState(createEmptyForm);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(null);
+
+  const isEditing = Boolean(form.id);
+  const formDisabled = saving || loadingDetail;
 
   const loadTrajects = useCallback(async () => {
     setLoadingTrajects(true);
     setLoadError(null);
     try {
       const data = await get("/trajects");
-      setTrajects(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setTrajects(list);
+      return list;
     } catch (error) {
-      setLoadError(error.message || "Kon trajecten niet ophalen");
+      const message = error?.message || "Kon trajecten niet ophalen";
+      setLoadError(message);
+      setTrajects([]);
+      return [];
     } finally {
       setLoadingTrajects(false);
+    }
+  }, []);
+
+  const resetToNewForm = useCallback(() => {
+    setSelectedTrajectId(null);
+    setForm(createEmptyForm());
+    setDetailError(null);
+    setSaveError(null);
+    setSaveSuccess(null);
+  }, []);
+
+  const loadTrajectDetail = useCallback(async (id) => {
+    if (!id) return;
+    setLoadingDetail(true);
+    setDetailError(null);
+    try {
+      const data = await get(`/trajects/${id}`);
+      const groups = Array.isArray(data?.competencyGroups) ? data.competencyGroups : [];
+      const sanitizedGroups = groups
+        .map((group, index) => sanitizeGroupFromDetail(group, index))
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map(({ order, ...rest }) => rest);
+
+      setForm({
+        id: data?.id || id,
+        name: data?.name || "",
+        description: data?.description || "",
+        competencyGroups: sanitizedGroups.length > 0 ? sanitizedGroups : [createCompetencyGroup()],
+      });
+      setSelectedTrajectId(id);
+    } catch (error) {
+      const message = error?.message || "Kon traject niet laden";
+      setDetailError(message);
+    } finally {
+      setLoadingDetail(false);
     }
   }, []);
 
@@ -63,7 +140,7 @@ const AdminTrajects = () => {
 
   useEffect(() => {
     if (!saveSuccess && !saveError) {
-      return undefined;
+      return () => {};
     }
     const timeout = setTimeout(() => {
       setSaveSuccess(null);
@@ -77,59 +154,147 @@ const AdminTrajects = () => {
     setForm((previous) => ({ ...previous, [name]: value }));
   };
 
-  const handleCompetencyChange = (id, field, value) => {
+  const handleGroupChange = (groupId, field, value) => {
     setForm((previous) => ({
       ...previous,
-      competencies: previous.competencies.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
+      competencyGroups: previous.competencyGroups.map((group) =>
+        group.id === groupId ? { ...group, [field]: value } : group
       ),
     }));
   };
 
-  const handleAddCompetency = () => {
+  const handleAddGroup = () => {
+    if (formDisabled) return;
     setForm((previous) => ({
       ...previous,
-      competencies: [...previous.competencies, createCompetency()],
+      competencyGroups: [...previous.competencyGroups, createCompetencyGroup()],
     }));
   };
 
-  const handleRemoveCompetency = (id) => {
+  const handleRemoveGroup = (groupId) => {
+    if (formDisabled) return;
     setForm((previous) => {
-      const nextCompetencies = previous.competencies.filter((item) => item.id !== id);
+      const remaining = previous.competencyGroups.filter((group) => group.id !== groupId);
       return {
         ...previous,
-        competencies: nextCompetencies.length > 0 ? nextCompetencies : [createCompetency()],
+        competencyGroups: remaining.length > 0 ? remaining : [createCompetencyGroup()],
       };
     });
   };
 
-  const resetForm = () => {
-    setForm({
-      name: "",
-      description: "",
-      desiredOutcome: "",
-      subjectKnowledge: "",
-      behavioralComponents: "",
-      competencies: [createCompetency()],
-    });
+  const handleCompetencyChange = (groupId, competencyId, field, value) => {
+    setForm((previous) => ({
+      ...previous,
+      competencyGroups: previous.competencyGroups.map((group) => {
+        if (group.id !== groupId) return group;
+        return {
+          ...group,
+          competencies: group.competencies.map((competency) =>
+            competency.id === competencyId ? { ...competency, [field]: value } : competency
+          ),
+        };
+      }),
+    }));
   };
 
-  const validCompetencies = useMemo(
+  const handleAddCompetency = (groupId) => {
+    if (formDisabled) return;
+    setForm((previous) => ({
+      ...previous,
+      competencyGroups: previous.competencyGroups.map((group) =>
+        group.id === groupId
+          ? { ...group, competencies: [...group.competencies, createCompetency()] }
+          : group
+      ),
+    }));
+  };
+
+  const handleRemoveCompetency = (groupId, competencyId) => {
+    if (formDisabled) return;
+    setForm((previous) => ({
+      ...previous,
+      competencyGroups: previous.competencyGroups.map((group) => {
+        if (group.id !== groupId) return group;
+        const remaining = group.competencies.filter((competency) => competency.id !== competencyId);
+        return {
+          ...group,
+          competencies: remaining.length > 0 ? remaining : [createCompetency()],
+        };
+      }),
+    }));
+  };
+
+  const groupsForSubmission = useMemo(() => {
+    return form.competencyGroups
+      .map((group, groupIndex) => {
+        const trimmedCode = group.code.trim();
+        const trimmedTitle = group.title.trim();
+        const competencies = group.competencies
+          .map((competency, competencyIndex) => {
+            const trimmed = {
+              code: competency.code.trim(),
+              title: competency.title.trim(),
+              description: competency.description.trim(),
+              desiredOutcome: competency.desiredOutcome.trim(),
+              subjectKnowledge: competency.subjectKnowledge.trim(),
+              behavioralComponents: competency.behavioralComponents.trim(),
+            };
+            const hasContent = Object.values(trimmed).some((value) => value.length > 0);
+            if (!hasContent) {
+              return null;
+            }
+            return {
+              ...trimmed,
+              rawId: competency.id,
+              groupId: group.id,
+              competencyIndex,
+            };
+          })
+          .filter(Boolean);
+
+        return {
+          id: group.id,
+          groupIndex,
+          trimmedCode,
+          trimmedTitle,
+          competencies,
+        };
+      })
+      .filter((group) => group.trimmedCode || group.trimmedTitle || group.competencies.length > 0);
+  }, [form.competencyGroups]);
+
+  const hasInvalidGroup = useMemo(
+    () => groupsForSubmission.some((group) => !group.trimmedCode || !group.trimmedTitle),
+    [groupsForSubmission]
+  );
+
+  const hasInvalidCompetency = useMemo(
     () =>
-      form.competencies
-        .map((item, index) => ({ ...item, index }))
-        .filter((item) => item.code.trim() || item.title.trim() || item.description.trim()),
-    [form.competencies]
+      groupsForSubmission.some((group) =>
+        group.competencies.some(
+          (competency) =>
+            !competency.code ||
+            !competency.title ||
+            !competency.desiredOutcome ||
+            !competency.subjectKnowledge ||
+            !competency.behavioralComponents
+        )
+      ),
+    [groupsForSubmission]
+  );
+
+  const groupsWithCompetencies = useMemo(
+    () => groupsForSubmission.filter((group) => group.competencies.length > 0),
+    [groupsForSubmission]
   );
 
   const canSubmit = useMemo(() => {
-    if (saving) return false;
+    if (formDisabled) return false;
     if (!form.name.trim()) return false;
-    if (!form.desiredOutcome.trim()) return false;
-    if (!form.subjectKnowledge.trim()) return false;
-    if (!form.behavioralComponents.trim()) return false;
-    return validCompetencies.length > 0;
-  }, [form.name, form.desiredOutcome, form.subjectKnowledge, form.behavioralComponents, saving, validCompetencies.length]);
+    if (groupsWithCompetencies.length === 0) return false;
+    if (hasInvalidGroup || hasInvalidCompetency) return false;
+    return true;
+  }, [formDisabled, form.name, groupsWithCompetencies, hasInvalidGroup, hasInvalidCompetency]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -139,44 +304,111 @@ const AdminTrajects = () => {
     setSaveError(null);
     setSaveSuccess(null);
 
-    try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        desiredOutcome: form.desiredOutcome.trim(),
-        subjectKnowledge: form.subjectKnowledge.trim(),
-        behavioralComponents: form.behavioralComponents.trim(),
-        competencies: validCompetencies.map((item) => ({
-          code: item.code.trim(),
-          title: item.title.trim() || item.code.trim() || `Competentie ${item.index + 1}`,
-          body: item.description.trim(),
-          order: item.index,
-          tasks: [],
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      competencyGroups: groupsWithCompetencies.map((group, groupIndex) => ({
+        code: group.trimmedCode,
+        title: group.trimmedTitle,
+        order: groupIndex,
+        competencies: group.competencies.map((competency, competencyIndex) => ({
+          code: competency.code,
+          title: competency.title,
+          description: competency.description,
+          desiredOutcome: competency.desiredOutcome,
+          subjectKnowledge: competency.subjectKnowledge,
+          behavioralComponents: competency.behavioralComponents,
+          order: competencyIndex,
         })),
-      };
+      })),
+    };
 
-      await post("/trajects", payload);
-      setSaveSuccess("Nieuw traject opgeslagen");
-      resetForm();
-      await loadTrajects();
+    try {
+      if (isEditing) {
+        await put(`/trajects/${form.id}`, payload);
+        setSaveSuccess("Traject bijgewerkt");
+        await loadTrajects();
+        await loadTrajectDetail(form.id);
+      } else {
+        const created = await post("/trajects", payload);
+        setSaveSuccess("Nieuw traject opgeslagen");
+        const list = await loadTrajects();
+        const newId = created?.id || list.find((item) => item.name === payload.name)?.id || null;
+        if (newId) {
+          await loadTrajectDetail(newId);
+        } else {
+          resetToNewForm();
+        }
+      }
     } catch (error) {
-      setSaveError(error.message || "Opslaan mislukt");
+      setSaveError(error?.message || "Opslaan mislukt");
     } finally {
       setSaving(false);
     }
   };
+
+  const selectedTraject = useMemo(
+    () => trajects.find((item) => item.id === selectedTrajectId) || null,
+    [trajects, selectedTrajectId]
+  );
+
+  const totalCompetencyCount = groupsWithCompetencies.reduce(
+    (total, group) => total + group.competencies.length,
+    0
+  );
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Trajectbeheer</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Maak nieuwe trajecten aan en vul direct de standaardcompetenties in zodat coaches en deelnemers gelijk kunnen starten.
+          Maak nieuwe trajecten aan of bewerk bestaande trajecten en competenties. Wijzigingen zijn direct zichtbaar voor deelnemers en coaches.
         </p>
       </div>
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="relative space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          {loadingDetail && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/70">
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Traject laden...
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 rounded-xl bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {isEditing ? "Bewerk traject" : "Nieuw traject"}
+              </p>
+              <h2 className="text-lg font-semibold text-slate-900">
+                {isEditing ? form.name || selectedTraject?.name || "Naamloos traject" : "Maak een nieuw traject"}
+              </h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {isEditing && selectedTraject && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  <CircleCheck className="h-3.5 w-3.5" />
+                  Gekoppeld: {selectedTraject.competencyCount || 0} competenties
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={resetToNewForm}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+              >
+                Nieuw traject
+              </button>
+            </div>
+          </div>
+
+          {detailError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {detailError}
+            </div>
+          )}
+
           <div className="space-y-2">
             <label htmlFor="traject-name" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Trajectnaam
@@ -186,8 +418,9 @@ const AdminTrajects = () => {
               name="name"
               value={form.name}
               onChange={handleChange}
+              disabled={formDisabled}
               placeholder="Bijvoorbeeld: Sociaal Werk Niveau 5"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
             />
           </div>
 
@@ -200,214 +433,254 @@ const AdminTrajects = () => {
               name="description"
               value={form.description}
               onChange={handleChange}
+              disabled={formDisabled}
               rows={3}
               placeholder="Optioneel. Geef een korte toelichting voor coaches."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="traject-desired" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Gewenst resultaat
-            </label>
-            <textarea
-              id="traject-desired"
-              name="desiredOutcome"
-              value={form.desiredOutcome}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Wat moet de deelnemer aantoonbaar kunnen na afronding?"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="traject-knowledge" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Vakkennis en vaardigheden
-            </label>
-            <textarea
-              id="traject-knowledge"
-              name="subjectKnowledge"
-              value={form.subjectKnowledge}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Beschrijf de noodzakelijke theorie en praktische skills."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="traject-behavior" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Gedragscomponenten
-            </label>
-            <textarea
-              id="traject-behavior"
-              name="behavioralComponents"
-              value={form.behavioralComponents}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Welke houding en gedrag horen bij dit traject?"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Competenties</h2>
+          <div className="space-y-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Competentie-structuur</h2>
+                <p className="text-xs text-slate-500">
+                  Groepeer competenties per betekenisvolle cluster, zoals <strong>B1-K1</strong> met meerdere werkprocessen.
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={handleAddCompetency}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-slate-700"
+                onClick={handleAddGroup}
+                disabled={formDisabled}
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Plus className="h-4 w-4" />
-                Voeg competency toe
+                Nieuw cluster
               </button>
             </div>
 
-            {form.competencies.map((competency, index) => (
-              <div key={competency.id} className="space-y-4 rounded-xl border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="text-sm font-semibold text-slate-700">Competentie {index + 1}</div>
+            {form.competencyGroups.map((group, groupIndex) => (
+              <div key={group.id} className="space-y-4 rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-brand-500">Cluster {groupIndex + 1}</p>
+                    <h3 className="text-lg font-semibold text-slate-900">Competentiegebied</h3>
+                    <p className="text-sm text-slate-500">Bijvoorbeeld B1-K1 met een herkenbare titel.</p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => handleRemoveCompetency(competency.id)}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:border-red-200 hover:text-red-600"
+                    onClick={() => handleRemoveGroup(group.id)}
+                    disabled={formDisabled}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
                   >
                     <Trash2 className="h-4 w-4" />
-                    Verwijder
+                    Verwijder cluster
                   </button>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Code</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cluster code</label>
                     <input
-                      value={competency.code}
-                      onChange={(event) => handleCompetencyChange(competency.id, "code", event.target.value)}
-                      placeholder="Bijv. B1-K1-W1"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      value={group.code}
+                      onChange={(event) => handleGroupChange(group.id, "code", event.target.value)}
+                      disabled={formDisabled}
+                      placeholder="Bijv. B1-K1"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Titel</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cluster naam</label>
                     <input
-                      value={competency.title}
-                      onChange={(event) => handleCompetencyChange(competency.id, "title", event.target.value)}
-                      placeholder="Korte titel"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      value={group.title}
+                      onChange={(event) => handleGroupChange(group.id, "title", event.target.value)}
+                      disabled={formDisabled}
+                      placeholder="Bijv. Analyseren van ondersteuningsvragen"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Omschrijving</label>
-                  <textarea
-                    value={competency.description}
-                    onChange={(event) => handleCompetencyChange(competency.id, "description", event.target.value)}
-                    rows={3}
-                    placeholder="Waar focust deze competentie op?"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                  />
+                <div className="space-y-4">
+                  {group.competencies.map((competency, competencyIndex) => (
+                    <div key={competency.id} className="space-y-4 rounded-xl border border-slate-200 p-4 shadow-sm">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Competentie {competencyIndex + 1}</p>
+                          <p className="text-sm text-slate-500">Vul de werkprocescode en aanvullende velden in.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCompetency(group.id, competency.id)}
+                          disabled={formDisabled}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Verwijder competentie
+                        </button>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Code</label>
+                          <input
+                            value={competency.code}
+                            onChange={(event) => handleCompetencyChange(group.id, competency.id, "code", event.target.value)}
+                            disabled={formDisabled}
+                            placeholder="Bijv. B1-K1-W1"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Titel</label>
+                          <input
+                            value={competency.title}
+                            onChange={(event) => handleCompetencyChange(group.id, competency.id, "title", event.target.value)}
+                            disabled={formDisabled}
+                            placeholder="Bijv. Ondersteuningsvragen analyseren"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="space-y-2 sm:col-span-2">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Omschrijving</label>
+                          <textarea
+                            value={competency.description}
+                            onChange={(event) => handleCompetencyChange(group.id, competency.id, "description", event.target.value)}
+                            disabled={formDisabled}
+                            rows={2}
+                            placeholder="Optioneel. Beschrijf het werkproces kort."
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Gewenst resultaat</label>
+                          <textarea
+                            value={competency.desiredOutcome}
+                            onChange={(event) => handleCompetencyChange(group.id, competency.id, "desiredOutcome", event.target.value)}
+                            disabled={formDisabled}
+                            rows={2}
+                            placeholder="Wat moet er bereikt worden?"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vakkennis</label>
+                          <textarea
+                            value={competency.subjectKnowledge}
+                            onChange={(event) => handleCompetencyChange(group.id, competency.id, "subjectKnowledge", event.target.value)}
+                            disabled={formDisabled}
+                            rows={2}
+                            placeholder="Welke kennis is nodig?"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Gedragscomponenten</label>
+                          <textarea
+                            value={competency.behavioralComponents}
+                            onChange={(event) => handleCompetencyChange(group.id, competency.id, "behavioralComponents", event.target.value)}
+                            disabled={formDisabled}
+                            rows={2}
+                            placeholder="Welke houding wordt verwacht?"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => handleAddCompetency(group.id)}
+                    disabled={formDisabled}
+                    className="inline-flex items-center gap-2 rounded-full border border-dashed border-brand-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-600 transition hover:border-brand-400 hover:text-brand-700 disabled:cursor-not-allowed disabled:border-brand-100 disabled:text-brand-200"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Voeg competentie toe
+                  </button>
                 </div>
               </div>
             ))}
           </div>
 
-          {(saveError || saveSuccess) && (
-            <div
-              className={`rounded-xl border px-4 py-3 text-sm ${
-                saveError
-                  ? "border-red-200 bg-red-50 text-red-600"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-600"
-              }`}
-            >
-              {saveError || saveSuccess}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1 text-sm">
+              {saveSuccess && <p className="text-sm font-medium text-emerald-600">{saveSuccess}</p>}
+              {saveError && <p className="text-sm font-medium text-red-600">{saveError}</p>}
+              {!saveSuccess && !saveError && (
+                <p className="text-xs text-slate-500">
+                  Je traject bevat {totalCompetencyCount} competenties verdeeld over {groupsWithCompetencies.length} clusters.
+                </p>
+              )}
             </div>
-          )}
-
-          <div className="flex flex-wrap items-center gap-3">
             <button
               type="submit"
               disabled={!canSubmit}
-              className={`inline-flex items-center rounded-full px-5 py-2 text-sm font-semibold text-white shadow-sm transition ${
-                canSubmit
-                  ? "bg-brand-600 hover:bg-brand-500"
-                  : "cursor-not-allowed bg-slate-300"
-              }`}
+              className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              {saving ? "Opslaan..." : "Opslaan"}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="inline-flex items-center rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand-400 hover:text-brand-600"
-            >
-              Reset
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CircleCheck className="h-4 w-4" />}
+              {isEditing ? "Wijzigingen opslaan" : "Traject opslaan"}
             </button>
           </div>
         </form>
 
         <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">Bestaande trajecten</h2>
-              <p className="mt-1 text-sm text-slate-500">Overzicht uit Firestore</p>
-            </div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Trajecten</h2>
             <button
               type="button"
               onClick={loadTrajects}
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand-400 hover:text-brand-600"
+              disabled={loadingTrajects}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:border-slate-300 hover:text-slate-700 disabled:cursor-not-allowed disabled:text-slate-300"
             >
-              <RefreshCcw className="h-4 w-4" />
-              Ververs
+              <RefreshCcw className={loadingTrajects ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+              Vernieuwen
             </button>
           </div>
 
           {loadingTrajects ? (
-            <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">Laden...</p>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" /> Trajecten laden...
+            </div>
           ) : loadError ? (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{loadError}</p>
+            <p className="text-sm text-red-600">{loadError}</p>
           ) : trajects.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-400">
-              Nog geen trajecten vastgelegd.
-            </p>
+            <p className="text-sm text-slate-500">Er zijn nog geen trajecten aangemaakt.</p>
           ) : (
             <ul className="space-y-3">
-              {trajects.map((traject) => (
-                <li key={traject.id} className="space-y-1 rounded-xl border border-slate-200 px-4 py-3 text-sm shadow-sm">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-semibold text-slate-900">{traject.name}</p>
-                      {traject.description ? (
-                        <p className="text-sm text-slate-500">{traject.description}</p>
-                      ) : null}
-                      <div className="mt-2 space-y-1 text-sm text-slate-500">
-                        {traject.desiredOutcome ? (
-                          <p>
-                            <span className="font-semibold text-slate-600">Gewenst resultaat: </span>
-                            {traject.desiredOutcome}
+              {trajects.map((traject) => {
+                const isActive = traject.id === selectedTrajectId;
+                return (
+                  <li key={traject.id}>
+                    <button
+                      type="button"
+                      onClick={() => loadTrajectDetail(traject.id)}
+                      className={`w-full text-left transition focus:outline-none focus:ring-2 focus:ring-brand-200 ${
+                        isActive
+                          ? "rounded-xl border border-brand-300 bg-brand-50 p-4 shadow-sm"
+                          : "rounded-xl border border-slate-200 p-4 shadow-sm hover:border-brand-200 hover:bg-brand-50/60"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="text-base font-semibold text-slate-900">{traject.name}</h3>
+                          <p className="text-xs text-slate-500">
+                            {traject.competencyGroups?.length || 0} clusters · {traject.competencyCount || 0} competenties
                           </p>
-                        ) : null}
-                        {traject.subjectKnowledge ? (
-                          <p>
-                            <span className="font-semibold text-slate-600">Vakkennis & vaardigheden: </span>
-                            {traject.subjectKnowledge}
-                          </p>
-                        ) : null}
-                        {traject.behavioralComponents ? (
-                          <p>
-                            <span className="font-semibold text-slate-600">Gedragscomponenten: </span>
-                            {traject.behavioralComponents}
-                          </p>
-                        ) : null}
+                        </div>
+                        {isActive && <CircleCheck className="h-4 w-4 text-brand-600" />}
                       </div>
-                    </div>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {formatDate(traject.updatedAt || traject.createdAt)}
-                    </span>
-                  </div>
-                </li>
-              ))}
+                      <p className="mt-2 text-xs text-slate-400">Laatst bijgewerkt: {formatDate(traject.updatedAt)}</p>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </aside>

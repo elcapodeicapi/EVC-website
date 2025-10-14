@@ -1,4 +1,70 @@
 const { CustomerProfile, User } = require("../Models");
+const crypto = require("crypto");
+
+function generateId() {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `id-${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+}
+
+function coerceArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+  return [];
+}
+
+function sanitizeString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeEducations(value) {
+  return coerceArray(value)
+    .map((entry) => ({
+      id: sanitizeString(entry?.id) || generateId(),
+      title: sanitizeString(entry?.title),
+      institution: sanitizeString(entry?.institution),
+      note: sanitizeString(entry?.note || entry?.description || entry?.toelichting),
+      startDate: sanitizeString(entry?.startDate),
+      endDate: sanitizeString(entry?.endDate),
+    }))
+    .filter((entry) => entry.title);
+}
+
+function normalizeCertificates(value) {
+  return coerceArray(value)
+    .map((entry) => ({
+      id: sanitizeString(entry?.id) || generateId(),
+      title: sanitizeString(entry?.title),
+      filePath: sanitizeString(entry?.filePath),
+      fileName: sanitizeString(entry?.fileName) || sanitizeString(entry?.originalName),
+      size: typeof entry?.size === "number" ? entry.size : null,
+      uploadedAt: entry?.uploadedAt ? String(entry.uploadedAt) : null,
+      note: sanitizeString(entry?.note || entry?.description || entry?.toelichting),
+    }))
+    .filter((entry) => entry.title && entry.filePath);
+}
+
+function normalizeWorkExperience(value) {
+  return coerceArray(value)
+    .map((entry) => ({
+      id: sanitizeString(entry?.id) || generateId(),
+      role: sanitizeString(entry?.role || entry?.title),
+      organisation: sanitizeString(entry?.organisation || entry?.organization || entry?.company),
+      note: sanitizeString(entry?.note || entry?.description || entry?.toelichting),
+      startDate: sanitizeString(entry?.startDate),
+      endDate: sanitizeString(entry?.endDate),
+    }))
+    .filter((entry) => entry.role || entry.organisation || entry.note);
+}
 
 function normalizeProfile(profile) {
   if (!profile) {
@@ -13,8 +79,15 @@ function normalizeProfile(profile) {
       addition: "",
       postalCode: "",
       city: "",
+      educations: [],
+      certificates: [],
+      workExperience: [],
     };
   }
+
+  const educations = normalizeEducations(profile.educations);
+  const certificates = normalizeCertificates(profile.certificates);
+  const workExperience = normalizeWorkExperience(profile.workExperience);
 
   return {
     dateOfBirth: profile.dateOfBirth ? String(profile.dateOfBirth) : "",
@@ -27,6 +100,9 @@ function normalizeProfile(profile) {
     addition: profile.addition || "",
     postalCode: profile.postalCode || "",
     city: profile.city || "",
+    educations,
+    certificates,
+    workExperience,
   };
 }
 
@@ -42,6 +118,9 @@ function sanitizePayload(body) {
     addition = "",
     postalCode = "",
     city = "",
+    educations = [],
+    certificates = [],
+    workExperience = [],
   } = body || {};
 
   const payload = {
@@ -54,6 +133,9 @@ function sanitizePayload(body) {
     addition: addition.trim(),
     postalCode: postalCode.trim(),
     city: city.trim(),
+    educations: normalizeEducations(educations),
+    certificates: normalizeCertificates(certificates),
+    workExperience: normalizeWorkExperience(workExperience),
   };
 
   const dobValue = typeof dateOfBirth === "string" ? dateOfBirth.trim() : "";
@@ -125,5 +207,25 @@ exports.updateProfile = async (req, res) => {
   } catch (error) {
     const status = error.status || 500;
     return res.status(status).json({ error: error.message || "Failed to update profile" });
+  }
+};
+
+exports.uploadCertificate = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "File is required" });
+    }
+
+    const filePath = `/uploads/${req.file.filename}`;
+    const metadata = {
+      filePath,
+      fileName: req.file.originalname || req.file.filename,
+      size: typeof req.file.size === "number" ? req.file.size : null,
+      uploadedAt: new Date().toISOString(),
+    };
+
+    return res.json(metadata);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Failed to upload certificate" });
   }
 };

@@ -1,23 +1,40 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminUsers, customers } from "../../data/mockData";
+import { subscribeUsers } from "../../lib/firestoreAdmin";
 
 const Overview = () => {
   const navigate = useNavigate();
+  const [users, setUsers] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const customersByEmail = useMemo(() => {
-    const map = new Map();
-    customers.forEach((customer) => {
-      map.set(customer.email, customer);
+  useEffect(() => {
+    setLoading(true);
+    const unsubscribe = subscribeUsers(({ data, error: listenerError }) => {
+      if (listenerError) {
+        setError(listenerError);
+        setLoading(false);
+        return;
+      }
+      setUsers(Array.isArray(data) ? data : []);
+      setError(null);
+      setLoading(false);
     });
-    return map;
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+    };
   }, []);
 
+  const formatRole = (role) => {
+    if (!role) return "Onbekend";
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  };
+
   const handleOpenCustomer = (user) => {
-    const customer = customersByEmail.get(user.email);
-    if (customer) {
-      navigate(`/coach/customers/${customer.id}`);
-    }
+    if (!user || user.role !== "customer") return;
+    navigate(`/coach/customers/${user.id}`);
   };
 
   return (
@@ -28,6 +45,12 @@ const Overview = () => {
           Beheer klantprofielen en stap in hun omgeving om hun voortgang in te zien.
         </p>
       </div>
+
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Kan accounts niet laden: {error.message || "Onbekende fout"}
+        </div>
+      ) : null}
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <table className="min-w-full divide-y divide-slate-200">
@@ -48,40 +71,56 @@ const Overview = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 text-sm text-slate-600">
-            {adminUsers.map((user) => {
-              const customer = customersByEmail.get(user.email);
-              const canOpen = user.role === "Customer" && customer;
-
-              return (
-                <tr key={user.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{user.name}</td>
-                  <td className="px-4 py-3">
-                    <a href={`mailto:${user.email}`} className="text-brand-600 hover:text-brand-500">
-                      {user.email}
-                    </a>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenCustomer(user)}
-                      disabled={!canOpen}
-                      className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition ${
-                        canOpen
-                          ? "bg-brand-600 text-white shadow-sm hover:bg-brand-500"
-                          : "cursor-not-allowed bg-slate-100 text-slate-400"
-                      }`}
-                    >
-                      Open as Customer
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {loading ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-slate-400" colSpan={4}>
+                  Accounts laden...
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-slate-400" colSpan={4}>
+                  Nog geen accounts gevonden.
+                </td>
+              </tr>
+            ) : (
+              users.map((user) => {
+                const isCustomer = user.role === "customer";
+                return (
+                  <tr key={user.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-900">{user.name || "Naam onbekend"}</td>
+                    <td className="px-4 py-3">
+                      {user.email ? (
+                        <a href={`mailto:${user.email}`} className="text-brand-600 hover:text-brand-500">
+                          {user.email}
+                        </a>
+                      ) : (
+                        <span className="text-slate-400">Geen e-mail</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        {formatRole(user.role)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCustomer(user)}
+                        disabled={!isCustomer}
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition ${
+                          isCustomer
+                            ? "bg-brand-600 text-white shadow-sm hover:bg-brand-500"
+                            : "cursor-not-allowed bg-slate-100 text-slate-400"
+                        }`}
+                      >
+                        {isCustomer ? "Open as Customer" : "Alleen klanten"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

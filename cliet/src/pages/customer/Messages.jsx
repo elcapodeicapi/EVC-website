@@ -1,42 +1,137 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import ChatWindow from "../../components/ChatWindow";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import { threads, threadMessages } from "../../data/mockData";
+import { get, post } from "../../lib/api";
 
 const CustomerMessages = () => {
-  const { customer, coach } = useOutletContext();
+  const { customer, coach, account } = useOutletContext();
 
-  const customerThreads = useMemo(() => {
-    if (!customer) return [];
-    return threads.filter((thread) => {
-      const matchesCustomer = thread.name.includes(customer.name);
-      const matchesCoach = coach ? thread.name.includes(coach.name) : true;
-      return matchesCustomer && matchesCoach;
-    });
-  }, [customer, coach]);
-
-  const [activeThreadId, setActiveThreadId] = useState(customerThreads[0]?.id ?? "");
+  const currentUserId = account?.id ?? null;
+  const [threads, setThreads] = useState([]);
+  const [messagesByThread, setMessagesByThread] = useState({});
+  const [activeThreadId, setActiveThreadId] = useState("");
   const [drafts, setDrafts] = useState({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    setActiveThreadId((previous) => {
-      if (customerThreads.some((thread) => thread.id === previous)) {
-        return previous;
-      }
-      return customerThreads[0]?.id ?? "";
-    });
-  }, [customerThreads]);
+  const mapMessagesToThreads = useCallback(
+    (rawMessages) => {
+      const threadMap = new Map();
 
-  useEffect(() => {
-    if (!activeThreadId) return;
+      rawMessages.forEach((message) => {
+        const fromUser = message?.fromUser || {};
+        const toUser = message?.toUser || {};
+        const outgoing = fromUser?.id === currentUserId;
+        const counterpart = outgoing ? toUser : fromUser;
+        if (!counterpart?.id) return;
+
+        const threadId = String(counterpart.id);
+        if (!threadMap.has(threadId)) {
+          threadMap.set(threadId, {
+            id: threadId,
+            name: counterpart.name || counterpart.email || "Contactpersoon",
+            targetUserId: counterpart.id,
+            lastMessage: "",
+            lastTimestamp: 0,
+            messages: [],
+          });
+        }
+
+        const thread = threadMap.get(threadId);
+        const createdAt = message.createdAt ? new Date(message.createdAt) : null;
+        const timestampMs = createdAt ? createdAt.getTime() : Date.now();
+        const authorLabel = outgoing ? customer?.name || "Ik" : counterpart.name || counterpart.email || "Contactpersoon";
+
+        thread.messages.push({
+          id: message.id,
+          author: authorLabel,
+          body: message.content || "",
+          from: outgoing ? "me" : "other",
+          timestamp: createdAt ? createdAt.toLocaleString() : "",
+          timestampMs,
+        });
+        thread.lastMessage = message.content || thread.lastMessage;
+        thread.lastTimestamp = Math.max(thread.lastTimestamp, timestampMs);
+      });
+
+      const sortedThreads = Array.from(threadMap.values()).sort((a, b) => b.lastTimestamp - a.lastTimestamp);
+      const nextThreads = sortedThreads.map(({ id, name, lastMessage, targetUserId }) => ({
+        id,
+        name,
+        lastMessage,
+        targetUserId,
+      }));
+
+      const nextMessages = {};
+      sortedThreads.forEach((thread) => {
+        const ordered = thread.messages.sort((a, b) => a.timestampMs - b.timestampMs).map(({ timestampMs, ...rest }) => rest);
+        nextMessages[thread.id] = ordered;
+      });
+
+      return { threads: nextThreads, messagesByThread: nextMessages };
+    },
+    [currentUserId, customer?.name]
+  );
+
+  const loadMessages = useCallback(async () => {
+    if (!currentUserId) {
+      setThreads([]);
+      setMessagesByThread({});
+      setActiveThreadId("");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    const timeout = setTimeout(() => setLoading(false), 350);
-    return () => clearTimeout(timeout);
-  }, [activeThreadId]);
+    try {
+      const data = await get("/messages");
+      const normalized = mapMessagesToThreads(Array.isArray(data) ? data : []);
+      setThreads(normalized.threads);
+      setMessagesByThread(normalized.messagesByThread);
+      setActiveThreadId((previous) => {
+        if (previous && normalized.threads.some((thread) => thread.id === previous)) {
+          return previous;
+        }
+        return normalized.threads[0]?.id ?? "";
+      });
+      setError(null);
+    } catch (err) {
+      setError(err?.data?.error || err?.message || "Berichten laden mislukt");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUserId, mapMessagesToThreads]);
 
-  const messages = useMemo(() => threadMessages[activeThreadId] ?? [], [activeThreadId]);
+  useEffect(() => {
+    loadMessages();
+  }, [loadMessages]);
+
+  const messages = useMemo(() => messagesByThread[activeThreadId] ?? [], [messagesByThread, activeThreadId]);
+
+  const handleSend = async () => {
+    const draft = drafts[activeThreadId] ?? "";
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+
+    const thread = threads.find((item) => item.id === activeThreadId);
+    if (!thread?.targetUserId) {
+      setError("Geen ontvanger gekoppeld aan dit gesprek.");
+      return;
+    }
+
+    setSending(true);
+    try {
+      await post("/messages/send", { toUserId: thread.targetUserId, content: trimmed });
+      setDrafts((prev) => ({ ...prev, [activeThreadId]: "" }));
+      await loadMessages();
+    } catch (err) {
+      setError(err?.data?.error || err?.message || "Versturen mislukt");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -47,11 +142,17 @@ const CustomerMessages = () => {
         </p>
       </header>
 
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
       {loading ? (
         <LoadingSpinner label="Berichten laden" />
       ) : (
         <ChatWindow
-          threads={customerThreads}
+          threads={threads}
           activeThreadId={activeThreadId}
           onSelectThread={setActiveThreadId}
           messages={messages}
@@ -59,13 +160,14 @@ const CustomerMessages = () => {
           onDraftChange={(value) =>
             setDrafts((prev) => ({ ...prev, [activeThreadId]: value }))
           }
-          onSend={() => {
-            alert("Mock bericht verzonden");
-            setDrafts((prev) => ({ ...prev, [activeThreadId]: "" }));
-          }}
-          emptyLabel="Selecteer een gesprek of start een nieuwe conversatie"
+          onSend={handleSend}
+          emptyLabel={threads.length === 0 ? "Nog geen berichten. Start een gesprek met je coach." : "Selecteer een gesprek"}
         />
       )}
+
+      {sending ? (
+        <p className="text-xs text-slate-400">Bericht wordt verzonden…</p>
+      ) : null}
     </div>
   );
 };

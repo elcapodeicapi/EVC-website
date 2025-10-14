@@ -6,10 +6,10 @@ const DashboardLayout = ({ sidebar, topbar, children }) => {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
-      <div className="lg:grid lg:grid-cols-[280px,1fr]">
+      <div className="lg:grid lg:grid-cols-[320px,1fr]">
         <div
           className={clsx(
-            "fixed inset-y-0 left-0 z-40 w-72 max-w-full transform bg-white shadow-xl transition-transform duration-300 lg:static lg:translate-x-0 lg:shadow-none",
+            "fixed inset-y-0 left-0 z-40 w-80 max-w-full transform bg-white shadow-xl transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:translate-x-0 lg:shadow-none lg:transform-none",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           )}
         >

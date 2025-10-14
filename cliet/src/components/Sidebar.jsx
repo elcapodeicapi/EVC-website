@@ -4,7 +4,7 @@ import clsx from "clsx";
 
 const Sidebar = ({ header, navItems = [], footer, onNavigate }) => {
   return (
-    <aside className="flex h-full flex-col bg-white shadow-lg">
+    <aside className="flex h-full w-80 max-w-full flex-col bg-white shadow-lg lg:h-screen">
       <div className="px-6 pb-4 pt-6 border-b border-slate-100">
         {header || (
           <div>
