@@ -1,9 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { CheckCircle2, ChevronDown, MessageCircle, Paperclip } from "lucide-react";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import { get, postForm } from "../../lib/api";
-import { fetchTraject, subscribeTrajectCompetencies } from "../../lib/firestoreCustomer";
+import { get } from "../../lib/api";
+import {
+  fetchTraject,
+  resolveUploadDownloadUrl,
+  subscribeCustomerUploads,
+  subscribeTrajectCompetencies,
+  uploadCustomerEvidence,
+} from "../../lib/firestoreCustomer";
 
 const CustomerPlanning = () => {
   const { customer, coach } = useOutletContext();
@@ -15,7 +21,9 @@ const CustomerPlanning = () => {
   const [error, setError] = useState(null);
   const [firestoreError, setFirestoreError] = useState(null);
   const [uploading, setUploading] = useState(null);
-  const [uploadsByCompetency, setUploadsByCompetency] = useState({});
+  const [customerUploads, setCustomerUploads] = useState([]);
+  const [uploadsError, setUploadsError] = useState(null);
+  const [downloadInProgress, setDownloadInProgress] = useState(null);
   const [uploadNames, setUploadNames] = useState({});
   const [uploadNameErrors, setUploadNameErrors] = useState({});
   const fileInputsRef = useRef({});
@@ -26,6 +34,7 @@ const CustomerPlanning = () => {
       return null;
     }
   });
+  const customerId = customer?.id || null;
 
   const loadPlanning = useCallback(async () => {
     setLoadingApi(true);
@@ -34,17 +43,6 @@ const CustomerPlanning = () => {
       const data = await get("/customer/planning");
       if (data?.traject) {
         setTraject(data.traject);
-      }
-      if (Array.isArray(data?.competencies)) {
-        const uploadsMap = {};
-        data.competencies.forEach((item) => {
-          const key = item.id || item.code;
-          if (!key) return;
-          uploadsMap[key] = Array.isArray(item.uploads) ? item.uploads : [];
-        });
-        setUploadsByCompetency(uploadsMap);
-      } else {
-        setUploadsByCompetency({});
       }
     } catch (err) {
       setError(err?.data?.error || err?.message || "Kon planning niet laden");
@@ -86,6 +84,19 @@ const CustomerPlanning = () => {
     };
   }, [derivedTrajectId]);
 
+  const uploadsByCompetency = useMemo(() => {
+    const grouped = {};
+    customerUploads.forEach((upload) => {
+      if (!upload) return;
+      const key = upload.competencyId || "__unassigned__";
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(upload);
+    });
+    return grouped;
+  }, [customerUploads]);
+
   useEffect(() => {
     if (traject || !derivedTrajectId) return undefined;
     let cancelled = false;
@@ -100,6 +111,29 @@ const CustomerPlanning = () => {
       cancelled = true;
     };
   }, [traject, derivedTrajectId]);
+
+  useEffect(() => {
+    if (!customerId) {
+      setCustomerUploads([]);
+      setUploadsError(null);
+      return undefined;
+    }
+
+    const unsubscribe = subscribeCustomerUploads(customerId, ({ uploads, error: subscriptionError }) => {
+      if (subscriptionError) {
+        setUploadsError(subscriptionError);
+        return;
+      }
+      setUploadsError(null);
+      setCustomerUploads(Array.isArray(uploads) ? uploads : []);
+    });
+
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+    };
+  }, [customerId]);
 
   const isLoading = loadingApi || loadingFirestore;
 
@@ -134,23 +168,27 @@ const CustomerPlanning = () => {
       return;
     }
 
+    if (!customerId) {
+      setError("Kon je accountgegevens niet vinden. Probeer opnieuw in te loggen.");
+      return;
+    }
+
     const desiredName = (uploadNames[competencyId] || "").trim();
     if (!desiredName) {
       setUploadNameErrors((previous) => ({ ...previous, [competencyId]: "Geef een naam op voor je upload." }));
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("name", desiredName);
-    formData.append("trajectId", trajectId);
-    formData.append("competencyId", competencyId);
-
     setUploading(competencyId);
     setError(null);
     try {
-      await postForm("/evidence/upload", formData);
-      await loadPlanning();
+      await uploadCustomerEvidence({
+        userId: customerId,
+        competencyId,
+        file,
+        displayName: desiredName,
+        trajectId,
+      });
       setUploadNames((previous) => ({ ...previous, [competencyId]: "" }));
       setUploadNameErrors((previous) => {
         if (!previous[competencyId]) return previous;
@@ -159,7 +197,7 @@ const CustomerPlanning = () => {
         return next;
       });
     } catch (err) {
-      setError(err?.data?.error || err?.message || "Uploaden mislukt");
+      setError(err?.message || "Uploaden mislukt");
     } finally {
       setUploading(null);
     }
@@ -237,13 +275,43 @@ const CustomerPlanning = () => {
     );
   };
 
-  const getUploadsFor = (competency) => {
+  const getUploadsFor = (competency, fallbackKey) => {
     if (!competency) return [];
-    return (
-      uploadsByCompetency[competency.id] ||
-      uploadsByCompetency[competency.code] ||
-      []
-    );
+    const candidates = [competency.id, competency.code, fallbackKey].filter(Boolean);
+    for (const candidate of candidates) {
+      if (uploadsByCompetency[candidate]) {
+        return uploadsByCompetency[candidate];
+      }
+    }
+    return [];
+  };
+
+  const handleDownload = async (upload) => {
+    if (!upload) return;
+    const canDownload = Boolean(upload.downloadURL || upload.storagePath);
+    if (!canDownload) {
+      setError("Downloadlink is niet beschikbaar voor dit bestand.");
+      return;
+    }
+
+    const downloadKey = upload.id || upload.storagePath || upload.fileName || upload.name || null;
+    if (downloadKey) {
+      setDownloadInProgress(downloadKey);
+    }
+
+    setError(null);
+
+    try {
+      const url = await resolveUploadDownloadUrl(upload);
+      if (!url) {
+        throw new Error("Downloadlink is niet beschikbaar.");
+      }
+      window.open(url, "_blank", "noopener");
+    } catch (err) {
+      setError(err?.message || "Download mislukt");
+    } finally {
+      setDownloadInProgress(null);
+    }
   };
 
   return (
@@ -271,6 +339,11 @@ const CustomerPlanning = () => {
           Kon competenties niet laden: {firestoreError.message || "Onbekende fout"}
         </div>
       ) : null}
+      {uploadsError ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Kon uploads niet laden: {uploadsError.message || "Onbekende fout"}
+        </div>
+      ) : null}
 
       {!isLoading && !derivedTrajectId ? (
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-400">
@@ -288,7 +361,7 @@ const CustomerPlanning = () => {
         {competencies.map((item, index) => {
           const key = item.id || item.code || String(index);
           const isExpanded = expandedIds.includes(key);
-          const uploads = getUploadsFor(item);
+          const uploads = getUploadsFor(item, key);
           const detailId = `competency-${key}`;
 
           return (
@@ -364,22 +437,40 @@ const CustomerPlanning = () => {
                           </p>
                         ) : (
                           <ul className="space-y-2 text-sm text-slate-600">
-                            {uploads.map((upload) => (
-                              <li
-                                key={upload.id || upload.name}
-                                className="flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm"
-                              >
-                                <Paperclip className="h-4 w-4 text-slate-400" />
-                                <span className="truncate text-sm leading-snug">{upload.name}</span>
-                                <button
-                                  type="button"
-                                  className="ml-auto text-xs font-semibold text-brand-600 transition hover:text-brand-500"
-                                  onClick={() => (upload.filePath ? window.open(upload.filePath, "_blank") : null)}
+                            {uploads.map((upload) => {
+                              const canDownload = Boolean(upload.downloadURL || upload.storagePath);
+                              const downloadKey = upload.id || upload.storagePath || upload.fileName || upload.name;
+                              return (
+                                <li
+                                  key={downloadKey}
+                                  className="flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm"
                                 >
-                                  {upload.filePath ? "Download" : "Bekijk"}
-                                </button>
-                              </li>
-                            ))}
+                                  <Paperclip className="h-4 w-4 text-slate-400" />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium text-slate-700">
+                                      {upload.displayName || upload.name || upload.fileName}
+                                    </p>
+                                    {upload.uploadedAt ? (
+                                      <p className="mt-0.5 text-xs text-slate-400">
+                                        Geüpload op {upload.uploadedAt.toLocaleString()}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="ml-auto whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                                    onClick={() => handleDownload(upload)}
+                                    disabled={downloadInProgress === downloadKey || !canDownload}
+                                  >
+                                    {downloadInProgress === downloadKey
+                                      ? "Bezig..."
+                                      : canDownload
+                                      ? "Download"
+                                      : "Niet beschikbaar"}
+                                  </button>
+                                </li>
+                              );
+                            })}
                           </ul>
                         )}
                         <div className="space-y-3">

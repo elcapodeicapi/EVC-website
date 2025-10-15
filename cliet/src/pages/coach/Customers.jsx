@@ -1,24 +1,42 @@
 import React, { useMemo, useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import DataTable from "../../components/DataTable";
-import { customers } from "../../data/mockData";
 
 const Customers = () => {
+  const { customers: customersFromContext = [] } = useOutletContext() ?? {};
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+
+  const customers = useMemo(() => {
+    return customersFromContext.map((customer) => {
+      let lastActivityLabel = "-";
+      if (customer?.lastActivity instanceof Date) {
+        lastActivityLabel = customer.lastActivity.toLocaleDateString();
+      } else if (typeof customer?.lastActivity === "string" && customer.lastActivity.trim()) {
+        lastActivityLabel = customer.lastActivity;
+      }
+
+      return {
+        id: customer.id,
+        name: customer.name || customer.email || "Onbekende klant",
+        email: customer.email || "-",
+        lastActivityLabel,
+      };
+    });
+  }, [customersFromContext]);
 
   const filtered = useMemo(() => {
     if (!query) return customers;
     return customers.filter((customer) =>
       `${customer.name} ${customer.email}`.toLowerCase().includes(query.toLowerCase())
     );
-  }, [query]);
+  }, [customers, query]);
 
   const columns = [
     { header: "Name", accessor: "name" },
     { header: "Email", accessor: "email" },
-    { header: "Last Activity", accessor: "lastActivity" },
+    { header: "Last Activity", accessor: "lastActivityLabel" },
   ];
 
   return (

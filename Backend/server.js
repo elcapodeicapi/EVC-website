@@ -1,15 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { sequelize, User, Task, Evidence, Message, Response } = require("./Models");
+const { sequelize } = require("./Models");
 const { db: fbDb, auth: fbAuth } = require("./firebase");
 
-const taskRoutes = require("./routes/tasks");
 const evidenceRoutes = require("./routes/evidence");
 const messageRoutes = require("./routes/messages");
 const authRoutes = require("./routes/auth");
-const responseRoutes = require("./routes/responses");
-const taskEvidenceRoutes = require("./routes/taskEvidence");
 const customerRoutes = require("./routes/customer");
 const trajectRoutes = require("./routes/trajects");
 
@@ -23,12 +20,9 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const clientDistPath = path.resolve(__dirname, "../cliet/dist");
 app.use(express.static(clientDistPath));
 
-app.use("/tasks", taskRoutes);
 app.use("/evidence", evidenceRoutes);
 app.use("/messages", messageRoutes);
 app.use("/auth", authRoutes);
-app.use("/responses", responseRoutes);
-app.use("/taskevidence", taskEvidenceRoutes);
 app.use("/customer", customerRoutes);
 app.use("/trajects", trajectRoutes);
 
@@ -39,13 +33,11 @@ const isNonApiRoute = matchAll("/*");
 app.use((req, res, next) => {
   const apiPrefixes = [
     "/auth",
-    "/tasks",
     "/evidence",
     "/messages",
-    "/responses",
-    "/taskevidence",
     "/trajects",
     "/uploads",
+    "/customer",
   ];
   if (apiPrefixes.some((p) => req.path.startsWith(p))) return next();
   if (!isNonApiRoute(req.path)) return next();

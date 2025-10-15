@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { UserPlus } from "lucide-react";
 import LegacyPageLayout from "./LegacyPageLayout";
-import { post } from "../lib/api";
 
 const ROLE_OPTIONS = [
   { value: "customer", label: "Customer" },
@@ -14,8 +13,6 @@ const TestCreateAccount = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
 
-  const hasToken = useMemo(() => Boolean(localStorage.getItem("token")), []);
-
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((previous) => ({ ...previous, [name]: value }));
@@ -27,14 +24,46 @@ const TestCreateAccount = () => {
     setStatus(null);
 
     try {
+      const API_BASE = import.meta.env.VITE_API_BASE || "";
       const payload = {
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
         role: form.role,
       };
+      const response = await fetch(`${API_BASE}/auth/admin/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      await post("/auth/admin/users", payload);
+      const contentType = response.headers.get("content-type") || "";
+      let responseData = null;
+      if (contentType.includes("application/json")) {
+        try {
+          responseData = await response.json();
+        } catch (_) {
+          responseData = null;
+        }
+      } else {
+        try {
+          responseData = await response.text();
+        } catch (_) {
+          responseData = null;
+        }
+      }
+
+      if (!response.ok) {
+        const message =
+          (responseData && responseData.error) ||
+          (typeof responseData === "string" && responseData) ||
+          response.statusText ||
+          "Aanmaken mislukt";
+        const error = new Error(message);
+        error.status = response.status;
+        throw error;
+      }
+
       setStatus({ type: "success", message: "Account aangemaakt" });
       setForm({ name: "", email: "", password: "", role: "customer" });
     } catch (error) {
@@ -58,15 +87,9 @@ const TestCreateAccount = () => {
           </div>
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Nieuwe gebruiker</h2>
-            <p className="text-sm text-slate-500">Je moet zijn ingelogd als admin zodat de API-token aanwezig is.</p>
+            <p className="text-sm text-slate-500">Deze testpagina maakt direct een account aan zonder ingelogd te zijn.</p>
           </div>
         </div>
-
-        {!hasToken ? (
-          <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-600">
-            Er is geen API-token gevonden. Log eerst in als admin (via /login) en probeer het daarna opnieuw.
-          </p>
-        ) : null}
 
         {status?.message ? (
           <div

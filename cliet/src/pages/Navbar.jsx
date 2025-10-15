@@ -3,14 +3,19 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Menu, X } from "lucide-react";
 
 const baseNavItems = [
-	{ label: "Dashboard", to: "/dashboard" },
-	{ label: "Profile", to: "/profile" },
-	{ label: "Planning", to: "/planning" },
-	{ label: "Evidence", to: "/evidence" },
-	{ label: "Messages", to: "/messages" },
-	{ label: "Customer demo", to: "/customer/planning" },
-	{ label: "Admin demo", to: "/admin" },
-	{ label: "Coach demo", to: "/coach" },
+	{ label: "Admin • Dashboard", to: "/admin" },
+	{ label: "Admin • Assignments", to: "/admin/assignments" },
+	{ label: "Admin • Trajects", to: "/admin/trajects" },
+	{ label: "Admin • Users", to: "/admin/users" },
+	{ label: "Admin • Profile", to: "/admin/profile" },
+	{ label: "Coach • Dashboard", to: "/coach" },
+	{ label: "Coach • My Customers", to: "/coach/customers" },
+	{ label: "Coach • Feedback", to: "/coach/feedback" },
+	{ label: "Coach • Messages", to: "/coach/messages" },
+	{ label: "Customer • Planning", to: "/customer/planning" },
+	{ label: "Customer • Messages", to: "/customer/messages" },
+	{ label: "Customer • Profile", to: "/customer/profile" },
+	{ label: "Test • Create Account", to: "/testing/create-account", badge: "DEV" },
 ];
 
 const Navbar = () => {
@@ -59,11 +64,16 @@ const Navbar = () => {
 							key={item.to}
 							type="button"
 							onClick={() => handleNavigate(item.to)}
-							className={`relative transition hover:text-brand-600 ${
+							className={`relative inline-flex items-center gap-2 transition hover:text-brand-600 ${
 								item.active ? "text-brand-600" : ""
 							}`}
 						>
-							{item.label}
+							<span>{item.label}</span>
+							{item.badge ? (
+								<span className="rounded-full bg-brand-100 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-brand-600">
+									{item.badge}
+								</span>
+							) : null}
 							{item.active && (
 								<span className="absolute -bottom-2 left-0 right-0 h-0.5 rounded-full bg-brand-500" />
 							)}
@@ -103,7 +113,14 @@ const Navbar = () => {
 									item.active ? "bg-brand-50 text-brand-700" : ""
 								}`}
 							>
-								<span>{item.label}</span>
+								<span className="flex items-center gap-2">
+									{item.label}
+									{item.badge ? (
+										<span className="rounded-full bg-brand-100 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-brand-600">
+											{item.badge}
+										</span>
+									) : null}
+								</span>
 								{item.active && <span className="text-xs font-semibold uppercase text-brand-600">Now</span>}
 							</button>
 						))}

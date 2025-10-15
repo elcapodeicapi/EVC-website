@@ -3,7 +3,6 @@ import {
   Users,
   FileSpreadsheet,
   FileText,
-  Settings,
   Mail,
   CalendarCheck,
   MessageSquare,
@@ -13,9 +12,9 @@ import {
 
 export const adminNavItems = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
-  { label: "Trajectbeheer", to: "/admin/trajects", icon: FileText },
   { label: "Assignments", to: "/admin/assignments", icon: FileSpreadsheet },
-  { label: "User management", to: "/admin/users", icon: Users },
+  { label: "Trajects", to: "/admin/trajects", icon: FileText },
+  { label: "Users", to: "/admin/users", icon: Users },
   { label: "Profile", to: "/admin/profile", icon: IdCard },
 ];
 
@@ -24,12 +23,9 @@ export const coachNavItems = [
   { label: "My Customers", to: "/coach/customers", icon: Users },
   { label: "Feedback", to: "/coach/feedback", icon: FileText },
   { label: "Messages", to: "/coach/messages", icon: Mail },
-  { label: "Profile", to: "/coach/profile", icon: IdCard },
-  { label: "Settings", to: "/coach/settings", icon: Settings },
 ];
 
 export const customerNavItems = [
-  { label: "Wat is de procedure?", to: "/customer/procedure", icon: LayoutDashboard },
   { label: "Planning", to: "/customer/planning", icon: CalendarCheck },
   { label: "Messages", to: "/customer/messages", icon: MessageSquare },
   { label: "Profile", to: "/customer/profile", icon: IdCard },

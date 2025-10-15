@@ -1,7 +1,5 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../Data/database");
-const Task = require("./Task");
-const User = require("./User");
 
 const Evidence = sequelize.define("Evidence", {
   name: {

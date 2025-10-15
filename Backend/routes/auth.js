@@ -24,6 +24,13 @@ router.get(
 	authController.adminListUsers
 );
 
+router.post(
+	"/admin/impersonate",
+	authenticate,
+	authorizeRoles("admin"),
+	authController.adminImpersonate
+);
+
 // Optional: quick health route to list providers (useful when testing emulators)
 router.get("/providers", async (req, res) => {
 	try {

@@ -1,16 +1,19 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "fake-api-key", // will be ignored in emulator
-  authDomain: "localhost",
-  projectId: "evcwebsite12345",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "fake-api-key", // ignored in emulator
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "localhost",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "evcwebsite12345",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
 };
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 // Connect to local emulators in development. Use VITE_USE_EMULATORS=true to force.
 const isLocalHost =
@@ -31,6 +34,11 @@ if (!emulatorsConnected && shouldUseEmulators) {
   }
   try {
     connectFirestoreEmulator(db, "localhost", 8080);
+  } catch (_) {
+    // Ignore if already connected during HMR
+  }
+  try {
+    connectStorageEmulator(storage, "localhost", 9199);
   } catch (_) {
     // Ignore if already connected during HMR
   }

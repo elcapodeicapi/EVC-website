@@ -300,3 +300,57 @@ exports.adminListUsers = async (_req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.adminImpersonate = async (req, res) => {
+  try {
+    const { firebaseUid, userId } = req.body || {};
+
+    if (!firebaseUid && !userId) {
+      return res.status(400).json({ error: "firebaseUid or userId is required" });
+    }
+
+    let targetUser = null;
+    if (firebaseUid) {
+      targetUser = await User.findOne({ where: { firebaseUid } });
+    }
+
+    if (!targetUser && userId) {
+      targetUser = await User.findByPk(userId);
+    }
+
+    if (!targetUser) {
+      return res.status(404).json({ error: "Target user not found" });
+    }
+
+    const normalizedRole = String(targetUser.role || "").toLowerCase();
+    if (!MANAGED_ROLES.has(normalizedRole)) {
+      return res.status(400).json({ error: "Target user has unsupported role" });
+    }
+
+    if (!["customer", "user"].includes(normalizedRole)) {
+      return res.status(403).json({ error: "Only customer accounts can be impersonated" });
+    }
+
+    const token = jwt.sign(
+      { id: targetUser.id, role: normalizedRole, impersonatedBy: req.user.id },
+      JWT_SECRET,
+      { expiresIn: "30m" }
+    );
+
+    return res.json({
+      token,
+      redirectPath: getRedirectPath(normalizedRole),
+      user: {
+        id: targetUser.id,
+        email: targetUser.email,
+        role: normalizedRole,
+        name: targetUser.name,
+        trajectId: targetUser.trajectId || null,
+        firebaseUid: targetUser.firebaseUid || null,
+        impersonatedBy: req.user.id,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};

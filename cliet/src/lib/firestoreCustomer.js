@@ -1,5 +1,16 @@
-import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
-import { db } from "../firebase";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { db, storage } from "../firebase";
 
 function mapTraject(snapshot) {
   if (!snapshot?.exists()) return null;
@@ -83,6 +94,89 @@ function selectMostRecentAssignment(docs) {
       const timeB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
       return timeB - timeA;
     })[0];
+}
+
+function mapUpload(snapshot) {
+  if (!snapshot?.exists()) return null;
+  const data = snapshot.data() || {};
+  const uploadedAt = data.uploadedAt
+    ? typeof data.uploadedAt.toDate === "function"
+      ? data.uploadedAt.toDate()
+      : data.uploadedAt
+    : null;
+  const displayName = data.name || data.displayName || data.fileName || snapshot.id;
+  return {
+    id: snapshot.id,
+    name: displayName,
+    displayName,
+    fileName: data.fileName || displayName,
+    downloadURL: data.downloadURL || "",
+    storagePath: data.storagePath || "",
+    competencyId: data.competencyId || "",
+    userId: data.userId || "",
+    trajectId: data.trajectId || null,
+    uploadedAt,
+    contentType: data.contentType || "",
+    size: data.size ?? null,
+  };
+}
+
+export async function uploadCustomerEvidence({ userId, competencyId, file, displayName, trajectId }) {
+  if (!userId) throw new Error("userId is verplicht");
+  if (!competencyId) throw new Error("competencyId is verplicht");
+  if (!file) throw new Error("Bestand ontbreekt");
+
+  const resolvedName = (displayName || file.name || "Bestand").trim();
+  const safeFileName = file.name || "upload";
+  const storagePath = `user_uploads/${userId}/${competencyId}/${Date.now()}-${safeFileName}`;
+  const fileRef = ref(storage, storagePath);
+
+  const metadata = file.type ? { contentType: file.type } : undefined;
+  await uploadBytes(fileRef, file, metadata);
+  const downloadURL = await getDownloadURL(fileRef);
+
+  const uploadsCollection = collection(db, "users", userId, "uploads");
+  await addDoc(uploadsCollection, {
+    name: resolvedName,
+    fileName: safeFileName,
+    downloadURL,
+    storagePath,
+    competencyId,
+    userId,
+    trajectId: trajectId || null,
+    uploadedAt: serverTimestamp(),
+    contentType: file.type || null,
+    size: typeof file.size === "number" ? file.size : null,
+  });
+}
+
+export function subscribeCustomerUploads(userId, observer) {
+  if (!userId) {
+    observer({ uploads: [], error: new Error("Missing user id") });
+    return () => {};
+  }
+
+  const uploadsRef = collection(db, "users", userId, "uploads");
+  const uploadsQuery = query(uploadsRef, orderBy("uploadedAt", "desc"));
+
+  return onSnapshot(
+    uploadsQuery,
+    (snapshot) => {
+      const uploads = snapshot.docs.map(mapUpload).filter(Boolean);
+      observer({ uploads, error: null });
+    },
+    (error) => {
+      observer({ uploads: [], error });
+    }
+  );
+}
+
+export async function resolveUploadDownloadUrl(upload) {
+  if (!upload) return null;
+  if (upload.downloadURL) return upload.downloadURL;
+  if (!upload.storagePath) return null;
+  const fileRef = ref(storage, upload.storagePath);
+  return getDownloadURL(fileRef);
 }
 
 export function subscribeCustomerContext(customerUid, observer) {

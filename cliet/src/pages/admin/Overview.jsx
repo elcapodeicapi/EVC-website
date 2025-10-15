@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { subscribeUsers } from "../../lib/firestoreAdmin";
+import { post } from "../../lib/api";
 
 const Overview = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [impersonationError, setImpersonationError] = useState(null);
+  const [impersonationTarget, setImpersonationTarget] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -32,9 +35,50 @@ const Overview = () => {
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
-  const handleOpenCustomer = (user) => {
+  const handleOpenCustomer = async (user) => {
     if (!user || user.role !== "customer") return;
-    navigate(`/coach/customers/${user.id}`);
+    setImpersonationError(null);
+    setImpersonationTarget(user.id);
+    try {
+      const response = await post("/auth/admin/impersonate", { firebaseUid: user.id });
+      if (!response?.token) {
+        throw new Error("Geen sessie ontvangen");
+      }
+
+      const currentToken = localStorage.getItem("token") || null;
+      const currentUser = localStorage.getItem("user") || null;
+      let parsedUser = null;
+      if (currentUser) {
+        try {
+          parsedUser = JSON.parse(currentUser);
+        } catch (_) {
+          parsedUser = null;
+        }
+      }
+
+      const backup = {
+        token: currentToken,
+        user: currentUser,
+        userData: parsedUser,
+        customerFirebaseUid: user.id,
+        customerName: user.name || "",
+        createdAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem("impersonationBackup", JSON.stringify(backup));
+      localStorage.setItem("token", response.token);
+      if (response.user) {
+        localStorage.setItem("user", JSON.stringify(response.user));
+      } else {
+        localStorage.removeItem("user");
+      }
+      navigate("/customer", { replace: true });
+    } catch (impersonationErr) {
+      const message = impersonationErr?.data?.error || impersonationErr?.message || "Kon klantomgeving niet openen";
+      setImpersonationError(message);
+    } finally {
+      setImpersonationTarget(null);
+    }
   };
 
   return (
@@ -49,6 +93,12 @@ const Overview = () => {
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Kan accounts niet laden: {error.message || "Onbekende fout"}
+        </div>
+      ) : null}
+
+      {impersonationError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {impersonationError}
         </div>
       ) : null}
 
@@ -107,14 +157,18 @@ const Overview = () => {
                       <button
                         type="button"
                         onClick={() => handleOpenCustomer(user)}
-                        disabled={!isCustomer}
                         className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition ${
-                          isCustomer
+                          isCustomer && impersonationTarget !== user.id
                             ? "bg-brand-600 text-white shadow-sm hover:bg-brand-500"
                             : "cursor-not-allowed bg-slate-100 text-slate-400"
                         }`}
+                        disabled={!isCustomer || impersonationTarget === user.id}
                       >
-                        {isCustomer ? "Open as Customer" : "Alleen klanten"}
+                        {isCustomer
+                          ? impersonationTarget === user.id
+                            ? "Bezig..."
+                            : "Open as Customer"
+                          : "Alleen klanten"}
                       </button>
                     </td>
                   </tr>
