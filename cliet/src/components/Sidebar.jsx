@@ -2,14 +2,39 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import clsx from "clsx";
 
-const Sidebar = ({ header, navItems = [], footer, onNavigate }) => {
+const tonePalettes = {
+  light: {
+    container: "bg-white text-slate-900 shadow-lg",
+    headerBorder: "border-slate-100",
+    navActive: "bg-brand-50 text-brand-700",
+    navInactive: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    iconIdle: "text-slate-400",
+    iconActive: "text-brand-600",
+    badge: "bg-brand-100 text-brand-700",
+    footerBorder: "border-slate-100",
+  },
+  dark: {
+    container: "bg-slate-950 text-white shadow-xl",
+    headerBorder: "border-white/10",
+    navActive: "bg-white/10 text-white",
+    navInactive: "text-white/70 hover:bg-white/5 hover:text-white",
+    iconIdle: "text-white/50",
+    iconActive: "text-white",
+    badge: "bg-white/10 text-white",
+    footerBorder: "border-white/10",
+  },
+};
+
+const Sidebar = ({ header, navItems = [], footer, onNavigate, tone = "light" }) => {
+  const palette = tonePalettes[tone] || tonePalettes.light;
+
   return (
-    <aside className="flex h-full w-80 max-w-full flex-col bg-white shadow-lg lg:h-screen">
-      <div className="px-6 pb-4 pt-6 border-b border-slate-100">
+    <aside className={clsx("flex h-full w-80 max-w-full flex-col lg:h-screen", palette.container)}>
+      <div className={clsx("border-b px-6 pb-4 pt-6", palette.headerBorder)}>
         {header || (
-          <div>
-            <p className="text-xs uppercase tracking-widest text-slate-500">EVC Portal</p>
-            <h1 className="mt-1 text-xl font-semibold text-slate-900">Coaching Suite</h1>
+          <div className="text-current">
+            <p className="text-xs uppercase tracking-widest opacity-70">EVC Portal</p>
+            <h1 className="mt-1 text-xl font-semibold">Coaching Suite</h1>
           </div>
         )}
       </div>
@@ -26,28 +51,40 @@ const Sidebar = ({ header, navItems = [], footer, onNavigate }) => {
                   className={({ isActive }) =>
                     clsx(
                       "group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-brand-50 text-brand-700"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      isActive ? palette.navActive : palette.navInactive
                     )
                   }
                 >
-                  {Icon ? (
-                    <Icon className="mr-3 h-4 w-4 flex-none text-slate-400 group-hover:text-brand-600" />
-                  ) : null}
-                  <span className="truncate">{item.label}</span>
-                  {item.badge ? (
-                    <span className="ml-auto inline-flex items-center rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-700">
-                      {item.badge}
-                    </span>
-                  ) : null}
+                  {({ isActive }) => (
+                    <>
+                      {Icon ? (
+                        <Icon
+                          className={clsx(
+                            "mr-3 h-4 w-4 flex-none transition-colors",
+                            isActive ? palette.iconActive : palette.iconIdle
+                          )}
+                        />
+                      ) : null}
+                      <span className="truncate">{item.label}</span>
+                      {item.badge ? (
+                        <span
+                          className={clsx(
+                            "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                            palette.badge
+                          )}
+                        >
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
                 </NavLink>
               </li>
             );
           })}
         </ul>
       </nav>
-      {footer ? <div className="border-t border-slate-100 p-4">{footer}</div> : null}
+      {footer ? <div className={clsx("border-t p-4", palette.footerBorder)}>{footer}</div> : null}
     </aside>
   );
 };

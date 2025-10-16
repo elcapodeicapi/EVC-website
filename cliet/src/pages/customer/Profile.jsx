@@ -225,10 +225,10 @@ const CustomerProfile = () => {
     <div className="space-y-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-500">Profiel bewerken</p>
-          <h1 className="mt-1 text-3xl font-semibold text-slate-900">{customerName}</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-500">Mijn profiel</p>
+          <h1 className="mt-1 text-3xl font-semibold text-slate-900">Profiel {customerName}</h1>
           <p className="mt-3 max-w-2xl text-sm text-slate-500">
-            Werk je persoonsgegevens en adresgegevens eenvoudig bij. Je coach ziet altijd de meest recente informatie.
+            Dit is de pagina waar je jouw persoonlijke gegevens kunt inzien en eventueel aanpassen.
           </p>
         </div>
         {coach ? (

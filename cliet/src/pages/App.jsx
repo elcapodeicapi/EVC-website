@@ -6,6 +6,7 @@ import {
 	Navigate,
 	Outlet,
 	useNavigate,
+	useLocation,
 } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import Sidebar from "../components/Sidebar";
@@ -19,9 +20,14 @@ import AdminTrajects from "./admin/Trajects";
 import AdminProfile from "./admin/Profile";
 import AdminUsers from "./admin/Users";
 import TestCreateAccount from "./TestCreateAccount";
+import CustomerDashboard from "./customer/Dashboard";
 import CustomerPlanning from "./customer/Planning";
 import CustomerMessages from "./customer/Messages";
 import CustomerProfile from "./customer/Profile";
+import CustomerCareerGoal from "./customer/CareerGoal";
+import CustomerWorkplaceVisit from "./customer/WorkplaceVisit";
+import CustomerCriteriumInterview from "./customer/CriteriumInterview";
+import CustomerManual from "./customer/Manual";
 import CoachDashboard from "./coach/Dashboard";
 import CoachCustomers from "./coach/Customers";
 import CoachCustomerCompetency from "./coach/CustomerCompetency";
@@ -33,9 +39,13 @@ import {
 	FileSpreadsheet,
 	FileText,
 	Mail,
-	CalendarCheck,
 	MessageSquare,
 	IdCard,
+	Goal,
+	FolderOpen,
+	Briefcase,
+	ClipboardCheck,
+	BookOpen,
 } from "lucide-react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase";
@@ -65,9 +75,14 @@ const COACH_NAV_ITEMS = [
 ];
 
 const CUSTOMER_NAV_ITEMS = [
-	{ label: "Planning", to: "/customer/planning", icon: CalendarCheck },
-	{ label: "Messages", to: "/customer/messages", icon: MessageSquare },
-	{ label: "Profile", to: "/customer/profile", icon: IdCard },
+	{ label: "Dashboard", to: "/customer/dashboard", icon: LayoutDashboard, end: true },
+	{ label: "Mijn profiel", to: "/customer/profile", icon: IdCard },
+	{ label: "Mijn loopbaandoel", to: "/customer/career-goal", icon: Goal },
+	{ label: "Mijn portfolio", to: "/customer/portfolio", icon: FolderOpen },
+	{ label: "Werkplekbezoek", to: "/customer/workplace-visit", icon: Briefcase },
+	{ label: "Criteriumgericht interview", to: "/customer/criterium-interview", icon: ClipboardCheck },
+	{ label: "Contact", to: "/customer/contact", icon: MessageSquare },
+	{ label: "Handleiding", to: "/customer/manual", icon: BookOpen },
 ];
 
 const normalizeUserRecord = (user) => {
@@ -145,14 +160,17 @@ const AdminLayout = () => {
 
 	return (
 		<DashboardLayout
+			className="bg-white"
+			mainClassName="bg-white"
 			sidebar={
 				<Sidebar
+					tone="dark"
 					header={
-						<div className="space-y-4">
-							<BrandLogo className="w-fit" />
-							<div>
-								<p className="text-xs uppercase tracking-[0.35em] text-slate-400">Admin</p>
-								<h1 className="mt-1 text-xl font-semibold text-slate-900">EVC Control</h1>
+						<div className="space-y-4 text-white">
+							<BrandLogo className="w-fit" tone="dark" />
+							<div className="space-y-1">
+								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Admin</p>
+								<h1 className="text-xl font-semibold text-white">EVC Control</h1>
 							</div>
 						</div>
 					}
@@ -161,7 +179,7 @@ const AdminLayout = () => {
 						<button
 							type="button"
 							onClick={handleLogout}
-							className="flex w-full items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-400 hover:text-brand-600"
+							className="flex w-full items-center justify-center rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20"
 						>
 							Sign out
 						</button>
@@ -171,20 +189,22 @@ const AdminLayout = () => {
 			topbar={
 				<Topbar
 					title="Administration overview"
-								user={{ name: displayName, subtitle, role: "Admin" }}
+					tone="brand"
+					user={{ name: displayName, subtitle, role: "Admin" }}
+					logoTo="/admin"
 					rightSlot={
 						<div className="hidden items-center gap-3 md:flex">
 							<button
 								type="button"
 								onClick={() => alert("Mock: generate report")}
-								className="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-400 hover:text-brand-600"
+								className="rounded-full border border-white/40 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10"
 							>
 								Generate report
 							</button>
 							<button
 								type="button"
 								onClick={handleLogout}
-								className="rounded-full bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-500"
+								className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-evc-blue-600 shadow-lg transition hover:bg-white/90"
 							>
 								Sign out
 							</button>
@@ -429,14 +449,17 @@ const CoachLayout = () => {
 
 	return (
 		<DashboardLayout
+			className="bg-white"
+			mainClassName="bg-white"
 			sidebar={
 				<Sidebar
+					tone="dark"
 					header={
-						<div className="space-y-4">
-							<BrandLogo className="w-fit" />
-							<div>
-								<p className="text-xs uppercase tracking-widest text-slate-400">Coach</p>
-								<h1 className="mt-1 text-xl font-semibold text-slate-900">EVC Workspace</h1>
+						<div className="space-y-4 text-white">
+							<BrandLogo className="w-fit" tone="dark" />
+							<div className="space-y-1">
+								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Coach</p>
+								<h1 className="text-xl font-semibold text-white">EVC Workspace</h1>
 							</div>
 						</div>
 					}
@@ -446,13 +469,15 @@ const CoachLayout = () => {
 			topbar={
 				<Topbar
 					title="Coaching dashboard"
+					tone="brand"
 					user={topbarUser}
+					logoTo="/coach"
 					rightSlot={
 						<div className="flex items-center gap-3">
 							<select
 								value={selectedCustomerId}
 								onChange={(event) => setSelectedCustomerId(event.target.value)}
-								className="h-10 rounded-full border border-slate-200 bg-white px-3 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+								className="h-10 rounded-full border border-white/30 bg-white px-3 text-sm font-medium text-slate-900 shadow-sm focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
 							>
 								{customerOptions.map((option) => (
 									<option key={option.value} value={option.value}>
@@ -463,7 +488,7 @@ const CoachLayout = () => {
 							<button
 								type="button"
 								onClick={handleLogout}
-								className="rounded-full bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-500"
+								className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-evc-blue-600 shadow-lg transition hover:bg-white/90"
 							>
 								Sign out
 							</button>
@@ -501,6 +526,7 @@ const CustomerLayout = () => {
 	const [coachDoc, setCoachDoc] = useState(null);
 	const [assignmentDoc, setAssignmentDoc] = useState(null);
 	const [firestoreError, setFirestoreError] = useState(null);
+	const location = useLocation();
 
 	useEffect(() => {
 		let active = true;
@@ -614,6 +640,16 @@ const CustomerLayout = () => {
 		if (assignmentDoc?.status) subtitleParts.push(assignmentDoc.status);
 		const subtitle = subtitleParts.join(" • ") || "Customer";
 
+		const activeCustomerNav = useMemo(() => {
+			const currentPath = location.pathname;
+			return (
+				CUSTOMER_NAV_ITEMS.find((item) => currentPath.startsWith(item.to)) ||
+				CUSTOMER_NAV_ITEMS[0]
+			);
+		}, [location.pathname]);
+
+		const topbarTitle = activeCustomerNav?.label || "Mijn EVC";
+
 	const topbarUser = {
 		name: resolvedCustomer?.name || "Customer",
 		subtitle,
@@ -690,14 +726,17 @@ const CustomerLayout = () => {
 
 	return (
 		<DashboardLayout
+			className="bg-white"
+			mainClassName="bg-white"
 			sidebar={
 				<Sidebar
+					tone="dark"
 					header={
-						<div className="space-y-4">
-							<BrandLogo className="w-fit" />
-							<div>
-								<p className="text-xs uppercase tracking-widest text-slate-400">Customer</p>
-								<h1 className="mt-1 text-xl font-semibold text-slate-900">Mijn EVC</h1>
+						<div className="space-y-4 text-white">
+							<BrandLogo className="w-fit" tone="dark" />
+							<div className="space-y-1">
+								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Customer</p>
+								<h1 className="text-xl font-semibold text-white">Mijn EVC</h1>
 							</div>
 						</div>
 					}
@@ -706,31 +745,33 @@ const CustomerLayout = () => {
 			}
 			topbar={
 				<Topbar
-					title="Jouw EVC-traject"
+					title={topbarTitle}
+					tone="brand"
 					user={topbarUser}
+					logoTo="/customer/dashboard"
 					rightSlot={
-						<div className="flex flex-wrap items-center justify-end gap-3 text-sm text-slate-600">
+						<div className="flex flex-wrap items-center justify-end gap-3 text-sm text-white">
 							{isImpersonating ? (
 								<button
 									type="button"
 									onClick={handleExitImpersonation}
-									className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1 font-semibold text-brand-600 transition hover:bg-brand-100"
+									className="rounded-full border border-white/40 bg-white/10 px-3 py-1 font-semibold text-white transition hover:bg-white/20"
 								>
 									Stop meekijken
 								</button>
-								) : null}
+							) : null}
 							<button
 								type="button"
 								onClick={handleCustomerLogout}
-								className="rounded-full bg-evc-blue-600 px-3 py-1 font-semibold text-white shadow-sm transition hover:bg-evc-blue-500"
+								className="rounded-full bg-white px-3 py-1 font-semibold text-evc-blue-600 shadow-sm transition hover:bg-white/90"
 							>
 								Log uit
 							</button>
-							<span className="rounded-full bg-white px-3 py-1 font-medium text-slate-600 shadow-sm">
+							<span className="rounded-full bg-white/10 px-3 py-1 font-medium text-white/90 shadow-sm">
 								Laatste activiteit: {activityLabel}
 							</span>
 							{resolvedCoach ? (
-								<span className="hidden rounded-full bg-brand-50 px-3 py-1 font-medium text-brand-600 sm:inline">
+								<span className="hidden rounded-full bg-white px-3 py-1 font-medium text-evc-blue-600 sm:inline">
 									Coach {resolvedCoach.name}
 								</span>
 							) : null}
@@ -778,19 +819,24 @@ const App = () => {
 				</Route>
 
 				<Route path="/customer" element={<CustomerLayout />}>
-					<Route index element={<Navigate to="/customer/planning" replace />} />
-					<Route path="planning" element={<CustomerPlanning />} />
-					<Route path="messages" element={<CustomerMessages />} />
+					<Route index element={<Navigate to="/customer/dashboard" replace />} />
+					<Route path="dashboard" element={<CustomerDashboard />} />
 					<Route path="profile" element={<CustomerProfile />} />
+					<Route path="career-goal" element={<CustomerCareerGoal />} />
+					<Route path="portfolio" element={<CustomerPlanning />} />
+					<Route path="workplace-visit" element={<CustomerWorkplaceVisit />} />
+					<Route path="criterium-interview" element={<CustomerCriteriumInterview />} />
+					<Route path="contact" element={<CustomerMessages />} />
+					<Route path="manual" element={<CustomerManual />} />
 				</Route>
 
 				{/* Backward-compat: old .html paths */}
 				<Route path="/Login.html" element={<Navigate to="/login" replace />} />
 				<Route path="/Dashboard.html" element={<Navigate to="/admin" replace />} />
 				<Route path="/Profile.html" element={<Navigate to="/customer/profile" replace />} />
-				<Route path="/Planning.html" element={<Navigate to="/customer/planning" replace />} />
-				<Route path="/Messages.html" element={<Navigate to="/customer/messages" replace />} />
-				<Route path="/Evidence.html" element={<Navigate to="/customer/planning" replace />} />
+				<Route path="/Planning.html" element={<Navigate to="/customer/portfolio" replace />} />
+				<Route path="/Messages.html" element={<Navigate to="/customer/contact" replace />} />
+				<Route path="/Evidence.html" element={<Navigate to="/customer/portfolio" replace />} />
 				<Route path="/index.html" element={<Navigate to="/" replace />} />
 				<Route path="*" element={<Navigate to="/" replace />} />
 			</Routes>

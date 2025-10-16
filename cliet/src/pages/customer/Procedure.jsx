@@ -2,9 +2,9 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const customerLinks = [
-  { to: "/customer/planning", label: "Bekijk planning" },
-  { to: "/customer/messages", label: "Berichten" },
-  { to: "/customer/profile", label: "Profiel" },
+  { to: "/customer/dashboard", label: "Dashboard" },
+  { to: "/customer/portfolio", label: "Mijn portfolio" },
+  { to: "/customer/contact", label: "Contact" },
 ];
 
 const Procedure = () => {

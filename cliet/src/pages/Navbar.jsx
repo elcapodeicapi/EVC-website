@@ -15,7 +15,7 @@ const baseNavItems = [
 	{ label: "Coach • My Customers", to: "/coach/customers" },
 	{ label: "Coach • Feedback", to: "/coach/feedback" },
 	{ label: "Coach • Messages", to: "/coach/messages" },
-	{ label: "Customer • Planning", to: "/customer/planning" },
+	{ label: "Customer • Dashboard", to: "/customer/dashboard" },
 	{ label: "Customer • Messages", to: "/customer/messages" },
 	{ label: "Customer • Profile", to: "/customer/profile" },
 	{ label: "Test • Create Account", to: "/testing/create-account", badge: "DEV" },

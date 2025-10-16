@@ -28,6 +28,7 @@ const CustomerPlanning = () => {
   const [deletingUploadId, setDeletingUploadId] = useState(null);
   const [uploadNames, setUploadNames] = useState({});
   const [uploadNameErrors, setUploadNameErrors] = useState({});
+  const [showInstructions, setShowInstructions] = useState(false);
   const fileInputsRef = useRef({});
   const [storedUser] = useState(() => {
     try {
@@ -37,6 +38,7 @@ const CustomerPlanning = () => {
     }
   });
   const customerId = customer?.id || null;
+  const participantName = customer?.name || "deelnemer";
 
   const loadPlanning = useCallback(async () => {
     setLoadingApi(true);
@@ -221,6 +223,10 @@ const CustomerPlanning = () => {
     });
   };
 
+  const toggleInstructions = () => {
+    setShowInstructions((previous) => !previous);
+  };
+
   useEffect(() => {
     setExpandedIds((previous) => {
       const validKeys = new Set(
@@ -338,22 +344,66 @@ const CustomerPlanning = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand-500">Planning</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Jouw competenties en bewijsstukken</h1>
-        <p className="max-w-2xl text-sm text-slate-500">
-          Bekijk welke competenties onderdeel zijn van je traject en voeg eenvoudig nieuwe bewijsstukken toe.
-          {coach ? ` Je coach ${coach.name} kijkt mee en geeft feedback.` : ""}
-        </p>
+    <div className="space-y-10">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">Mijn portfolio</p>
+        <h1 className="mt-2 text-3xl font-semibold text-slate-900">Jouw verzameling aan bewijsstukken</h1>
+        <div className="mt-3 max-w-3xl space-y-4 text-sm text-slate-500">
+          <p className="font-semibold text-slate-700">Portfolio {participantName}</p>
+          <p>Beste deelnemer,</p>
+          <p>
+            Bij de EVC-procedure beoordelen we hoe goed jouw vaardigheden en kennis overeenkomen met wat er van je verwacht wordt in je beroep,
+            door te kijken naar hoe je je werk uitvoert. Dit houdt in dat je moet laten zien dat je de juiste kennis, vaardigheden en professionele
+            houding hebt door middel van voorbeelden uit de praktijk. Dit doe je door in je portfolio te beschrijven wat je hebt gedaan, hoe je het
+            hebt gedaan en waarom, ondersteund met bewijs uit je werkervaring. Vergeet niet je werkervaring en CV toe te voegen aan je portfolio.
+          </p>
+          <p>
+            We begrijpen dat dit een uitgebreide taak kan zijn, maar we staan klaar om je te helpen! Om je te ondersteunen, bieden we formulieren,
+            instructievideo&apos;s en documenten aan die je kunnen helpen je ervaringen correct te documenteren. Je EVC-begeleider staat ook altijd klaar
+            om je hulp of feedback te geven.
+          </p>
+          <p>
+            Wat betreft privacy, volgens de privacywet (AVG), mag je geen persoonlijke gegevens in je portfolio opnemen zonder toestemming. Je mag wel
+            geanonimiseerde gegevens gebruiken, waarbij de persoon niet herkenbaar is, ook niet zonder naamvermelding.
+          </p>
+        </div>
         {traject ? (
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+          <p className="mt-4 inline-flex items-center rounded-full bg-evc-blue-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-evc-blue-700">
             Traject: {traject.name}
           </p>
         ) : null}
-      </header>
+      </section>
 
-      {isLoading ? <LoadingSpinner label="Planning laden" /> : null}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={toggleInstructions}
+            className="inline-flex items-center justify-between rounded-2xl bg-evc-blue-600 px-5 py-3 text-left text-sm font-semibold text-white shadow-lg transition hover:bg-evc-blue-500 sm:text-base"
+          >
+            <span>Klik hier voor de instructies</span>
+            <ChevronDown
+              className={`h-5 w-5 transition-transform ${showInstructions ? "rotate-180" : ""}`}
+            />
+          </button>
+          {showInstructions ? (
+            <div className="rounded-2xl border border-evc-blue-200 bg-evc-blue-50 p-5 text-sm text-evc-blue-900">
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-evc-blue-800">Bekijk het volgende document: instructieformulier</h3>
+                <p>
+                  Voor uitgebreide instructies en tips over het samenstellen van je portfolio, klik je op de knop hieronder! Het is belangrijk om deze
+                  instructie en de instructievideo&apos;s op het dashboard te bekijken voordat je begint met je portfolio.
+                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-evc-blue-700">
+                  Belangrijk: klik hieronder voor uitgebreide instructies!
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {isLoading ? <LoadingSpinner label="Portfolio laden" /> : null}
       {error && !isLoading ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       ) : null}
@@ -380,194 +430,190 @@ const CustomerPlanning = () => {
         </div>
       ) : null}
 
-      <section className="space-y-4">
-        {competencies.map((item, index) => {
-          const key = item.id || item.code || String(index);
-          const isExpanded = expandedIds.includes(key);
-          const uploads = getUploadsFor(item, key);
-          const detailId = `competency-${key}`;
+      <section className="space-y-6">
+        <header className="space-y-2">
+          <h2 className="text-xl font-semibold text-slate-900">Trajectportfolio</h2>
+          <p className="max-w-2xl text-sm text-slate-500">
+            Orden je opleiding, werkervaring en documenten per competentie. Voeg nieuwe bewijsstukken toe en houd overzicht in je voortgang.
+            {coach ? ` Je coach ${coach.name} kijkt mee en geeft feedback.` : ""}
+          </p>
+        </header>
 
-          return (
-            <article
-              key={key}
-              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
-            >
-              <button
-                type="button"
-                onClick={() => toggleCompetency(key)}
-                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
-                aria-expanded={isExpanded}
-                aria-controls={detailId}
-              >
-                <div className="flex flex-col gap-2">
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-600">
-                    {item.code || "Code ontbreekt"}
-                  </span>
-                  <h2 className="text-lg font-semibold text-slate-900">{item.title || "Competentie zonder titel"}</h2>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="hidden items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-600 sm:inline-flex">
-                    <CheckCircle2 className="h-4 w-4" /> Actief
-                  </span>
-                  <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-all duration-300 ${
-                      isExpanded ? "rotate-180 border-brand-200 bg-brand-50 text-brand-600 shadow-inner" : ""
-                    }`}
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                </div>
-              </button>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {competencies.map((item, index) => {
+            const key = item.id || item.code || String(index);
+            const isExpanded = expandedIds.includes(key);
+            const uploads = getUploadsFor(item, key);
+            const detailId = `competency-${key}`;
 
-              <div
-                id={detailId}
-                className={`px-6 ${isExpanded ? "pb-6" : "hidden"}`}
-                hidden={!isExpanded}
+            return (
+              <article
+                key={key}
+                className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               >
-                <div className="space-y-6 rounded-2xl border border-slate-100 bg-slate-50/80 px-5 py-5 text-slate-600">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Omschrijving</p>
-                    <p className="mt-2 text-base leading-relaxed text-slate-600">
-                      {item.description || "Geen omschrijving beschikbaar."}
+                <button
+                  type="button"
+                  onClick={() => toggleCompetency(key)}
+                  className="flex w-full items-start justify-between gap-4 px-6 py-5 text-left"
+                  aria-expanded={isExpanded}
+                  aria-controls={detailId}
+                >
+                  <div className="flex-1 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-evc-blue-600">
+                      {item.code || `Competentie ${index + 1}`}
+                    </p>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      {item.name || item.title || "Onbenoemde competentie"}
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      {item.description || item.summary || "Bekijk de details van deze competentie."}
                     </p>
                   </div>
-
-                  <div className="rounded-2xl bg-white px-4 py-4 shadow-inner">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Gewenst resultaat</p>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                      {item.desiredOutcome || "Nog niet vastgelegd."}
-                    </p>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition">
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                   </div>
+                </button>
 
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Vakkennis &amp; vaardigheden</p>
-                      {renderBulletList(item.subjectKnowledge, "Nog geen vakkennis vastgelegd.")}
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Gedragscomponenten</p>
-                        {renderBulletList(item.behavioralComponents, "Nog geen gedragscomponenten vastgelegd.")}
-                      </div>
-
-                      <div className="space-y-3 rounded-2xl bg-white px-4 py-4 shadow-inner">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                          Uploads ({uploads.length})
-                        </p>
-                        {uploads.length === 0 ? (
-                          <p className="text-sm text-slate-400">
-                            Nog geen bestanden. Klik op "Voeg upload toe" om te starten.
+                <div
+                  id={detailId}
+                  className={`grid gap-6 overflow-hidden border-t border-slate-100 px-6 transition-[max-height] duration-500 ${
+                    isExpanded ? "max-h-[999px] py-6" : "max-h-0"
+                  }`}
+                >
+                  {isExpanded ? (
+                    <>
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                          Wat wordt er van je verwacht?
+                        </h4>
+                        {renderBulletList(item.expectations, "Nog geen verwachtingen vastgelegd.")}
+                        <div className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-600">
+                          <p className="font-semibold text-slate-700">Gewenst resultaat</p>
+                          <p className="mt-2 leading-relaxed">
+                            {item.desiredOutcome || "Nog niet vastgelegd."}
                           </p>
-                        ) : (
-                          <ul className="space-y-2 text-sm text-slate-600">
-                            {uploads.map((upload) => {
-                              const canDownload = Boolean(upload.downloadURL || upload.storagePath);
-                              const downloadKey = upload.id || upload.storagePath || upload.fileName || upload.name;
-                              return (
-                                <li
-                                  key={downloadKey}
-                                  className="flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm"
-                                >
-                                  <Paperclip className="h-4 w-4 text-slate-400" />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium text-slate-700">
-                                      {upload.displayName || upload.name || upload.fileName}
-                                    </p>
-                                    {upload.uploadedAt ? (
-                                      <p className="mt-0.5 text-xs text-slate-400">
-                                        Geüpload op {upload.uploadedAt.toLocaleString()}
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                  <div className="ml-auto flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-                                      onClick={() => handleDownload(upload)}
-                                      disabled={downloadInProgress === downloadKey || !canDownload}
-                                    >
-                                      {downloadInProgress === downloadKey
-                                        ? "Bezig..."
-                                        : canDownload
-                                        ? "Download"
-                                        : "Niet beschikbaar"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteUpload(upload)}
-                                      disabled={deletingUploadId === upload.id}
-                                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-500 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
-                                      aria-label="Verwijder upload"
-                                    >
-                                      {deletingUploadId === upload.id ? (
-                                        <span className="text-[10px] font-semibold uppercase tracking-wide">Wacht</span>
-                                      ) : (
-                                        <Trash2 className="h-4 w-4" />
-                                      )}
-                                    </button>
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )}
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                              Naam van je upload
-                            </label>
-                            <input
-                              type="text"
-                              value={uploadNames[key] || ""}
-                              onChange={(event) => handleUploadNameChange(key, event.target.value)}
-                              placeholder="Bijvoorbeeld: Reflectieverslag week 3"
-                              className={`mt-2 w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 ${
-                                uploadNameErrors[key]
-                                  ? "border-red-300 focus:ring-red-300"
-                                  : "border-slate-200 focus:border-brand-400"
-                              }`}
-                            />
-                            {uploadNameErrors[key] ? (
-                              <p className="mt-1 text-xs text-red-500">{uploadNameErrors[key]}</p>
-                            ) : null}
-                          </div>
-                          <input
-                            ref={(node) => {
-                              if (node) {
-                                fileInputsRef.current[key] = node;
-                              } else {
-                                delete fileInputsRef.current[key];
-                              }
-                            }}
-                            type="file"
-                            className="hidden"
-                            onChange={(event) => handleUpload(item.id || item.code || key, event)}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleTriggerUpload(key)}
-                            disabled={uploading === (item.id || item.code || key)}
-                            className="inline-flex items-center gap-2 rounded-full border border-dashed border-brand-300 px-3 py-2 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-                          >
-                            <Paperclip className="h-4 w-4" />
-                            {uploading === (item.id || item.code || key) ? "Bezig..." : "Voeg upload toe"}
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm text-slate-500 shadow-inner">
-                    <MessageCircle className="h-4 w-4 text-brand-500" />
-                    <span className="leading-relaxed">
-                      Heb je vragen? Laat een bericht achter bij je coach in het berichtenoverzicht.
-                    </span>
-                  </div>
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Bewijsstukken</h4>
+                        <div className="space-y-3">
+                          {uploads.length === 0 ? (
+                            <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400">
+                              Nog geen bestanden. Klik op "Voeg upload toe" om te starten.
+                            </p>
+                          ) : (
+                            <ul className="space-y-2 text-sm text-slate-600">
+                              {uploads.map((upload) => {
+                                const canDownload = Boolean(upload.downloadURL || upload.storagePath);
+                                const downloadKey = upload.id || upload.storagePath || upload.fileName || upload.name;
+                                return (
+                                  <li
+                                    key={downloadKey}
+                                    className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm"
+                                  >
+                                    <Paperclip className="h-4 w-4 text-slate-400" />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-medium text-slate-700">
+                                        {upload.displayName || upload.name || upload.fileName}
+                                      </p>
+                                      {upload.uploadedAt ? (
+                                        <p className="mt-0.5 text-xs text-slate-400">
+                                          Geüpload op {upload.uploadedAt.toLocaleString()}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                    <div className="ml-auto flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                                        onClick={() => handleDownload(upload)}
+                                        disabled={downloadInProgress === downloadKey || !canDownload}
+                                      >
+                                        {downloadInProgress === downloadKey
+                                          ? "Bezig..."
+                                          : canDownload
+                                          ? "Download"
+                                          : "Niet beschikbaar"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteUpload(upload)}
+                                        disabled={deletingUploadId === upload.id}
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-500 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+                                        aria-label="Verwijder upload"
+                                      >
+                                        {deletingUploadId === upload.id ? (
+                                          <span className="text-[10px] font-semibold uppercase tracking-wide">Wacht</span>
+                                        ) : (
+                                          <Trash2 className="h-4 w-4" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Naam van je upload
+                              </label>
+                              <input
+                                type="text"
+                                value={uploadNames[key] || ""}
+                                onChange={(event) => handleUploadNameChange(key, event.target.value)}
+                                placeholder="Bijvoorbeeld: Reflectieverslag week 3"
+                                className={`mt-2 w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 ${
+                                  uploadNameErrors[key]
+                                    ? "border-red-300 focus:ring-red-300"
+                                    : "border-slate-200 focus:border-brand-400"
+                                }`}
+                              />
+                              {uploadNameErrors[key] ? (
+                                <p className="mt-1 text-xs text-red-500">{uploadNameErrors[key]}</p>
+                              ) : null}
+                            </div>
+                            <input
+                              ref={(node) => {
+                                if (node) {
+                                  fileInputsRef.current[key] = node;
+                                } else {
+                                  delete fileInputsRef.current[key];
+                                }
+                              }}
+                              type="file"
+                              className="hidden"
+                              onChange={(event) => handleUpload(item.id || item.code || key, event)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerUpload(key)}
+                              disabled={uploading === (item.id || item.code || key)}
+                              className="inline-flex items-center gap-2 rounded-full border border-dashed border-brand-300 px-3 py-2 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                            >
+                              <Paperclip className="h-4 w-4" />
+                              {uploading === (item.id || item.code || key) ? "Bezig..." : "Voeg upload toe"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                          <MessageCircle className="h-4 w-4 text-brand-500" />
+                          <span className="leading-relaxed">
+                            Heb je vragen? Laat een bericht achter bij je coach in het berichtenoverzicht.
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
-              </div>
-            </article>
-          );
-        })}
+              </article>
+            );
+          })}
+        </div>
       </section>
     </div>
   );

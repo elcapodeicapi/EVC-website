@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import clsx from "clsx";
 
-const DashboardLayout = ({ sidebar, topbar, children }) => {
+const DashboardLayout = ({ sidebar, topbar, children, className = "", mainClassName = "", contentClassName = "" }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-900">
+    <div className={clsx("min-h-screen bg-transparent text-slate-900", className)}>
       <div className="lg:grid lg:grid-cols-[320px,1fr]">
         <div
           className={clsx(
@@ -29,8 +29,8 @@ const DashboardLayout = ({ sidebar, topbar, children }) => {
                 onToggleSidebar: () => setIsSidebarOpen((prev) => !prev),
               })
             : null}
-          <main className="flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-10">
-            <div className="mx-auto w-full max-w-7xl space-y-8">{children}</div>
+          <main className={clsx("flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-10", mainClassName)}>
+            <div className={clsx("mx-auto w-full max-w-7xl space-y-8", contentClassName)}>{children}</div>
           </main>
         </div>
       </div>

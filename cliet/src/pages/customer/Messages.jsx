@@ -135,9 +135,50 @@ const CustomerMessages = () => {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Berichten</h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-500">
+      <header className="space-y-3">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">Contact</p>
+          <h1 className="text-3xl font-semibold text-slate-900">Berichten met je coach</h1>
+        </div>
+        <div className="max-w-2xl space-y-4 text-sm text-slate-500">
+          <p className="font-semibold text-slate-700">Werkwijze voor het kiezen van keuzedelen en feedback bij de EVC Academie</p>
+          <p>
+            Deze contactpagina is jouw centrale punt voor communicatie met je aangewezen begeleider. Of je nu keuzedelen wilt aangeven, vragen hebt of
+            simpelweg feedback zoekt, stuur ons hier een bericht. We zijn er om je te ondersteunen en te begeleiden op elk moment van je traject.
+          </p>
+          <p>
+            Bij EVC Academie vinden we het belangrijk dat je de weg kent en dat je weet wat er van je verwacht wordt. Hieronder vind je een helder
+            overzicht van de eerste stappen die je moet nemen:
+          </p>
+          <ol className="list-decimal space-y-3 pl-5 text-slate-600 marker:text-evc-blue-600">
+            <li className="space-y-2">
+              <p className="font-semibold text-slate-700">Keuzedelen voor MBO-trajecten</p>
+              <p>
+                Als je een MBO-traject volgt, is het belangrijk dat je je keuzedelen selecteert. Deze keuzedelen kun je aangeven op onze contactpagina.
+                Het helpt ons om je traject op maat te maken, zodat deze het beste bij jou past!
+              </p>
+              <p>
+                Ga naar het tabblad &apos;Portfolio&apos;. Daar tref je een knop aan met de tekst &quot;Belangrijk - klik hier en lees verder&quot;. Na het klikken
+                vind je in de daaropvolgende tekst een link naar de lijst met beschikbare keuzedelen.
+              </p>
+              <p>Volg je een HBO-traject? Goed nieuws, dit deel is voor jou niet van toepassing.</p>
+            </li>
+            <li className="space-y-2">
+              <p className="font-semibold text-slate-700">Het belang van feedback</p>
+              <p>
+                Feedback is een essentieel onderdeel van je leerproces bij EVC Academie. Door feedback te ontvangen, kun je beter inzien wat je al goed
+                doet en waar je nog aan kunt werken.
+              </p>
+              <p>
+                We zetten ons in om je binnen drie dagen van feedback te voorzien. We streven ernaar om binnen drie dagen te reageren op je
+                contactverzoek. Mocht je na deze termijn geen reactie hebben ontvangen, aarzel dan niet om contact op te nemen met EVC Academie.
+              </p>
+            </li>
+          </ol>
+          <p className="font-semibold text-slate-700">Met vriendelijke groeten,</p>
+          <p>Team EVC Academie</p>
+        </div>
+        <p className="max-w-2xl text-sm text-slate-500">
           Chat rechtstreeks met je coach{coach ? ` ${coach.name}` : ""}. Gebruik dit kanaal voor vragen en updates.
         </p>
       </header>

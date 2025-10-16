@@ -10,7 +10,7 @@ const LegacyPageLayout = ({
 	showHeader = true,
 }) => {
 	return (
-		<div className="min-h-screen bg-transparent">
+		<div className="min-h-screen bg-white">
 			<Navbar />
 			<main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
 				{showHeader && (title || description || kicker || actions) ? (

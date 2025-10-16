@@ -4,9 +4,13 @@ import {
   FileSpreadsheet,
   FileText,
   Mail,
-  CalendarCheck,
   MessageSquare,
   IdCard,
+  Goal,
+  FolderOpen,
+  Briefcase,
+  ClipboardCheck,
+  BookOpen,
   ShieldCheck,
 } from "lucide-react";
 
@@ -26,9 +30,14 @@ export const coachNavItems = [
 ];
 
 export const customerNavItems = [
-  { label: "Planning", to: "/customer/planning", icon: CalendarCheck },
-  { label: "Messages", to: "/customer/messages", icon: MessageSquare },
-  { label: "Profile", to: "/customer/profile", icon: IdCard },
+  { label: "Dashboard", to: "/customer/dashboard", icon: LayoutDashboard },
+  { label: "Mijn profiel", to: "/customer/profile", icon: IdCard },
+  { label: "Mijn loopbaandoel", to: "/customer/career-goal", icon: Goal },
+  { label: "Mijn portfolio", to: "/customer/portfolio", icon: FolderOpen },
+  { label: "Werkplekbezoek", to: "/customer/workplace-visit", icon: Briefcase },
+  { label: "Criteriumgericht interview", to: "/customer/criterium-interview", icon: ClipboardCheck },
+  { label: "Contact", to: "/customer/contact", icon: MessageSquare },
+  { label: "Handleiding", to: "/customer/manual", icon: BookOpen },
 ];
 
 export const adminProfile = {
