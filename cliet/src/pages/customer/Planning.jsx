@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { CheckCircle2, ChevronDown, MessageCircle, Paperclip } from "lucide-react";
+import { CheckCircle2, ChevronDown, MessageCircle, Paperclip, Trash2 } from "lucide-react";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { get } from "../../lib/api";
 import {
   fetchTraject,
+  deleteCustomerEvidence,
   resolveUploadDownloadUrl,
   subscribeCustomerUploads,
   subscribeTrajectCompetencies,
@@ -24,6 +25,7 @@ const CustomerPlanning = () => {
   const [customerUploads, setCustomerUploads] = useState([]);
   const [uploadsError, setUploadsError] = useState(null);
   const [downloadInProgress, setDownloadInProgress] = useState(null);
+  const [deletingUploadId, setDeletingUploadId] = useState(null);
   const [uploadNames, setUploadNames] = useState({});
   const [uploadNameErrors, setUploadNameErrors] = useState({});
   const fileInputsRef = useRef({});
@@ -314,6 +316,27 @@ const CustomerPlanning = () => {
     }
   };
 
+  const handleDeleteUpload = async (upload) => {
+    if (!upload || !upload.id) return;
+    if (!customerId) {
+      setError("Kon je accountgegevens niet vinden. Probeer opnieuw in te loggen.");
+      return;
+    }
+
+    setDeletingUploadId(upload.id);
+    try {
+      await deleteCustomerEvidence({
+        userId: customerId,
+        uploadId: upload.id,
+        storagePath: upload.storagePath || null,
+      });
+    } catch (err) {
+      setError(err?.message || "Verwijderen mislukt");
+    } finally {
+      setDeletingUploadId(null);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <header className="space-y-2">
@@ -456,18 +479,33 @@ const CustomerPlanning = () => {
                                       </p>
                                     ) : null}
                                   </div>
-                                  <button
-                                    type="button"
-                                    className="ml-auto whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-                                    onClick={() => handleDownload(upload)}
-                                    disabled={downloadInProgress === downloadKey || !canDownload}
-                                  >
-                                    {downloadInProgress === downloadKey
-                                      ? "Bezig..."
-                                      : canDownload
-                                      ? "Download"
-                                      : "Niet beschikbaar"}
-                                  </button>
+                                  <div className="ml-auto flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                                      onClick={() => handleDownload(upload)}
+                                      disabled={downloadInProgress === downloadKey || !canDownload}
+                                    >
+                                      {downloadInProgress === downloadKey
+                                        ? "Bezig..."
+                                        : canDownload
+                                        ? "Download"
+                                        : "Niet beschikbaar"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteUpload(upload)}
+                                      disabled={deletingUploadId === upload.id}
+                                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-500 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+                                      aria-label="Verwijder upload"
+                                    >
+                                      {deletingUploadId === upload.id ? (
+                                        <span className="text-[10px] font-semibold uppercase tracking-wide">Wacht</span>
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </button>
+                                  </div>
                                 </li>
                               );
                             })}

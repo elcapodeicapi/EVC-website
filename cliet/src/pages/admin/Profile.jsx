@@ -16,8 +16,9 @@ const AdminProfile = () => {
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
-        if (parsed?.firebaseUid && mounted) {
-          setUid(parsed.firebaseUid);
+        const resolvedUid = parsed?.firebaseUid || parsed?.uid;
+        if (resolvedUid && mounted) {
+          setUid(resolvedUid);
         }
       } catch (e) {
         // ignore malformed storage

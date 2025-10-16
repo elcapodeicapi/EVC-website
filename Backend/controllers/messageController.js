@@ -1,36 +1,34 @@
-const { Message, User } = require("../Models");
-const { Op } = require("sequelize");
+const { db } = require("../firebase");
 
 
 // GET all messages for the logged-in user (forum-like)
 exports.getAllMessages = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const uid = req.user.firebaseUid || req.user.uid;
+    if (!uid) return res.status(400).json({ error: "Missing Firebase user id" });
 
-    // If admin → see all, else only see your conversations
-    if (req.user.role === "admin") {
-      // Admins can see all messages
-      whereClause = {};
-    } else {
-      // Regular user: only see conversation with admins
-      whereClause = {
-        [Op.or]: [
-          { fromUserId: req.user.id },
-          { toUserId: req.user.id }
-        ]
-      };
-    }
+    // Threads where current uid is a participant
+    const threadsSnap = await db
+      .collection("threads")
+      .where("participants", "array-contains", uid)
+      .orderBy("updatedAt", "desc")
+      .get();
 
-    const msgs = await Message.findAll({
-      where: whereClause,
-      include: [
-        { model: User, as: "fromUser", attributes: ["id", "name", "email"] },
-        { model: User, as: "toUser", attributes: ["id", "name", "email"] }
-      ],
-      order: [["createdAt", "ASC"]]
-    });
+    const threads = await Promise.all(
+      threadsSnap.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        const messagesSnap = await db
+          .collection("threads")
+          .doc(docSnap.id)
+          .collection("messages")
+          .orderBy("createdAt", "asc")
+          .get();
+        const messages = messagesSnap.docs.map((m) => ({ id: m.id, ...m.data() }));
+        return { id: docSnap.id, ...data, messages };
+      })
+    );
 
-    res.json(msgs);
+    res.json(threads);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -39,22 +37,56 @@ exports.getAllMessages = async (req, res) => {
 // POST send message
 exports.sendMessage = async (req, res) => {
   try {
-    const { toUserId, content } = req.body;
-    const fromUserId = req.user.id;
+    const { threadId, toUserId, content } = req.body;
+    const fromUserId = req.user.firebaseUid || req.user.uid;
+    if (!fromUserId) return res.status(400).json({ error: "Missing Firebase user id" });
+    if (!content || !content.trim()) return res.status(400).json({ error: "Message is empty" });
 
-    // ensure content
-    if (!content) return res.status(400).json({ error: "Message is empty" });
+    let resolvedThreadId = threadId;
+    if (!resolvedThreadId) {
+      // Create or find a one-on-one thread between from and to users
+      const participants = [fromUserId, toUserId].filter(Boolean).sort();
+      if (participants.length < 2) return res.status(400).json({ error: "Missing recipient" });
 
-    // prevent non-admins from messaging other non-admins
-    if (req.user.role !== "admin") {
-      const recipient = await User.findByPk(toUserId);
-      if (!recipient || recipient.role !== "admin") {
-        return res.status(403).json({ error: "You can only message admins" });
+      const existing = await db
+        .collection("threads")
+        .where("participants", "array-contains", fromUserId)
+        .get();
+      const found = existing.docs.find((doc) => {
+        const p = doc.data().participants || [];
+        return p.length === 2 && p.includes(toUserId);
+      });
+      if (found) {
+        resolvedThreadId = found.id;
+      } else {
+        const threadRef = await db.collection("threads").add({
+          participants,
+          participantProfiles: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        resolvedThreadId = threadRef.id;
       }
     }
 
-    const msg = await Message.create({ fromUserId, toUserId, content });
-    res.json(msg);
+    const msgRef = await db
+      .collection("threads")
+      .doc(resolvedThreadId)
+      .collection("messages")
+      .add({
+        authorId: fromUserId,
+        content: content.trim(),
+        createdAt: new Date(),
+      });
+
+    await db.collection("threads").doc(resolvedThreadId).update({
+      lastMessage: content.trim(),
+      lastMessageAuthorId: fromUserId,
+      updatedAt: new Date(),
+    });
+
+    const msgSnap = await msgRef.get();
+    res.json({ id: msgSnap.id, ...msgSnap.data(), threadId: resolvedThreadId });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

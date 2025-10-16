@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
@@ -9,7 +10,7 @@ import {
   serverTimestamp,
   where,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { db, storage } from "../firebase";
 
 function mapTraject(snapshot) {
@@ -60,6 +61,8 @@ function mapUser(snapshot) {
   const data = snapshot.data() || {};
   return {
     id: snapshot.id,
+    uid: snapshot.id,
+    firebaseUid: snapshot.id,
     name: data.name || "",
     email: data.email || "",
     role: data.role || "",
@@ -148,6 +151,27 @@ export async function uploadCustomerEvidence({ userId, competencyId, file, displ
     contentType: file.type || null,
     size: typeof file.size === "number" ? file.size : null,
   });
+}
+
+export async function deleteCustomerEvidence({ userId, uploadId, storagePath }) {
+  if (!userId) throw new Error("userId is verplicht");
+  if (!uploadId) throw new Error("uploadId is verplicht");
+
+  const uploadDocRef = doc(db, "users", userId, "uploads", uploadId);
+
+  if (storagePath) {
+    const fileRef = ref(storage, storagePath);
+    try {
+      await deleteObject(fileRef);
+    } catch (error) {
+      if (error?.code !== "storage/object-not-found") {
+        throw error;
+      }
+      // if the file is already gone we still remove the Firestore doc
+    }
+  }
+
+  await deleteDoc(uploadDocRef);
 }
 
 export function subscribeCustomerUploads(userId, observer) {

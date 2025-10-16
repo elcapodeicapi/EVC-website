@@ -17,37 +17,27 @@ const Register = () => {
 	const onSubmit = async (event) => {
 		event.preventDefault();
 		setLoading(true);
-			try {
-				// Create Firebase user (supports emulator in dev)
-				const cred = await createUserWithEmailAndPassword(auth, email, password);
-				if (name) {
-					try { await updateProfile(cred.user, { displayName: name }); } catch (_) { /* noop */ }
-				}
-				const idToken = await cred.user.getIdToken();
-				// Exchange for API JWT and SQL mirroring
-				const data = await post("/auth/register/firebase", { idToken, role, name });
-				if (data?.token) {
-					localStorage.setItem("token", data.token);
-					if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
-					const redirectPath = data.redirectPath || "/dashboard";
-					navigate(redirectPath, { replace: true });
-					return;
-				}
-				// Fallback to legacy register if exchange fails
-				const legacy = await post("/auth/register", { name, email, password, role });
-				if (legacy?.token) {
-					localStorage.setItem("token", legacy.token);
-					if (legacy.user) localStorage.setItem("user", JSON.stringify(legacy.user));
-					const redirectPath = legacy.redirectPath || "/dashboard";
-					navigate(redirectPath, { replace: true });
-					return;
-				}
-				alert(data?.error || legacy?.error || "Registratie mislukt");
-			} catch (err) {
-				alert("Registratie mislukt");
-			} finally {
-				setLoading(false);
+		try {
+			// Create Firebase user (emulator-friendly in development)
+			const cred = await createUserWithEmailAndPassword(auth, email, password);
+			if (name) {
+				try { await updateProfile(cred.user, { displayName: name }); } catch (_) { /* noop */ }
 			}
+			const idToken = await cred.user.getIdToken();
+			// Register profile via Firestore-backed backend and receive API JWT
+			const data = await post("/auth/register/firebase", { idToken, role, name });
+			if (!data?.token) {
+				throw new Error(data?.error || "Registratie mislukt");
+			}
+			localStorage.setItem("token", data.token);
+			if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+			const redirectPath = data.redirectPath || "/dashboard";
+			navigate(redirectPath, { replace: true });
+		} catch (err) {
+			alert(err?.data?.error || err?.message || "Registratie mislukt");
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	return (

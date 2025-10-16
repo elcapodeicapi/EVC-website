@@ -24,13 +24,13 @@ const TestCreateAccount = () => {
     setStatus(null);
 
     try {
-      const API_BASE = import.meta.env.VITE_API_BASE || "";
       const payload = {
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
         role: form.role,
       };
+      const API_BASE = import.meta.env.VITE_API_BASE || "";
       const response = await fetch(`${API_BASE}/auth/admin/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,6 +61,7 @@ const TestCreateAccount = () => {
           "Aanmaken mislukt";
         const error = new Error(message);
         error.status = response.status;
+        error.data = responseData;
         throw error;
       }
 
@@ -78,7 +79,7 @@ const TestCreateAccount = () => {
     <LegacyPageLayout
       kicker="Testing"
       title="Test account aanmaken"
-      description="Gebruik dit formulier om snel een account aan te maken via de admin endpoint."
+  description="Gebruik dit formulier om snel een account aan te maken via de admin endpoint. In development kun je dit gebruiken zonder in te loggen (zet ALLOW_DEV_ACCOUNT_CREATION=true op de backend)."
     >
       <section className="mx-auto w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex items-center gap-3">

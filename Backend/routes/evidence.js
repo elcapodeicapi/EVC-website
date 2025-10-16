@@ -1,19 +1,19 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
-const { Evidence, User } = require("../Models");
 const { authenticate, authorizeRoles } = require("../Middleware/authMiddleware");
 const { db: adminDb } = require("../firebase");
+const { uploadBuffer, sanitizeFilename, bucket } = require("../utils/storage");
 
 const router = express.Router();
 
-// Multer setup
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + "-" + file.originalname)
-});
-const upload = multer({ storage });
+// Multer setup (memory storage for direct upload to Firebase Storage)
+const upload = multer({ storage: multer.memoryStorage() });
+
+function buildStoragePath(uid, originalName) {
+  const safeName = sanitizeFilename(originalName || "upload.bin");
+  return path.posix.join("uploads", uid, `${Date.now()}-${safeName}`);
+}
 
 // POST /evidence/upload
 router.post(
@@ -33,38 +33,47 @@ router.post(
         return res.status(400).json({ error: "Name is required" });
       }
 
-      const file_path = "/uploads/" + req.file.filename;
+      const firebaseUid = req.user.firebaseUid || req.user.uid || null;
+      if (!firebaseUid) {
+        return res.status(400).json({ error: "Missing Firebase user id" });
+      }
 
-      const evidence = await Evidence.create({
-        name: trimmedName,
-        type,
-        file_path,
-        UserId: req.user.id,
+      const trajectId = bodyTrajectId || null;
+      const now = new Date();
+
+      const destination = buildStoragePath(firebaseUid, req.file.originalname || req.file.filename);
+      const { file, downloadUrl } = await uploadBuffer(destination, req.file.buffer, {
+        contentType: req.file.mimetype,
+        metadata: {
+          firebaseUid,
+          trajectId: trajectId || undefined,
+          competencyId: competencyId || undefined,
+          originalName: req.file.originalname,
+        },
       });
 
-      if (competencyId) {
-        const user = await User.findByPk(req.user.id);
-        if (user?.firebaseUid) {
-          const trajectId = bodyTrajectId || user.trajectId || null;
-          const evidenceDoc = {
-            userId: user.firebaseUid,
-            sqlEvidenceId: evidence.id,
-            competencyId,
-            trajectId,
-            name: trimmedName,
-            filePath: file_path,
-            type: type || null,
-            createdAt: new Date(),
-          };
-          await adminDb.collection("evidences").add(evidenceDoc);
-        }
-      }
+      const payload = {
+        name: trimmedName,
+        filePath: downloadUrl,
+        downloadUrl,
+        storagePath: file.name,
+        bucket: bucket.name,
+        type: type || null,
+        contentType: req.file.mimetype || null,
+        size: typeof req.file.size === "number" ? req.file.size : null,
+        competencyId: competencyId || null,
+        trajectId,
+        uploadedAt: now,
+      };
 
-      res.json(evidence);
+      const docRef = await adminDb
+        .collection("users")
+        .doc(firebaseUid)
+        .collection("uploads")
+        .add(payload);
+
+      res.json({ id: docRef.id, ...payload });
     } catch (err) {
-      if (err.name === "SequelizeValidationError") {
-        return res.status(400).json({ error: err.errors?.[0]?.message || "Validation error" });
-      }
       res.status(500).json({ error: err.message });
     }
   }

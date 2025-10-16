@@ -10,6 +10,7 @@ import {
 import DashboardLayout from "../layouts/DashboardLayout";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import BrandLogo from "../components/BrandLogo";
 import Login from "./Login";
 import Home from "./Home";
 import AdminOverview from "./admin/Overview";
@@ -36,7 +37,7 @@ import {
 	MessageSquare,
 	IdCard,
 } from "lucide-react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { subscribeAdminProfile } from "../lib/firestoreAdmin";
 import { subscribeCustomerContext } from "../lib/firestoreCustomer";
@@ -69,6 +70,17 @@ const CUSTOMER_NAV_ITEMS = [
 	{ label: "Profile", to: "/customer/profile", icon: IdCard },
 ];
 
+const normalizeUserRecord = (user) => {
+	if (!user || typeof user !== "object") return user ?? null;
+	const next = { ...user };
+	if (next.uid && !next.firebaseUid) {
+		next.firebaseUid = next.uid;
+	} else if (next.firebaseUid && !next.uid) {
+		next.uid = next.firebaseUid;
+	}
+	return next;
+};
+
 const AdminLayout = () => {
 	const navigate = useNavigate();
 	const [uid, setUid] = useState(null);
@@ -86,8 +98,9 @@ const AdminLayout = () => {
 		if (storedUser) {
 			try {
 				const parsed = JSON.parse(storedUser);
-				if (parsed?.firebaseUid && mounted) {
-					setUid(parsed.firebaseUid);
+				const resolvedUid = parsed?.firebaseUid || parsed?.uid;
+				if (resolvedUid && mounted) {
+					setUid(resolvedUid);
 				}
 			} catch (_) {
 				// ignore parsing issues
@@ -135,9 +148,12 @@ const AdminLayout = () => {
 			sidebar={
 				<Sidebar
 					header={
-						<div>
-							<p className="text-xs uppercase tracking-[0.35em] text-slate-400">Admin</p>
-							<h1 className="mt-1 text-xl font-semibold text-slate-900">EVC Control</h1>
+						<div className="space-y-4">
+							<BrandLogo className="w-fit" />
+							<div>
+								<p className="text-xs uppercase tracking-[0.35em] text-slate-400">Admin</p>
+								<h1 className="mt-1 text-xl font-semibold text-slate-900">EVC Control</h1>
+							</div>
 						</div>
 					}
 					navItems={ADMIN_NAV_ITEMS}
@@ -186,7 +202,8 @@ const CoachLayout = () => {
 	const navigate = useNavigate();
 	const [sqlUser, setSqlUser] = useState(() => {
 		try {
-			return JSON.parse(localStorage.getItem("user") || "null");
+			const raw = localStorage.getItem("user") || "null";
+			return normalizeUserRecord(JSON.parse(raw));
 		} catch (_) {
 			return null;
 		}
@@ -202,7 +219,7 @@ const CoachLayout = () => {
 				const data = await get("/auth/me");
 				if (!active) return;
 				setSqlUser((previous) => {
-					const merged = { ...(previous || {}), ...(data || {}) };
+					const merged = normalizeUserRecord({ ...(previous || {}), ...(data || {}) });
 					try {
 						localStorage.setItem("user", JSON.stringify(merged));
 					} catch (_) {
@@ -227,7 +244,7 @@ const CoachLayout = () => {
 		};
 	}, []);
 
-	const coachUid = sqlUser?.firebaseUid || null;
+	const coachUid = sqlUser?.firebaseUid || sqlUser?.uid || null;
 
 	const [coachDoc, setCoachDoc] = useState(null);
 	const [coachProfileError, setCoachProfileError] = useState(null);
@@ -415,9 +432,12 @@ const CoachLayout = () => {
 			sidebar={
 				<Sidebar
 					header={
-						<div>
-							<p className="text-xs uppercase tracking-widest text-slate-400">Coach</p>
-							<h1 className="mt-1 text-xl font-semibold text-slate-900">EVC Workspace</h1>
+						<div className="space-y-4">
+							<BrandLogo className="w-fit" />
+							<div>
+								<p className="text-xs uppercase tracking-widest text-slate-400">Coach</p>
+								<h1 className="mt-1 text-xl font-semibold text-slate-900">EVC Workspace</h1>
+							</div>
 						</div>
 					}
 					navItems={COACH_NAV_ITEMS}
@@ -461,7 +481,8 @@ const CustomerLayout = () => {
 	const navigate = useNavigate();
 	const [sqlUser, setSqlUser] = useState(() => {
 		try {
-			return JSON.parse(localStorage.getItem("user") || "null");
+			const raw = localStorage.getItem("user") || "null";
+			return normalizeUserRecord(JSON.parse(raw));
 		} catch (_) {
 			return null;
 		}
@@ -489,7 +510,7 @@ const CustomerLayout = () => {
 				const data = await get("/auth/me");
 				if (!active) return;
 				setSqlUser((prev) => {
-					const merged = { ...(prev || {}), ...(data || {}) };
+					const merged = normalizeUserRecord({ ...(prev || {}), ...(data || {}) });
 					try {
 						localStorage.setItem("user", JSON.stringify(merged));
 					} catch (_) {
@@ -512,7 +533,7 @@ const CustomerLayout = () => {
 		};
 	}, []);
 
-	const firebaseUid = sqlUser?.firebaseUid || null;
+	const firebaseUid = sqlUser?.firebaseUid || sqlUser?.uid || null;
 
 	useEffect(() => {
 		if (!firebaseUid) {
@@ -542,10 +563,20 @@ const CustomerLayout = () => {
 	}, [firebaseUid]);
 
 	const resolvedCustomer = useMemo(() => {
-		if (customerDoc) return customerDoc;
+		if (customerDoc) {
+			const normalizedUid = customerDoc.firebaseUid || customerDoc.id || null;
+			return normalizedUid ? { ...customerDoc, firebaseUid: normalizedUid, uid: normalizedUid } : customerDoc;
+		}
 		if (!sqlUser) return null;
+		const fallbackUid =
+			sqlUser.firebaseUid ||
+			sqlUser.uid ||
+			(sqlUser.id ? String(sqlUser.id) : null);
+		if (!fallbackUid) return null;
 		return {
-			id: sqlUser.firebaseUid || String(sqlUser.id || ""),
+			id: fallbackUid,
+			uid: fallbackUid,
+			firebaseUid: fallbackUid,
 			name: sqlUser.name || sqlUser.email || "Customer",
 			email: sqlUser.email || "",
 			role: sqlUser.role || "customer",
@@ -581,7 +612,7 @@ const CustomerLayout = () => {
 		}
 		if (resolvedCoach?.name) subtitleParts.push(`Coach: ${resolvedCoach.name}`);
 		if (assignmentDoc?.status) subtitleParts.push(assignmentDoc.status);
-	const subtitle = subtitleParts.join(" • ") || "Customer";
+		const subtitle = subtitleParts.join(" • ") || "Customer";
 
 	const topbarUser = {
 		name: resolvedCustomer?.name || "Customer",
@@ -589,65 +620,85 @@ const CustomerLayout = () => {
 		role: "Customer",
 	};
 
-		const handleExitImpersonation = () => {
-			if (!isImpersonating) {
-				navigate("/admin", { replace: true });
-				return;
-			}
+	const handleCustomerLogout = async () => {
+		try {
+			await signOut(auth);
+		} catch (_) {
+			// sign-out best effort
+		}
+		localStorage.removeItem("token");
+		localStorage.removeItem("user");
+		localStorage.removeItem("impersonationBackup");
+		setSqlUser(null);
+		setImpersonationBackup(null);
+		setCustomerDoc(null);
+		setCoachDoc(null);
+		setAssignmentDoc(null);
+		navigate("/login", { replace: true });
+	};
 
-			let backup = impersonationBackup;
-			if (!backup) {
-				try {
-					const raw = localStorage.getItem("impersonationBackup");
-					backup = raw ? JSON.parse(raw) : null;
-				} catch (_) {
-					backup = null;
-				}
-			}
+	const handleExitImpersonation = () => {
+		if (!isImpersonating) {
+			navigate("/admin", { replace: true });
+			return;
+		}
 
-			if (backup && Object.prototype.hasOwnProperty.call(backup, "token")) {
-				if (backup.token === null) {
-					localStorage.removeItem("token");
-				} else {
-					localStorage.setItem("token", backup.token);
-				}
-			} else {
+		let backup = impersonationBackup;
+		if (!backup) {
+			try {
+				const raw = localStorage.getItem("impersonationBackup");
+				backup = raw ? JSON.parse(raw) : null;
+			} catch (_) {
+				backup = null;
+			}
+		}
+
+		if (backup && Object.prototype.hasOwnProperty.call(backup, "token")) {
+			if (backup.token === null) {
 				localStorage.removeItem("token");
-			}
-
-			if (backup && Object.prototype.hasOwnProperty.call(backup, "user")) {
-				if (backup.user === null) {
-					localStorage.removeItem("user");
-					setSqlUser(null);
-				} else {
-					localStorage.setItem("user", backup.user);
-					try {
-						setSqlUser(JSON.parse(backup.user));
-					} catch (_) {
-						setSqlUser(null);
-					}
-				}
 			} else {
+				localStorage.setItem("token", backup.token);
+			}
+		} else {
+			localStorage.removeItem("token");
+		}
+
+		if (backup && Object.prototype.hasOwnProperty.call(backup, "user")) {
+			if (backup.user === null) {
 				localStorage.removeItem("user");
 				setSqlUser(null);
+			} else {
+				localStorage.setItem("user", backup.user);
+				try {
+					setSqlUser(normalizeUserRecord(JSON.parse(backup.user)));
+				} catch (_) {
+					setSqlUser(null);
+				}
 			}
+		} else {
+			localStorage.removeItem("user");
+			setSqlUser(null);
+		}
 
-			localStorage.removeItem("impersonationBackup");
-			setImpersonationBackup(null);
-			setCustomerDoc(null);
-			setCoachDoc(null);
-			setAssignmentDoc(null);
-			navigate("/admin", { replace: true });
-		};
+		localStorage.removeItem("impersonationBackup");
+		setImpersonationBackup(null);
+		setCustomerDoc(null);
+		setCoachDoc(null);
+		setAssignmentDoc(null);
+		navigate("/admin", { replace: true });
+	};
 
 	return (
 		<DashboardLayout
 			sidebar={
 				<Sidebar
 					header={
-						<div>
-							<p className="text-xs uppercase tracking-widest text-slate-400">Customer</p>
-							<h1 className="mt-1 text-xl font-semibold text-slate-900">Mijn EVC</h1>
+						<div className="space-y-4">
+							<BrandLogo className="w-fit" />
+							<div>
+								<p className="text-xs uppercase tracking-widest text-slate-400">Customer</p>
+								<h1 className="mt-1 text-xl font-semibold text-slate-900">Mijn EVC</h1>
+							</div>
 						</div>
 					}
 					navItems={CUSTOMER_NAV_ITEMS}
@@ -657,27 +708,34 @@ const CustomerLayout = () => {
 				<Topbar
 					title="Jouw EVC-traject"
 					user={topbarUser}
-								rightSlot={
-									<div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-										{isImpersonating ? (
-											<button
-												type="button"
-												onClick={handleExitImpersonation}
-												className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1 font-semibold text-brand-600 transition hover:bg-brand-100"
-											>
-												Stop meekijken
-											</button>
-										) : null}
-										<span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
-											Laatste activiteit: {activityLabel}
-										</span>
-										{resolvedCoach ? (
-											<span className="hidden rounded-full bg-brand-50 px-3 py-1 font-medium text-brand-600 sm:inline">
-												Coach {resolvedCoach.name}
-											</span>
-										) : null}
-									</div>
-								}
+					rightSlot={
+						<div className="flex flex-wrap items-center justify-end gap-3 text-sm text-slate-600">
+							{isImpersonating ? (
+								<button
+									type="button"
+									onClick={handleExitImpersonation}
+									className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1 font-semibold text-brand-600 transition hover:bg-brand-100"
+								>
+									Stop meekijken
+								</button>
+								) : null}
+							<button
+								type="button"
+								onClick={handleCustomerLogout}
+								className="rounded-full bg-evc-blue-600 px-3 py-1 font-semibold text-white shadow-sm transition hover:bg-evc-blue-500"
+							>
+								Log uit
+							</button>
+							<span className="rounded-full bg-white px-3 py-1 font-medium text-slate-600 shadow-sm">
+								Laatste activiteit: {activityLabel}
+							</span>
+							{resolvedCoach ? (
+								<span className="hidden rounded-full bg-brand-50 px-3 py-1 font-medium text-brand-600 sm:inline">
+									Coach {resolvedCoach.name}
+								</span>
+							) : null}
+						</div>
+					}
 				/>
 			}
 		>

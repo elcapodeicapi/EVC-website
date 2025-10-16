@@ -1,7 +1,29 @@
+// Load environment variables as early as possible
+(() => {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const dotenv = require("dotenv");
+    const candidates = [
+      path.resolve(__dirname, "../.env"),
+      path.resolve(__dirname, ".env"),
+      path.resolve(__dirname, "../cliet/.env"),
+    ];
+    candidates.forEach((file) => {
+      if (fs.existsSync(file)) {
+        dotenv.config({ path: file, override: false });
+      }
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn("dotenv load skipped:", error?.message || error);
+  }
+})();
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { sequelize } = require("./Models");
+// Removed Sequelize usage; backend now runs Firestore-only
 const { db: fbDb, auth: fbAuth } = require("./firebase");
 
 const evidenceRoutes = require("./routes/evidence");
@@ -46,7 +68,6 @@ app.use((req, res, next) => {
 
 // Start server
 (async () => {
-  await sequelize.sync();
   app.listen(5000, () => console.log("API running at http://localhost:5000"));
 })();
 

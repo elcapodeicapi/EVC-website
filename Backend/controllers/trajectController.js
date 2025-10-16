@@ -1,5 +1,4 @@
 const { db: adminDb } = require("../firebase");
-const { User } = require("../Models");
 
 function mapTrajectDoc(doc) {
   const data = doc.data();
@@ -425,38 +424,17 @@ exports.updateTraject = async (req, res) => {
 
 exports.getCustomerPlanning = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    const firebaseUid = req.user?.uid || req.user?.firebaseUid;
+    if (!firebaseUid) return res.status(401).json({ error: "Not authenticated" });
 
-    let trajectId = user.trajectId || null;
-    let firebaseUid = user.firebaseUid || null;
-
-    if (!firebaseUid) {
-      return res.status(400).json({ error: "Account is missing Firebase linkage" });
-    }
-
-    if (!trajectId) {
-      const snap = await adminDb.collection("users").doc(firebaseUid).get();
-      if (snap.exists) {
-        const data = snap.data();
-        trajectId = data?.trajectId || null;
-        if (trajectId && user.trajectId !== trajectId) {
-          await user.update({ trajectId });
-        }
-      }
-    }
-
-    if (!trajectId) {
-      return res.status(404).json({ error: "No traject assigned" });
-    }
+    const userSnap = await adminDb.collection("users").doc(firebaseUid).get();
+    if (!userSnap.exists) return res.status(404).json({ error: "User profile not found" });
+    const userData = userSnap.data() || {};
+    const trajectId = userData.trajectId || null;
+    if (!trajectId) return res.status(404).json({ error: "No traject assigned" });
 
     const trajectSnap = await adminDb.collection("trajects").doc(trajectId).get();
-    if (!trajectSnap.exists) {
-      return res.status(404).json({ error: "Traject not found" });
-    }
-
+    if (!trajectSnap.exists) return res.status(404).json({ error: "Traject not found" });
     const traject = mapTrajectDoc(trajectSnap);
 
     const competenciesSnap = await adminDb
@@ -464,27 +442,48 @@ exports.getCustomerPlanning = async (req, res) => {
       .where("trajectId", "==", trajectId)
       .get();
 
-    const evidenceSnap = await adminDb
-      .collection("evidences")
-      .where("userId", "==", firebaseUid)
+    // Prefer per-user uploads subcollection (new path), fall back to legacy evidences collection
+    const uploadsSnap = await adminDb
+      .collection("users")
+      .doc(firebaseUid)
+      .collection("uploads")
       .where("trajectId", "==", trajectId)
       .get();
 
     const evidencesByCompetency = new Map();
-    evidenceSnap.docs.forEach((doc) => {
+    uploadsSnap.docs.forEach((doc) => {
       const data = doc.data();
       const competencyId = data.competencyId || null;
       if (!competencyId) return;
-      if (!evidencesByCompetency.has(competencyId)) {
-        evidencesByCompetency.set(competencyId, []);
-      }
+      if (!evidencesByCompetency.has(competencyId)) evidencesByCompetency.set(competencyId, []);
       evidencesByCompetency.get(competencyId).push({
         id: doc.id,
         name: data.name || data.fileName || "",
         filePath: data.filePath || data.url || "",
-        createdAt: data.createdAt ? data.createdAt.toDate?.() ?? data.createdAt : null,
+        createdAt: data.uploadedAt || data.createdAt || null,
       });
     });
+
+    // Legacy evidence collection support
+    if (evidencesByCompetency.size === 0) {
+      const legacySnap = await adminDb
+        .collection("evidences")
+        .where("userId", "==", firebaseUid)
+        .where("trajectId", "==", trajectId)
+        .get();
+      legacySnap.docs.forEach((doc) => {
+        const data = doc.data();
+        const competencyId = data.competencyId || null;
+        if (!competencyId) return;
+        if (!evidencesByCompetency.has(competencyId)) evidencesByCompetency.set(competencyId, []);
+        evidencesByCompetency.get(competencyId).push({
+          id: doc.id,
+          name: data.name || data.fileName || "",
+          filePath: data.filePath || data.url || "",
+          createdAt: data.createdAt ? data.createdAt.toDate?.() ?? data.createdAt : null,
+        });
+      });
+    }
 
     const competencies = competenciesSnap.docs.map((doc) => {
       const data = doc.data();
@@ -514,10 +513,7 @@ exports.getCustomerPlanning = async (req, res) => {
       return a.title.localeCompare(b.title);
     });
 
-    res.json({
-      traject,
-      competencies,
-    });
+    res.json({ traject, competencies });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -1,8 +1,5 @@
-const { User } = require("../Models");
-const bcrypt = require("bcrypt");
+const { db: adminDb, auth: adminAuth } = require("../firebase");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const { auth: adminAuth, db: adminDb } = require("../firebase");
 
 const MANAGED_ROLES = new Set(["admin", "coach", "customer", "user"]);
 
@@ -17,56 +14,27 @@ function getRedirectPath(role) {
   return roleRedirectMap[role] || "/dashboard";
 }
 
-const JWT_SECRET = "supersecret"; // 🔒 move to .env later
+const JWT_SECRET = process.env.JWT_SECRET || "supersecret"; // 🔒 move to .env
 
-// POST /auth/register
+// POST /auth/register (password registration) — deprecated in favor of Firebase login; retained for parity
 exports.register = async (req, res) => {
   try {
-  const { email, password, role = "user", name, trajectId = null } = req.body;
-
-    // Create user in Firebase Auth (Admin SDK)
-    const userRecord = await adminAuth.createUser({
-      email,
-      password,
-      displayName: name,
-    });
-
-    // Persist profile/role in Firestore
-    await adminDb.collection("users").doc(userRecord.uid).set({
+    const { email, password, role = "user", name, trajectId = null } = req.body;
+    const userRecord = await adminAuth.createUser({ email, password, displayName: name });
+  await adminDb.collection("users").doc(userRecord.uid).set({
       name,
       email,
       role,
       createdAt: new Date(),
       trajectId: trajectId || null,
     });
-
-    // Optionally mirror to local SQL users table for legacy features
-    let sqlUser = await User.findOne({ where: { email } });
-    if (!sqlUser) {
-      sqlUser = await User.create({ email, password, role, name, firebaseUid: userRecord.uid, trajectId });
-    } else {
-      await sqlUser.update({ firebaseUid: sqlUser.firebaseUid || userRecord.uid, trajectId });
-    }
-
-    // Issue JWT for your API using SQL user id (or Firebase UID if you prefer)
-    const token = jwt.sign(
-      { id: sqlUser.id, role: role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
+    // Issue JWT keyed by Firebase UID
+    const token = jwt.sign({ uid: userRecord.uid, role }, JWT_SECRET, { expiresIn: "1h" });
     return res.json({
       message: "User registered",
       token,
       redirectPath: getRedirectPath(role),
-      user: {
-        id: sqlUser.id,
-        email,
-        role,
-        name,
-        trajectId: trajectId || null,
-        firebaseUid: userRecord.uid,
-      },
+      user: { uid: userRecord.uid, email, role, name, trajectId },
     });
   } catch (err) {
     return res.status(400).json({ error: err.message });
@@ -75,40 +43,26 @@ exports.register = async (req, res) => {
 
 // POST /auth/login
 exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(401).json({ error: "Invalid credentials" });
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ error: "Invalid credentials" });
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    res.json({
-      token,
-      redirectPath: getRedirectPath(user.role),
-      user: { id: user.id, email: user.email, role: user.role, trajectId: user.trajectId || null, firebaseUid: user.firebaseUid || null },
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  // Password login against SQLite removed; use /auth/login/firebase with an ID token
+  return res.status(410).json({ error: "Password login disabled. Use /auth/login/firebase." });
 };
 
 // GET /auth/me - get current logged in user
 exports.me = async (req, res) => {
   try {
-    const { User } = require("../Models");
-    const user = await User.findByPk(req.user.id, {
-      attributes: ["id", "email", "role", "name", "createdAt", "firebaseUid", "trajectId"]
+    const uid = req.user?.uid || req.user?.firebaseUid;
+    if (!uid) return res.status(401).json({ error: "Not authenticated" });
+    const snap = await adminDb.collection("users").doc(uid).get();
+    if (!snap.exists) return res.status(404).json({ error: "User not found" });
+    const data = snap.data() || {};
+    res.json({
+      uid,
+      email: data.email || null,
+      role: data.role || req.user?.role || "user",
+      name: data.name || "",
+      createdAt: data.createdAt || null,
+      trajectId: data.trajectId || null,
     });
-
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -123,9 +77,9 @@ exports.firebaseLogin = async (req, res) => {
       return res.status(400).json({ error: "Missing idToken" });
     }
 
-    const decoded = await adminAuth.verifyIdToken(idToken);
-    const uid = decoded.uid;
-    const email = decoded.email;
+  const decoded = await adminAuth.verifyIdToken(idToken);
+  const uid = decoded.uid;
+  const email = decoded.email;
 
     // Load profile from Firestore (role/name)
     const snap = await adminDb.collection("users").doc(uid).get();
@@ -134,33 +88,13 @@ exports.firebaseLogin = async (req, res) => {
   const name = profile.name || decoded.name || "";
   const trajectId = profile.trajectId || null;
 
-    // Ensure SQL user exists for legacy flows
-    let sqlUser = await User.findOne({ where: { email } });
-    if (!sqlUser) {
-      const tempPassword = crypto.randomBytes(12).toString("hex");
-      sqlUser = await User.create({ email, password: tempPassword, role, name, firebaseUid: uid, trajectId });
-    } else {
-      const updates = {};
-      if (!sqlUser.firebaseUid) updates.firebaseUid = uid;
-      if (sqlUser.role !== role) updates.role = role;
-      if (sqlUser.name !== name) updates.name = name;
-      if (sqlUser.trajectId !== trajectId) updates.trajectId = trajectId;
-      if (Object.keys(updates).length) {
-        await sqlUser.update(updates);
-      }
-    }
-
-    // Issue API JWT
-    const token = jwt.sign(
-      { id: sqlUser.id, role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    // Issue API JWT with Firebase uid
+    const token = jwt.sign({ uid, role }, JWT_SECRET, { expiresIn: "1h" });
 
     return res.json({
       token,
       redirectPath: getRedirectPath(role),
-  user: { id: sqlUser.id, email, role, name, trajectId, firebaseUid: uid },
+      user: { uid, email, role, name, trajectId },
     });
   } catch (err) {
     return res.status(401).json({ error: err.message || "Invalid token" });
@@ -191,34 +125,14 @@ exports.firebaseRegister = async (req, res) => {
       { merge: true }
     );
 
-    // Ensure SQL user exists
-    let sqlUser = await User.findOne({ where: { email } });
-    if (!sqlUser) {
-      const tempPassword = crypto.randomBytes(12).toString("hex");
-      sqlUser = await User.create({ email, password: tempPassword, role, name: name || decoded.name || "", firebaseUid: uid, trajectId });
-    } else {
-      const updates = {};
-      if (!sqlUser.firebaseUid) updates.firebaseUid = uid;
-      if (sqlUser.name !== (name || decoded.name || "")) updates.name = name || decoded.name || "";
-      if (sqlUser.role !== role) updates.role = role;
-      if (sqlUser.trajectId !== trajectId) updates.trajectId = trajectId;
-      if (Object.keys(updates).length) {
-        await sqlUser.update(updates);
-      }
-    }
-
-    // Issue API JWT
-    const token = jwt.sign(
-      { id: sqlUser.id, role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    // Issue API JWT with Firebase uid
+    const token = jwt.sign({ uid, role }, JWT_SECRET, { expiresIn: "1h" });
 
     return res.json({
       message: "Registered via Firebase",
       token,
       redirectPath: getRedirectPath(role),
-  user: { id: sqlUser.id, email, role, name: sqlUser.name, trajectId: sqlUser.trajectId || trajectId, firebaseUid: uid },
+      user: { uid, email, role, name: name || decoded.name || "", trajectId },
     });
   } catch (err) {
     return res.status(400).json({ error: err.message });
@@ -242,11 +156,9 @@ exports.adminCreateUser = async (req, res) => {
       return res.status(400).json({ error: "trajectId is required for customer accounts" });
     }
 
-    // Prevent duplicates
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(409).json({ error: "User already exists" });
-    }
+    // Prevent duplicates (Firestore)
+    const existingSnap = await adminDb.collection("users").where("email", "==", email).limit(1).get();
+    if (!existingSnap.empty) return res.status(409).json({ error: "User already exists" });
 
     const userRecord = await adminAuth.createUser({
       email,
@@ -260,26 +172,16 @@ exports.adminCreateUser = async (req, res) => {
       role: normalizedRole,
       createdAt: new Date(),
       trajectId: normalizedRole === "customer" ? trajectId : null,
-      createdByAdminId: req.user?.id ?? null,
-    });
-
-    const sqlUser = await User.create({
-      email,
-      password,
-      role: normalizedRole,
-      name,
-      firebaseUid: userRecord.uid,
-      trajectId: normalizedRole === "customer" ? trajectId : null,
+      createdByAdminId: req.user?.uid ?? null,
     });
 
     return res.status(201).json({
       message: "User account created",
       user: {
-        id: sqlUser.id,
         email,
         role: normalizedRole,
         name,
-        trajectId: sqlUser.trajectId,
+        trajectId: normalizedRole === "customer" ? trajectId : null,
         firebaseUid: userRecord.uid,
       },
     });
@@ -291,10 +193,8 @@ exports.adminCreateUser = async (req, res) => {
 // GET /auth/admin/users
 exports.adminListUsers = async (_req, res) => {
   try {
-    const users = await User.findAll({
-      attributes: ["id", "name", "email", "role", "trajectId", "firebaseUid", "createdAt", "updatedAt"],
-      order: [["createdAt", "DESC"]],
-    });
+    const snap = await adminDb.collection("users").orderBy("createdAt", "desc").get();
+    const users = snap.docs.map((doc) => ({ id: doc.id, uid: doc.id, ...doc.data() }));
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -303,36 +203,18 @@ exports.adminListUsers = async (_req, res) => {
 
 exports.adminImpersonate = async (req, res) => {
   try {
-    const { firebaseUid, userId } = req.body || {};
+    const { firebaseUid } = req.body || {};
+    if (!firebaseUid) return res.status(400).json({ error: "firebaseUid is required" });
 
-    if (!firebaseUid && !userId) {
-      return res.status(400).json({ error: "firebaseUid or userId is required" });
-    }
-
-    let targetUser = null;
-    if (firebaseUid) {
-      targetUser = await User.findOne({ where: { firebaseUid } });
-    }
-
-    if (!targetUser && userId) {
-      targetUser = await User.findByPk(userId);
-    }
-
-    if (!targetUser) {
-      return res.status(404).json({ error: "Target user not found" });
-    }
-
-    const normalizedRole = String(targetUser.role || "").toLowerCase();
-    if (!MANAGED_ROLES.has(normalizedRole)) {
-      return res.status(400).json({ error: "Target user has unsupported role" });
-    }
-
-    if (!["customer", "user"].includes(normalizedRole)) {
-      return res.status(403).json({ error: "Only customer accounts can be impersonated" });
-    }
+    const snap = await adminDb.collection("users").doc(firebaseUid).get();
+    if (!snap.exists) return res.status(404).json({ error: "Target user not found" });
+    const data = snap.data() || {};
+    const normalizedRole = String(data.role || "").toLowerCase();
+    if (!MANAGED_ROLES.has(normalizedRole)) return res.status(400).json({ error: "Target user has unsupported role" });
+    if (!["customer", "user"].includes(normalizedRole)) return res.status(403).json({ error: "Only customer accounts can be impersonated" });
 
     const token = jwt.sign(
-      { id: targetUser.id, role: normalizedRole, impersonatedBy: req.user.id },
+      { uid: firebaseUid, role: normalizedRole, impersonatedBy: req.user.uid || null },
       JWT_SECRET,
       { expiresIn: "30m" }
     );
@@ -341,13 +223,13 @@ exports.adminImpersonate = async (req, res) => {
       token,
       redirectPath: getRedirectPath(normalizedRole),
       user: {
-        id: targetUser.id,
-        email: targetUser.email,
+        uid: firebaseUid,
+        email: data.email,
         role: normalizedRole,
-        name: targetUser.name,
-        trajectId: targetUser.trajectId || null,
-        firebaseUid: targetUser.firebaseUid || null,
-        impersonatedBy: req.user.id,
+        name: data.name || "",
+        trajectId: data.trajectId || null,
+        firebaseUid,
+        impersonatedBy: req.user.uid || null,
       },
     });
   } catch (err) {

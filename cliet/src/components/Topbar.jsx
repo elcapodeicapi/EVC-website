@@ -1,5 +1,6 @@
 import React from "react";
 import { Menu } from "lucide-react";
+import BrandLogo from "./BrandLogo";
 
 const Topbar = ({
   title,
@@ -9,7 +10,7 @@ const Topbar = ({
   rightSlot,
 }) => {
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between bg-white/80 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/60 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-20 flex items-center justify-between bg-white/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/70 sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -19,6 +20,7 @@ const Topbar = ({
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle navigation</span>
         </button>
+        <BrandLogo className="inline-flex shrink-0" />
         <div>
           <p className="text-xs uppercase tracking-widest text-slate-400">{user?.role ?? "Portal"}</p>
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>

@@ -17,34 +17,24 @@ const Login = () => {
 		event.preventDefault();
 		setLoading(true);
 		setError("");
-			try {
-				// Try Firebase Auth first (works with emulator in dev)
-				const cred = await signInWithEmailAndPassword(auth, email, password);
-				const idToken = await cred.user.getIdToken();
-				// Exchange for API JWT
-				const data = await post("/auth/login/firebase", { idToken });
-				if (data?.token) {
-					localStorage.setItem("token", data.token);
-					if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
-					const redirectPath = data.redirectPath || "/dashboard";
-					navigate(redirectPath, { replace: true });
-					return;
-				}
-				// Fallback to legacy login if exchange fails
-				const legacy = await post("/auth/login", { email, password });
-				if (legacy?.token) {
-					localStorage.setItem("token", legacy.token);
-					if (legacy.user) localStorage.setItem("user", JSON.stringify(legacy.user));
-					const redirectPath = legacy.redirectPath || "/dashboard";
-					navigate(redirectPath, { replace: true });
-					return;
-				}
-				setError(data?.error || legacy?.error || "Inloggen is niet gelukt. Probeer het opnieuw.");
-			} catch (err) {
-				setError("Inloggen is niet gelukt. Controleer je gegevens.");
-			} finally {
-				setLoading(false);
+		try {
+			// Sign in with Firebase Auth (works with emulator in development)
+			const cred = await signInWithEmailAndPassword(auth, email, password);
+			const idToken = await cred.user.getIdToken();
+			// Exchange Firebase ID token for API JWT (Firestore-backed backend)
+			const data = await post("/auth/login/firebase", { idToken });
+			if (!data?.token) {
+				throw new Error(data?.error || "Inloggen is niet gelukt. Probeer het opnieuw.");
 			}
+			localStorage.setItem("token", data.token);
+			if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+			const redirectPath = data.redirectPath || "/dashboard";
+			navigate(redirectPath, { replace: true });
+		} catch (err) {
+			setError(err?.data?.error || err?.message || "Inloggen is niet gelukt. Controleer je gegevens.");
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	return (

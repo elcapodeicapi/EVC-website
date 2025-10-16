@@ -1,17 +1,11 @@
 const express = require("express");
-const path = require("path");
 const multer = require("multer");
 const router = express.Router();
 const customerProfileController = require("../controllers/customerProfileController");
 const trajectController = require("../controllers/trajectController");
 const { authenticate, authorizeRoles } = require("../Middleware/authMiddleware");
 
-const storage = multer.diskStorage({
-	destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
-	filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-});
-
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.use(authenticate);
 router.use(authorizeRoles("customer"));

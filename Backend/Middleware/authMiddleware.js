@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = "supersecret"; // move to .env
+const JWT_SECRET = process.env.JWT_SECRET || "supersecret"; // move to .env
 
 // Protect route
 exports.authenticate = (req, res, next) => {
@@ -11,7 +11,15 @@ exports.authenticate = (req, res, next) => {
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ error: "Invalid token" });
-    req.user = decoded; // { id, role }
+    // JWT payload now uses { uid, role, ... }
+    req.user = decoded || {};
+    if (req.user && req.user.uid && !req.user.firebaseUid) {
+      req.user.firebaseUid = req.user.uid;
+    }
+    // Back-compat: some legacy code referenced req.user.id (SQL id). Alias it to uid if missing.
+    if (req.user && !req.user.id && req.user.uid) {
+      req.user.id = req.user.uid;
+    }
     next();
   });
 };

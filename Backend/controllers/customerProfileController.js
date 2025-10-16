@@ -1,4 +1,5 @@
-const { CustomerProfile, User } = require("../Models");
+const { db } = require("../firebase");
+const { uploadBuffer, sanitizeFilename, bucket } = require("../utils/storage");
 const crypto = require("crypto");
 
 function generateId() {
@@ -157,20 +158,23 @@ function sanitizePayload(body) {
 
 exports.getProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const [user, profile] = await Promise.all([
-      User.findByPk(userId, { attributes: ["id", "email", "name"] }),
-      CustomerProfile.findOne({ where: { UserId: userId } }),
+    const uid = req.user.firebaseUid || req.user.uid;
+    if (!uid) return res.status(400).json({ error: "Missing Firebase user id" });
+
+    const [userSnap, profileSnap] = await Promise.all([
+      db.collection("users").doc(uid).get(),
+      db.collection("profiles").doc(uid).get(),
     ]);
 
-    if (!user) {
+    if (!userSnap.exists) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const normalized = normalizeProfile(profile);
+    const user = userSnap.data() || {};
+    const normalized = normalizeProfile(profileSnap.exists ? profileSnap.data() : null);
     return res.json({
       ...normalized,
-      email: user.email,
+      email: user.email || "",
       name: user.name || "",
     });
   } catch (error) {
@@ -181,27 +185,19 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const user = await User.findByPk(userId, { attributes: ["id", "email", "name"] });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    const uid = req.user.firebaseUid || req.user.uid;
+    if (!uid) return res.status(400).json({ error: "Missing Firebase user id" });
 
     const payload = sanitizePayload(req.body);
 
-    const [profile, created] = await CustomerProfile.findOrCreate({
-      where: { UserId: userId },
-      defaults: { UserId: userId, ...payload },
-    });
+    await db.collection("profiles").doc(uid).set(payload, { merge: true });
 
-    if (!created) {
-      await profile.update(payload);
-    }
-
-    const normalized = normalizeProfile(profile);
+    const userSnap = await db.collection("users").doc(uid).get();
+    const user = userSnap.exists ? userSnap.data() : {};
+    const normalized = normalizeProfile(payload);
     return res.json({
       ...normalized,
-      email: user.email,
+      email: user.email || "",
       name: user.name || "",
     });
   } catch (error) {
@@ -215,14 +211,37 @@ exports.uploadCertificate = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "File is required" });
     }
+    const uid = req.user.firebaseUid || req.user.uid;
+    if (!uid) return res.status(400).json({ error: "Missing Firebase user id" });
 
-    const filePath = `/uploads/${req.file.filename}`;
+    const originalName = req.file.originalname || req.file.filename || "certificate.pdf";
+    const destination = `certificates/${uid}/${Date.now()}-${sanitizeFilename(originalName)}`;
+
+    const { file, downloadUrl } = await uploadBuffer(destination, req.file.buffer, {
+      contentType: req.file.mimetype,
+      metadata: {
+        firebaseUid: uid,
+        originalName,
+        type: "certificate",
+      },
+    });
+
     const metadata = {
-      filePath,
-      fileName: req.file.originalname || req.file.filename,
+      filePath: downloadUrl,
+      downloadUrl,
+      storagePath: file.name,
+      bucket: bucket.name,
+      fileName: originalName,
+      contentType: req.file.mimetype || null,
       size: typeof req.file.size === "number" ? req.file.size : null,
       uploadedAt: new Date().toISOString(),
     };
+
+    const snap = await db.collection("profiles").doc(uid).get();
+    const profile = snap.exists ? snap.data() : {};
+    const certificates = Array.isArray(profile.certificates) ? [...profile.certificates] : [];
+    certificates.push({ id: generateId(), title: originalName, ...metadata });
+    await db.collection("profiles").doc(uid).set({ certificates }, { merge: true });
 
     return res.json(metadata);
   } catch (error) {

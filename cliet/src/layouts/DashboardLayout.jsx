@@ -5,7 +5,7 @@ const DashboardLayout = ({ sidebar, topbar, children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-screen bg-transparent text-slate-900">
       <div className="lg:grid lg:grid-cols-[320px,1fr]">
         <div
           className={clsx(
