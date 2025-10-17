@@ -8,6 +8,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   where,
 } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
@@ -78,6 +79,69 @@ export async function fetchTraject(trajectId) {
   const snapshot = await getDoc(trajectRef);
   return mapTraject(snapshot);
 }
+
+const normalizeDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value.toDate === "function") {
+    try {
+      const converted = value.toDate();
+      return Number.isNaN(converted.getTime()) ? null : converted;
+    } catch (_) {
+      return null;
+    }
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const emptyEvcTrajectory = () => ({
+  contactPerson: "",
+  currentRole: "",
+  domains: "",
+  qualification: {
+    name: "",
+    number: "",
+    validity: "",
+  },
+  voluntaryParticipation: false,
+  updatedAt: null,
+});
+
+const mapEvcTrajectory = (raw = {}) => {
+  const qualification = raw.qualification || {};
+  return {
+    contactPerson: raw.contactPerson || "",
+    currentRole: raw.currentRole || "",
+    domains: Array.isArray(raw.domains) ? raw.domains.join(", ") : raw.domains || "",
+    qualification: {
+      name: qualification.name || raw.qualificationName || "",
+      number: qualification.number || raw.qualificationNumber || "",
+      validity: qualification.validity || raw.qualificationValidity || "",
+    },
+    voluntaryParticipation: Boolean(raw.voluntaryParticipation),
+    updatedAt: normalizeDate(raw.updatedAt || raw.lastUpdated || null),
+  };
+};
+
+const mapProfileDoc = (snapshot) => {
+  if (!snapshot?.exists()) {
+    return {
+      evcTrajectory: emptyEvcTrajectory(),
+      updatedAt: null,
+      photoURL: null,
+    };
+  }
+  const data = snapshot.data() || {};
+  const { evcTrajectory, ...rest } = data;
+  const photoURL = data.photoURL || data.photoUrl || null;
+  return {
+    ...rest,
+    photoURL,
+    evcTrajectory: mapEvcTrajectory(evcTrajectory || {}),
+    updatedAt: normalizeDate(data.updatedAt || data.lastUpdated || null),
+  };
+};
 
 function selectMostRecentAssignment(docs) {
   if (!Array.isArray(docs) || docs.length === 0) return null;
@@ -327,4 +391,50 @@ export function subscribeTrajectCompetencies(trajectId, observer) {
     unsubscribeRoot();
     unsubscribeSubcollection();
   };
+}
+
+export function subscribeCustomerProfileDetails(userId, observer) {
+  if (!userId) {
+    observer({ data: { evcTrajectory: emptyEvcTrajectory() }, error: new Error("Missing user id") });
+    return () => {};
+  }
+
+  const profileRef = doc(db, "users", userId, "profile", "details");
+  return onSnapshot(
+    profileRef,
+    (snapshot) => {
+      observer({ data: mapProfileDoc(snapshot), error: null });
+    },
+    (error) => observer({ data: { evcTrajectory: emptyEvcTrajectory() }, error })
+  );
+}
+
+export async function updateCustomerProfileDetails(userId, payload) {
+  if (!userId) throw new Error("Missing user id");
+  const profileRef = doc(db, "users", userId, "profile", "details");
+
+  const evc = payload?.evcTrajectory ? payload.evcTrajectory : payload || {};
+  const domainsValue = typeof evc.domains === "string" ? evc.domains.trim() : Array.isArray(evc.domains) ? evc.domains.join(", ") : "";
+
+  const qualification = {
+    name: evc.qualification?.name || "",
+    number: evc.qualification?.number || "",
+    validity: evc.qualification?.validity || "",
+  };
+
+  await setDoc(
+    profileRef,
+    {
+      evcTrajectory: {
+        contactPerson: evc.contactPerson || "",
+        currentRole: evc.currentRole || "",
+        domains: domainsValue,
+        qualification,
+        voluntaryParticipation: Boolean(evc.voluntaryParticipation),
+        updatedAt: serverTimestamp(),
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
 }

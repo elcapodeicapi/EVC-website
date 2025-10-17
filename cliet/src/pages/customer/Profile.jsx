@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { get, postForm, put } from "../../lib/api";
+import { subscribeCustomerProfileDetails, updateCustomerProfileDetails } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 
@@ -20,6 +21,20 @@ const initialFormState = {
   educations: [],
   certificates: [],
   workExperience: [],
+  photoURL: "",
+};
+
+const initialEvcTrajectoryState = {
+  contactPerson: "",
+  currentRole: "",
+  domains: "",
+  qualification: {
+    name: "",
+    number: "",
+    validity: "",
+  },
+  voluntaryParticipation: false,
+  updatedAt: null,
 };
 
 const CustomerProfile = () => {
@@ -34,8 +49,29 @@ const CustomerProfile = () => {
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateStatus, setCertificateStatus] = useState(null);
   const [certificateInputKey, setCertificateInputKey] = useState(0);
+  const [evcDetails, setEvcDetails] = useState(initialEvcTrajectoryState);
+  const [evcSnapshot, setEvcSnapshot] = useState(initialEvcTrajectoryState);
+  const [evcLoading, setEvcLoading] = useState(true);
+  const [evcSaving, setEvcSaving] = useState(false);
+  const [evcStatus, setEvcStatus] = useState(null);
+  const [evcError, setEvcError] = useState(null);
+  const [evcEditMode, setEvcEditMode] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoStatus, setPhotoStatus] = useState(null);
+  const [photoInputKey, setPhotoInputKey] = useState(0);
 
+  const customerId = customer?.id || customer?.firebaseUid || customer?.uid || null;
   const customerName = useMemo(() => customer?.name || form.name || "Jouw profiel", [customer?.name, form.name]);
+  const customerInitials = useMemo(() => {
+    const source = customerName || customer?.email || "";
+    if (!source) return "??";
+    return source
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0].toUpperCase())
+      .slice(0, 2)
+      .join("") || "??";
+  }, [customerName, customer?.email]);
   const emailAddress = form.email || customer?.email || "";
 
   const createId = () => {
@@ -43,6 +79,60 @@ const CustomerProfile = () => {
       return crypto.randomUUID();
     }
     return `id-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+  };
+
+  const handleEvcFieldChange = (field) => (event) => {
+    const { value } = event.target;
+    setEvcDetails((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleQualificationChange = (field) => (event) => {
+    const { value } = event.target;
+    setEvcDetails((prev) => ({
+      ...prev,
+      qualification: {
+        ...prev.qualification,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleParticipationChange = (event) => {
+    const { checked } = event.target;
+    setEvcDetails((prev) => ({ ...prev, voluntaryParticipation: checked }));
+  };
+
+  const handleEvcCancel = () => {
+    setEvcStatus(null);
+    setEvcEditMode(false);
+    setEvcDetails(evcSnapshot);
+  };
+
+  const handleEvcSave = async () => {
+    if (!customerId) return;
+    setEvcSaving(true);
+    setEvcStatus(null);
+    try {
+      await updateCustomerProfileDetails(customerId, { evcTrajectory: evcDetails });
+      setEvcStatus({ type: "success", message: "EVC-trajectgegevens opgeslagen" });
+      setEvcEditMode(false);
+    } catch (error) {
+      setEvcStatus({ type: "error", message: error?.message || "Opslaan mislukt" });
+    } finally {
+      setEvcSaving(false);
+    }
+  };
+
+  const handleEvcPrimaryAction = () => {
+    if (evcEditMode) {
+      if (!evcSaving) {
+        handleEvcSave();
+      }
+      return;
+    }
+    setEvcStatus(null);
+    setEvcDetails(evcSnapshot);
+    setEvcEditMode(true);
   };
 
   useEffect(() => {
@@ -66,6 +156,38 @@ const CustomerProfile = () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!customerId) {
+      setEvcDetails(initialEvcTrajectoryState);
+      setEvcSnapshot(initialEvcTrajectoryState);
+      setEvcLoading(false);
+      setEvcEditMode(false);
+      setEvcStatus(null);
+      setEvcError(null);
+      return () => {};
+    }
+
+    setEvcLoading(true);
+    const unsubscribe = subscribeCustomerProfileDetails(customerId, ({ data, error }) => {
+      if (error) {
+        setEvcError(error);
+        setEvcLoading(false);
+        return;
+      }
+      setEvcError(null);
+      const trajectory = data?.evcTrajectory || initialEvcTrajectoryState;
+      setEvcSnapshot(trajectory);
+      if (!evcEditMode) {
+        setEvcDetails(trajectory);
+      }
+      setEvcLoading(false);
+    });
+
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [customerId, evcEditMode]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -125,6 +247,37 @@ const CustomerProfile = () => {
         <span>{state.message}</span>
       </div>
     );
+  };
+
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type?.startsWith("image/")) {
+      setPhotoStatus({ type: "error", message: "Kies een geldig afbeeldingsbestand (PNG of JPG)." });
+      setPhotoInputKey((value) => value + 1);
+      return;
+    }
+    const maxSize = 5 * 1024 * 1024; // 5 MB
+    if (file.size > maxSize) {
+      setPhotoStatus({ type: "error", message: "Bestand is groter dan 5MB." });
+      setPhotoInputKey((value) => value + 1);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    setPhotoUploading(true);
+    setPhotoStatus(null);
+    try {
+      const response = await postForm("/customer/profile/photo", formData);
+      setForm((prev) => ({ ...prev, photoURL: response?.photoURL || prev.photoURL }));
+      setPhotoStatus({ type: "success", message: "Profielfoto bijgewerkt" });
+    } catch (error) {
+      setPhotoStatus({ type: "error", message: error?.data?.error || error?.message || "Upload mislukt" });
+    } finally {
+      setPhotoUploading(false);
+      setPhotoInputKey((value) => value + 1);
+    }
   };
 
   const handleRemoveItem = (key, id) => {
@@ -237,6 +390,218 @@ const CustomerProfile = () => {
           </div>
         ) : null}
       </header>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-24 w-24 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-sm">
+              {form.photoURL ? (
+                <img src={form.photoURL} alt={customerName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-slate-200 text-xl font-semibold text-slate-600">
+                  {customerInitials}
+                </div>
+              )}
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">Profielfoto</h2>
+              <p className="text-sm text-slate-500">Upload een recente foto. Je coach ziet deze ook in het trajectoverzicht.</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 text-sm sm:items-end">
+            <label
+              htmlFor="profile-photo-upload"
+              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold text-white shadow-sm transition ${
+                photoUploading ? "bg-slate-400" : "bg-brand-600 hover:bg-brand-500"
+              }`}
+            >
+              {photoUploading ? "Uploaden..." : "Nieuwe foto kiezen"}
+              <input
+                key={photoInputKey}
+                id="profile-photo-upload"
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                disabled={photoUploading}
+                className="hidden"
+              />
+            </label>
+            <p className="text-xs text-slate-400">PNG of JPG, maximaal 5MB</p>
+          </div>
+        </div>
+        {photoStatus ? <div className="mt-4"><StatusBanner state={photoStatus} /></div> : null}
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">EVC-traject details</h2>
+            <p className="text-sm text-slate-500">
+              Informatie over je trajectcontact en kwalificatiedossier. Pas deze gegevens aan wanneer er wijzigingen zijn.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {evcEditMode ? (
+              <button
+                type="button"
+                onClick={handleEvcCancel}
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
+              >
+                Annuleren
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={handleEvcPrimaryAction}
+              disabled={evcLoading || evcSaving}
+              className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+            >
+              {evcEditMode ? (evcSaving ? "Opslaan..." : "Opslaan") : "Wijzigen"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-4">
+          <StatusBanner state={evcStatus} />
+          {evcError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {evcError.message || "Kon EVC-trajectgegevens niet laden."}
+            </div>
+          ) : null}
+
+          {evcLoading ? (
+            <LoadingSpinner label="EVC-traject laden" />
+          ) : evcEditMode ? (
+            <div className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor="evc-contact-person">
+                    Contactpersoon
+                  </label>
+                  <input
+                    id="evc-contact-person"
+                    type="text"
+                    value={evcDetails.contactPerson || ""}
+                    onChange={handleEvcFieldChange("contactPerson")}
+                    placeholder="Naam contactpersoon"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor="evc-current-role">
+                    Huidige functie
+                  </label>
+                  <input
+                    id="evc-current-role"
+                    type="text"
+                    value={evcDetails.currentRole || ""}
+                    onChange={handleEvcFieldChange("currentRole")}
+                    placeholder="Bijvoorbeeld: Teamleider sociaal werk"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor="evc-domains">
+                  Domeinen / sectoren
+                </label>
+                <textarea
+                  id="evc-domains"
+                  rows={3}
+                  value={evcDetails.domains || ""}
+                  onChange={handleEvcFieldChange("domains")}
+                  placeholder="Bijvoorbeeld: Jeugdzorg, Maatschappelijk werk"
+                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor="evc-qualification-name">
+                    Naam kwalificatiedossier
+                  </label>
+                  <input
+                    id="evc-qualification-name"
+                    type="text"
+                    value={evcDetails.qualification?.name || ""}
+                    onChange={handleQualificationChange("name")}
+                    placeholder="Volledige naam"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor="evc-qualification-number">
+                    Kwalificatienummer
+                  </label>
+                  <input
+                    id="evc-qualification-number"
+                    type="text"
+                    value={evcDetails.qualification?.number || ""}
+                    onChange={handleQualificationChange("number")}
+                    placeholder="Bijvoorbeeld: 25645"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor="evc-qualification-validity">
+                    Geldig tot
+                  </label>
+                  <input
+                    id="evc-qualification-validity"
+                    type="text"
+                    value={evcDetails.qualification?.validity || ""}
+                    onChange={handleQualificationChange("validity")}
+                    placeholder="Bijvoorbeeld: 2026"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  checked={Boolean(evcDetails.voluntaryParticipation)}
+                  onChange={handleParticipationChange}
+                />
+                <span>Ik neem vrijwillig deel aan dit EVC-traject</span>
+              </label>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Contactpersoon</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{evcSnapshot.contactPerson || "Niet opgegeven"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Huidige functie</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{evcSnapshot.currentRole || "Niet opgegeven"}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Domeinen / sectoren</p>
+                <p className="mt-1 text-sm text-slate-700 whitespace-pre-line">
+                  {evcSnapshot.domains ? evcSnapshot.domains : "Nog geen domeinen geregistreerd."}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Naam kwalificatiedossier</p>
+                <p className="mt-1 text-sm font-medium text-slate-900">{evcSnapshot.qualification?.name || "Niet opgegeven"}</p>
+                <p className="text-xs text-slate-500">
+                  Nummer: {evcSnapshot.qualification?.number || "-"} • Geldig tot: {evcSnapshot.qualification?.validity || "-"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                {evcSnapshot.voluntaryParticipation
+                  ? "Je neemt vrijwillig deel aan dit EVC-traject."
+                  : "Je hebt nog niet bevestigd dat je vrijwillig deelneemt aan dit EVC-traject."}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <StatusBanner state={status} />

@@ -25,11 +25,11 @@ const Navbar = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [mobileOpen, setMobileOpen] = useState(false);
-	const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem("token")));
+	const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(auth.currentUser));
 
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (current) => {
-			setIsLoggedIn(Boolean(current) || Boolean(localStorage.getItem("token")));
+			setIsLoggedIn(Boolean(current));
 		});
 		return () => unsubscribe();
 	}, []);
@@ -55,7 +55,6 @@ const Navbar = () => {
 		} catch (_) {
 			// sign-out best effort
 		}
-		localStorage.removeItem("token");
 		localStorage.removeItem("user");
 		localStorage.removeItem("impersonationBackup");
 		setIsLoggedIn(false);

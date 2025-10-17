@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { Shield, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { auth } from "../../firebase";
 import { subscribeAdminProfile } from "../../lib/firestoreAdmin";
 
@@ -57,26 +56,6 @@ const AdminProfile = () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
   }, [uid]);
-
-  const clearance = profile?.securityClearance || null;
-
-  const ClearanceIcon = useMemo(() => {
-    if (!clearance?.badge) return Shield;
-    const badge = String(clearance.badge).toLowerCase();
-    switch (badge) {
-      case "shield-check":
-      case "check":
-        return ShieldCheck;
-      case "alert":
-      case "shield-alert":
-        return ShieldAlert;
-      case "question":
-      case "shield-question":
-        return ShieldQuestion;
-      default:
-        return Shield;
-    }
-  }, [clearance]);
 
   const highlights = Array.isArray(profile?.highlights) ? profile.highlights : [];
   const responsibilities = Array.isArray(profile?.responsibilities) ? profile.responsibilities : [];
@@ -175,23 +154,6 @@ const AdminProfile = () => {
           </div>
         </article>
 
-        <article className="rounded-3xl bg-white p-6 shadow-card">
-          <h3 className="text-base font-semibold text-slate-900">Beveiliging</h3>
-          <div className="mt-4 flex items-center gap-4 rounded-2xl bg-brand-50 px-4 py-5 text-brand-700">
-            {ClearanceIcon ? <ClearanceIcon className="h-10 w-10" /> : null}
-            <div>
-              <p className="text-sm font-semibold">
-                Toegangsniveau: {clearance?.level || "Onbekend"}
-              </p>
-              <p className="text-sm text-brand-600">
-                Laatste verlenging: {clearance?.renewedOn || "Niet geregistreerd"}
-              </p>
-            </div>
-          </div>
-          <p className="mt-4 text-xs text-slate-500">
-            Administratieve gebruikers hebben uitgebreide rechten om deelnemers, coaches en bewijsstukken te beheren. Houd de logboeken in de gaten en plan jaarlijkse veiligheidsaudits.
-          </p>
-        </article>
       </section>
 
       <section className="rounded-3xl bg-white p-6 shadow-card">

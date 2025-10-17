@@ -33,6 +33,7 @@ import CoachCustomers from "./coach/Customers";
 import CoachCustomerCompetency from "./coach/CustomerCompetency";
 import CoachFeedback from "./coach/Feedback";
 import CoachMessages from "./coach/Messages";
+import CoachNotes from "./coach/AantekeningenOverzicht";
 import {
 	LayoutDashboard,
 	Users as UsersIcon,
@@ -46,8 +47,9 @@ import {
 	Briefcase,
 	ClipboardCheck,
 	BookOpen,
+	NotebookPen,
 } from "lucide-react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, signInWithCustomToken } from "firebase/auth";
 import { auth } from "../firebase";
 import { subscribeAdminProfile } from "../lib/firestoreAdmin";
 import { subscribeCustomerContext } from "../lib/firestoreCustomer";
@@ -71,6 +73,7 @@ const COACH_NAV_ITEMS = [
 	{ label: "Dashboard", to: "/coach", icon: LayoutDashboard, end: true },
 	{ label: "My Customers", to: "/coach/customers", icon: UsersIcon },
 	{ label: "Feedback", to: "/coach/feedback", icon: FileText },
+	{ label: "Aantekeningen", to: "/coach/aantekeningen", icon: NotebookPen },
 	{ label: "Messages", to: "/coach/messages", icon: Mail },
 ];
 
@@ -404,6 +407,8 @@ const CoachLayout = () => {
 			"Coach",
 		subtitle,
 		role: "Coach",
+		email: coachDoc?.email || sqlUser?.email || "",
+		photoURL: coachDoc?.photoURL || sqlUser?.photoURL || sqlUser?.photoUrl || null,
 	};
 
 	const handleLogout = () => {
@@ -607,6 +612,7 @@ const CustomerLayout = () => {
 			email: sqlUser.email || "",
 			role: sqlUser.role || "customer",
 			trajectId: sqlUser.trajectId || null,
+			photoURL: sqlUser.photoURL || sqlUser.photoUrl || null,
 		};
 	}, [customerDoc, sqlUser]);
 
@@ -654,6 +660,12 @@ const CustomerLayout = () => {
 		name: resolvedCustomer?.name || "Customer",
 		subtitle,
 		role: "Customer",
+		email: resolvedCustomer?.email || sqlUser?.email || "",
+		photoURL:
+			resolvedCustomer?.photoURL ||
+			sqlUser?.photoURL ||
+			sqlUser?.photoUrl ||
+			null,
 	};
 
 	const handleCustomerLogout = async () => {
@@ -662,7 +674,6 @@ const CustomerLayout = () => {
 		} catch (_) {
 			// sign-out best effort
 		}
-		localStorage.removeItem("token");
 		localStorage.removeItem("user");
 		localStorage.removeItem("impersonationBackup");
 		setSqlUser(null);
@@ -673,7 +684,7 @@ const CustomerLayout = () => {
 		navigate("/login", { replace: true });
 	};
 
-	const handleExitImpersonation = () => {
+	const handleExitImpersonation = async () => {
 		if (!isImpersonating) {
 			navigate("/admin", { replace: true });
 			return;
@@ -689,14 +700,13 @@ const CustomerLayout = () => {
 			}
 		}
 
-		if (backup && Object.prototype.hasOwnProperty.call(backup, "token")) {
-			if (backup.token === null) {
-				localStorage.removeItem("token");
-			} else {
-				localStorage.setItem("token", backup.token);
+		let adminSignInError = null;
+		if (backup?.adminCustomToken) {
+			try {
+				await signInWithCustomToken(auth, backup.adminCustomToken);
+			} catch (err) {
+				adminSignInError = err;
 			}
-		} else {
-			localStorage.removeItem("token");
 		}
 
 		if (backup && Object.prototype.hasOwnProperty.call(backup, "user")) {
@@ -721,6 +731,13 @@ const CustomerLayout = () => {
 		setCustomerDoc(null);
 		setCoachDoc(null);
 		setAssignmentDoc(null);
+		if (adminSignInError) {
+			// If returning to admin failed, fall back to fresh login.
+			localStorage.removeItem("user");
+			setSqlUser(null);
+			navigate("/login", { replace: true });
+			return;
+		}
 		navigate("/admin", { replace: true });
 	};
 
@@ -815,6 +832,7 @@ const App = () => {
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
 					<Route path="feedback" element={<CoachFeedback />} />
+					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
 				</Route>
 

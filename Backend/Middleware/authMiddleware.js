@@ -1,27 +1,29 @@
-const jwt = require("jsonwebtoken");
-const JWT_SECRET = process.env.JWT_SECRET || "supersecret"; // move to .env
+const { auth: adminAuth, db: adminDb } = require("../firebase");
 
 // Protect route
-exports.authenticate = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader) return res.status(401).json({ error: "No token provided" });
+exports.authenticate = async (req, res, next) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader) return res.status(401).json({ error: "No token provided" });
 
-  const token = authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Invalid token format" });
+    const token = authHeader.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "Invalid token format" });
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: "Invalid token" });
-    // JWT payload now uses { uid, role, ... }
-    req.user = decoded || {};
-    if (req.user && req.user.uid && !req.user.firebaseUid) {
-      req.user.firebaseUid = req.user.uid;
+    // Verify Firebase ID token (auto refreshed by client)
+    const decoded = await adminAuth.verifyIdToken(token);
+    const uid = decoded.uid;
+    let role = null;
+    try {
+      const snap = await adminDb.collection("users").doc(uid).get();
+      role = (snap.exists ? (snap.data() || {}).role : null) || null;
+    } catch (_) {
+      // ignore profile load errors; role remains null
     }
-    // Back-compat: some legacy code referenced req.user.id (SQL id). Alias it to uid if missing.
-    if (req.user && !req.user.id && req.user.uid) {
-      req.user.id = req.user.uid;
-    }
-    next();
-  });
+    req.user = { uid, firebaseUid: uid, id: uid, role: role || null };
+    return next();
+  } catch (e) {
+    return res.status(500).json({ error: e.message || "Auth error" });
+  }
 };
 
 // Allow only specific roles (admin is always allowed)

@@ -24,6 +24,7 @@ const Topbar = ({
         "border-slate-200 text-slate-500 transition hover:bg-slate-100",
       userChip: "bg-slate-100/60 text-slate-900",
       initials: "bg-brand-100 text-brand-700",
+      avatarWrapper: "border border-slate-200 bg-white",
       subtitle: "text-slate-500",
       rightSection: "text-slate-900",
     },
@@ -35,6 +36,7 @@ const Topbar = ({
         "border-white/40 text-white transition hover:bg-white/10",
       userChip: "bg-white/12 text-white",
       initials: "bg-white/15 text-white",
+      avatarWrapper: "border border-white/40 bg-white/10",
       subtitle: "text-white/70",
       rightSection: "text-white",
     },
@@ -81,14 +83,29 @@ const Topbar = ({
         {rightSlot}
         {user ? (
           <div className={clsx("flex items-center gap-3 rounded-full px-3 py-2 text-sm", palette.userChip)}>
-            <div className={clsx("flex h-9 w-9 items-center justify-center rounded-full font-semibold", palette.initials)}>
-              {user.initials ||
-                user.name?.split(" ")
-                  .map((part) => part[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase() ||
-                "EV"}
+            <div
+              className={clsx(
+                "flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-xs font-semibold shadow-sm",
+                palette.avatarWrapper,
+                !(user?.photoURL) && palette.initials
+              )}
+            >
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.name || user.email || "Profielfoto"}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                (user.initials ||
+                  user.name?.split(" ")
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase() ||
+                  user.email?.slice(0, 2)?.toUpperCase() ||
+                  "EV")
+              )}
             </div>
             <div className="hidden sm:block">
               <p className={clsx("font-medium", palette.title)}>{user.name}</p>

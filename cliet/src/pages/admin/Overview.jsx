@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { subscribeUsers } from "../../lib/firestoreAdmin";
 import { post } from "../../lib/api";
+import { auth } from "../../firebase";
+import { signInWithCustomToken } from "firebase/auth";
 
 const Overview = () => {
   const navigate = useNavigate();
@@ -41,11 +43,10 @@ const Overview = () => {
     setImpersonationTarget(user.id);
     try {
       const response = await post("/auth/admin/impersonate", { firebaseUid: user.id });
-      if (!response?.token) {
-        throw new Error("Geen sessie ontvangen");
+      if (!response?.customerCustomToken) {
+        throw new Error("Geen impersonatie-token ontvangen");
       }
 
-      const currentToken = localStorage.getItem("token") || null;
       const currentUser = localStorage.getItem("user") || null;
       let parsedUser = null;
       if (currentUser) {
@@ -57,20 +58,20 @@ const Overview = () => {
       }
 
       const backup = {
-        token: currentToken,
         user: currentUser,
         userData: parsedUser,
         customerFirebaseUid: user.id,
         customerName: user.name || "",
         createdAt: new Date().toISOString(),
+        adminCustomToken: response.adminCustomToken || null,
       };
 
       localStorage.setItem("impersonationBackup", JSON.stringify(backup));
-      localStorage.setItem("token", response.token);
+      // Sign in to Firebase as the customer using the custom token
+      await signInWithCustomToken(auth, response.customerCustomToken);
+      // Store minimal user profile for UI context
       if (response.user) {
         localStorage.setItem("user", JSON.stringify(response.user));
-      } else {
-        localStorage.removeItem("user");
       }
       navigate("/customer", { replace: true });
     } catch (impersonationErr) {

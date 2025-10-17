@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   BookOpen,
   ShieldCheck,
+  NotebookPen,
 } from "lucide-react";
 
 export const adminNavItems = [
@@ -26,6 +27,7 @@ export const coachNavItems = [
   { label: "Dashboard", to: "/coach", icon: LayoutDashboard, end: true },
   { label: "My Customers", to: "/coach/customers", icon: Users },
   { label: "Feedback", to: "/coach/feedback", icon: FileText },
+  { label: "Aantekeningen", to: "/coach/aantekeningen", icon: NotebookPen },
   { label: "Messages", to: "/coach/messages", icon: Mail },
 ];
 

@@ -62,6 +62,7 @@ exports.me = async (req, res) => {
       name: data.name || "",
       createdAt: data.createdAt || null,
       trajectId: data.trajectId || null,
+      photoURL: data.photoURL || null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -77,16 +78,17 @@ exports.firebaseLogin = async (req, res) => {
       return res.status(400).json({ error: "Missing idToken" });
     }
 
-  const decoded = await adminAuth.verifyIdToken(idToken);
-  const uid = decoded.uid;
-  const email = decoded.email;
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    const uid = decoded.uid;
+    const email = decoded.email;
 
     // Load profile from Firestore (role/name)
     const snap = await adminDb.collection("users").doc(uid).get();
-  const profile = snap.exists ? snap.data() : {};
-  const role = profile.role || "user";
-  const name = profile.name || decoded.name || "";
-  const trajectId = profile.trajectId || null;
+    const profile = snap.exists ? snap.data() : {};
+    const role = profile.role || "user";
+    const name = profile.name || decoded.name || "";
+    const trajectId = profile.trajectId || null;
+    const photoURL = profile.photoURL || decoded.picture || null;
 
     // Issue API JWT with Firebase uid
     const token = jwt.sign({ uid, role }, JWT_SECRET, { expiresIn: "1h" });
@@ -94,7 +96,7 @@ exports.firebaseLogin = async (req, res) => {
     return res.json({
       token,
       redirectPath: getRedirectPath(role),
-      user: { uid, email, role, name, trajectId },
+      user: { uid, email, role, name, trajectId, photoURL },
     });
   } catch (err) {
     return res.status(401).json({ error: err.message || "Invalid token" });
@@ -132,7 +134,14 @@ exports.firebaseRegister = async (req, res) => {
       message: "Registered via Firebase",
       token,
       redirectPath: getRedirectPath(role),
-      user: { uid, email, role, name: name || decoded.name || "", trajectId },
+      user: {
+        uid,
+        email,
+        role,
+        name: name || decoded.name || "",
+        trajectId,
+        photoURL: decoded.picture || null,
+      },
     });
   } catch (err) {
     return res.status(400).json({ error: err.message });
@@ -213,14 +222,19 @@ exports.adminImpersonate = async (req, res) => {
     if (!MANAGED_ROLES.has(normalizedRole)) return res.status(400).json({ error: "Target user has unsupported role" });
     if (!["customer", "user"].includes(normalizedRole)) return res.status(403).json({ error: "Only customer accounts can be impersonated" });
 
-    const token = jwt.sign(
-      { uid: firebaseUid, role: normalizedRole, impersonatedBy: req.user.uid || null },
-      JWT_SECRET,
-      { expiresIn: "30m" }
-    );
+    const adminUid = req.user?.uid || req.user?.firebaseUid;
+    if (!adminUid) return res.status(401).json({ error: "Not authenticated" });
+
+    // Create custom tokens for both admin (to switch back) and the target customer
+    const customerCustomToken = await adminAuth.createCustomToken(firebaseUid, {
+      impersonatedBy: adminUid,
+      role: normalizedRole,
+    });
+    const adminCustomToken = await adminAuth.createCustomToken(adminUid, { role: "admin" });
 
     return res.json({
-      token,
+      customerCustomToken,
+      adminCustomToken,
       redirectPath: getRedirectPath(normalizedRole),
       user: {
         uid: firebaseUid,
@@ -229,7 +243,8 @@ exports.adminImpersonate = async (req, res) => {
         name: data.name || "",
         trajectId: data.trajectId || null,
         firebaseUid,
-        impersonatedBy: req.user.uid || null,
+        impersonatedBy: adminUid,
+        photoURL: data.photoURL || null,
       },
     });
   } catch (err) {

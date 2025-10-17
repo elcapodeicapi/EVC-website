@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
@@ -9,6 +8,7 @@ import {
   query,
   serverTimestamp,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
 
@@ -92,7 +92,7 @@ export function subscribeAssignments(observer) {
   );
 }
 
-export async function createAssignment({ customerId, coachId, status = "pending" }) {
+export async function createAssignment({ customerId, coachId, status = "active" }) {
   if (!customerId || !coachId) {
     throw new Error("customerId and coachId are verplicht");
   }
@@ -100,14 +100,71 @@ export async function createAssignment({ customerId, coachId, status = "pending"
   const currentUser = auth.currentUser;
   const createdBy = currentUser?.uid ?? null;
 
-  const assignmentsRef = collection(db, "assignments");
-  await addDoc(assignmentsRef, {
+  const assignmentRef = doc(db, "assignments", customerId);
+  const previousSnapshot = await getDoc(assignmentRef).catch(() => null);
+  const previousData = previousSnapshot && previousSnapshot.exists() ? previousSnapshot.data() : null;
+  const previousCoachId = previousData?.coachId || null;
+  const existingCreatedAt = previousData?.createdAt || null;
+  const existingCreatedBy = previousData?.createdBy || null;
+
+  const batch = writeBatch(db);
+
+  const assignmentPayload = {
     customerId,
     coachId,
     status,
-    createdBy,
-    createdAt: serverTimestamp(),
-  });
+    createdBy: existingCreatedBy || createdBy || null,
+    updatedAt: serverTimestamp(),
+  };
+  if (!existingCreatedAt) {
+    assignmentPayload.createdAt = serverTimestamp();
+  } else {
+    assignmentPayload.createdAt = existingCreatedAt;
+  }
+  batch.set(assignmentRef, assignmentPayload, { merge: true });
+
+  const customerRef = doc(db, "users", customerId);
+  batch.set(
+    customerRef,
+    {
+      coachId,
+      coachLinkedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  const coachLinkRef = doc(db, "assignmentsByCoach", coachId, "customers", customerId);
+  const coachLinkPayload = {
+    customerId,
+    coachId,
+    status,
+    createdBy: existingCreatedBy || createdBy || null,
+    updatedAt: serverTimestamp(),
+  };
+  if (!existingCreatedAt) {
+    coachLinkPayload.createdAt = serverTimestamp();
+  } else {
+    coachLinkPayload.createdAt = existingCreatedAt;
+  }
+  batch.set(coachLinkRef, coachLinkPayload, { merge: true });
+
+  if (previousCoachId && previousCoachId !== coachId) {
+    const previousCoachRef = doc(db, "assignmentsByCoach", previousCoachId, "customers", customerId);
+    batch.delete(previousCoachRef);
+  }
+
+  await batch.commit();
+
+  if (!previousData) {
+    const assignmentsCollection = collection(db, "assignments");
+    const duplicatesSnapshot = await getDocs(query(assignmentsCollection, where("customerId", "==", customerId)));
+    const staleDocs = duplicatesSnapshot.docs.filter((docSnap) => docSnap.id !== customerId);
+    if (staleDocs.length > 0) {
+      const cleanupBatch = writeBatch(db);
+      staleDocs.forEach((docSnap) => cleanupBatch.delete(docSnap.ref));
+      await cleanupBatch.commit();
+    }
+  }
 }
 
 export function subscribeAdminProfile(uid, observer) {

@@ -83,6 +83,7 @@ function normalizeProfile(profile) {
       educations: [],
       certificates: [],
       workExperience: [],
+      photoURL: "",
     };
   }
 
@@ -104,6 +105,7 @@ function normalizeProfile(profile) {
     educations,
     certificates,
     workExperience,
+    photoURL: profile.photoURL || "",
   };
 }
 
@@ -172,10 +174,13 @@ exports.getProfile = async (req, res) => {
 
     const user = userSnap.data() || {};
     const normalized = normalizeProfile(profileSnap.exists ? profileSnap.data() : null);
+    const resolvedPhoto = normalized.photoURL || user.photoURL || "";
+    normalized.photoURL = resolvedPhoto;
     return res.json({
       ...normalized,
       email: user.email || "",
       name: user.name || "",
+      photoURL: resolvedPhoto,
     });
   } catch (error) {
     const status = error.status || 500;
@@ -192,13 +197,19 @@ exports.updateProfile = async (req, res) => {
 
     await db.collection("profiles").doc(uid).set(payload, { merge: true });
 
-    const userSnap = await db.collection("users").doc(uid).get();
+    const [userSnap, profileSnap] = await Promise.all([
+      db.collection("users").doc(uid).get(),
+      db.collection("profiles").doc(uid).get(),
+    ]);
     const user = userSnap.exists ? userSnap.data() : {};
-    const normalized = normalizeProfile(payload);
+    const normalized = normalizeProfile(profileSnap.exists ? profileSnap.data() : payload);
+    const resolvedPhoto = normalized.photoURL || user.photoURL || "";
+    normalized.photoURL = resolvedPhoto;
     return res.json({
       ...normalized,
       email: user.email || "",
       name: user.name || "",
+      photoURL: resolvedPhoto,
     });
   } catch (error) {
     const status = error.status || 500;
@@ -246,5 +257,76 @@ exports.uploadCertificate = async (req, res) => {
     return res.json(metadata);
   } catch (error) {
     return res.status(500).json({ error: error.message || "Failed to upload certificate" });
+  }
+};
+
+exports.uploadProfilePhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "File is required" });
+    }
+
+    const uid = req.user.firebaseUid || req.user.uid;
+    if (!uid) return res.status(400).json({ error: "Missing Firebase user id" });
+
+    const { mimetype = "", size = null } = req.file;
+    if (!mimetype.startsWith("image/")) {
+      return res.status(400).json({ error: "Alleen afbeeldingsbestanden zijn toegestaan" });
+    }
+
+    const originalName = req.file.originalname || req.file.filename || "profielfoto.png";
+    const destination = `profilePhotos/${uid}/${Date.now()}-${sanitizeFilename(originalName)}`;
+
+    const { file, downloadUrl } = await uploadBuffer(destination, req.file.buffer, {
+      contentType: mimetype,
+      metadata: {
+        firebaseUid: uid,
+        originalName,
+        type: "profile-photo",
+      },
+    });
+
+    const profileRef = db.collection("profiles").doc(uid);
+    const userRef = db.collection("users").doc(uid);
+
+    const [profileSnap, userSnap] = await Promise.all([
+      profileRef.get().catch(() => null),
+      userRef.get().catch(() => null),
+    ]);
+
+    const profileData = profileSnap?.exists ? profileSnap.data() : {};
+    const userData = userSnap?.exists ? userSnap.data() : {};
+    const previousStoragePath = profileData?.photoStoragePath || userData?.photoStoragePath || null;
+
+    const photoPayload = {
+      photoURL: downloadUrl,
+      photoStoragePath: file.name,
+      photoUpdatedAt: new Date().toISOString(),
+    };
+
+    await Promise.all([
+      profileRef.set(photoPayload, { merge: true }),
+      userRef.set(photoPayload, { merge: true }),
+    ]);
+
+    if (previousStoragePath && previousStoragePath !== file.name) {
+      try {
+        await bucket.file(previousStoragePath).delete();
+      } catch (deleteError) {
+        if (deleteError?.code !== 404) {
+          // eslint-disable-next-line no-console
+          console.warn(`Failed to remove previous profile photo ${previousStoragePath}:`, deleteError.message || deleteError);
+        }
+      }
+    }
+
+    return res.json({
+      photoURL: downloadUrl,
+      storagePath: file.name,
+      size: typeof size === "number" ? size : null,
+      contentType: mimetype,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Failed to upload profile photo" });
   }
 };

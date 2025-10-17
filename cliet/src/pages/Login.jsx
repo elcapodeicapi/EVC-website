@@ -23,11 +23,8 @@ const Login = () => {
 			const idToken = await cred.user.getIdToken();
 			// Exchange Firebase ID token for API JWT (Firestore-backed backend)
 			const data = await post("/auth/login/firebase", { idToken });
-			if (!data?.token) {
-				throw new Error(data?.error || "Inloggen is niet gelukt. Probeer het opnieuw.");
-			}
-			localStorage.setItem("token", data.token);
-			if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+			if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
+			// We rely solely on Firebase ID tokens for API Authorization; no JWT stored.
 			const redirectPath = data.redirectPath || "/dashboard";
 			navigate(redirectPath, { replace: true });
 		} catch (err) {

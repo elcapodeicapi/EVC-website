@@ -2,16 +2,18 @@ import {
   addDoc,
   collection,
   doc,
-  getDoc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { getUsersIndex } from "./firestoreAdmin";
+import { subscribeCustomerUploads, subscribeTrajectCompetencies } from "./firestoreCustomer";
 
 const normalizeTimestamp = (value) => {
   if (!value) return null;
@@ -50,6 +52,19 @@ const mapAssignmentDoc = (snapshot) => {
     status: data.status || "pending",
     createdAt: normalizeTimestamp(data.createdAt),
     updatedAt: normalizeTimestamp(data.updatedAt),
+  };
+};
+
+const mapNoteDoc = (snapshot) => {
+  if (!snapshot?.exists()) return null;
+  const data = snapshot.data() || {};
+  return {
+    id: snapshot.id,
+    coachId: data.coachId || null,
+    customerId: data.customerId || null,
+    text: data.text || "",
+    timestamp: normalizeTimestamp(data.timestamp),
+    lastEdited: normalizeTimestamp(data.lastEdited) || normalizeTimestamp(data.timestamp),
   };
 };
 
@@ -115,17 +130,55 @@ const buildThreadEntry = (snapshot, coachId, userIndex) => {
   };
 };
 
-const mapThreadMessage = (snapshot) => {
-  if (!snapshot?.exists()) return null;
-  const data = snapshot.data() || {};
+const emptyCoachEvcTrajectory = () => ({
+  contactPerson: "",
+  currentRole: "",
+  domains: "",
+  qualification: {
+    name: "",
+    number: "",
+    validity: "",
+  },
+  voluntaryParticipation: false,
+  updatedAt: null,
+});
+
+const mapCoachEvcTrajectory = (raw = {}) => {
+  const qualification = raw.qualification || {};
   return {
-    id: snapshot.id,
-    authorId: data.authorId || data.userId || null,
-    authorName: data.authorName || data.displayName || "",
-    content: data.content || data.body || "",
-    createdAt: normalizeTimestamp(data.createdAt) || new Date(),
+    contactPerson: raw.contactPerson || "",
+    currentRole: raw.currentRole || "",
+    domains: Array.isArray(raw.domains) ? raw.domains.join(", ") : raw.domains || "",
+    qualification: {
+      name: qualification.name || raw.qualificationName || "",
+      number: qualification.number || raw.qualificationNumber || "",
+      validity: qualification.validity || raw.qualificationValidity || "",
+    },
+    voluntaryParticipation: Boolean(raw.voluntaryParticipation),
+    updatedAt: normalizeTimestamp(raw.updatedAt || raw.lastUpdated || null),
   };
 };
+
+const mapCoachProfileDetailsDoc = (snapshot) => {
+  if (!snapshot?.exists()) {
+    return {
+      evcTrajectory: emptyCoachEvcTrajectory(),
+      updatedAt: null,
+      photoURL: null,
+    };
+  }
+  const data = snapshot.data() || {};
+  const { evcTrajectory, ...rest } = data;
+  const photoURL = data.photoURL || data.photoUrl || null;
+  return {
+    ...rest,
+    photoURL,
+    evcTrajectory: mapCoachEvcTrajectory(evcTrajectory || {}),
+    updatedAt: normalizeTimestamp(data.updatedAt || data.lastUpdated || null),
+  };
+};
+
+// Deprecated message helpers are removed. Messaging logic now lives in firestoreMessages.js
 
 export function subscribeCoachProfile(coachUid, observer) {
   if (!coachUid) {
@@ -285,78 +338,260 @@ export async function addCoachFeedback({ coachId, coachName, customerId, custome
   });
 }
 
-export function subscribeCoachThreads(coachUid, observer) {
-  if (!coachUid) {
-    observer({ data: [], error: new Error("coachUid ontbreekt") });
+// Legacy thread helpers retained elsewhere
+
+const emptyProgressState = (meta = {}) => ({
+  trajectId: meta.trajectId || null,
+  trajectName: meta.trajectName || "",
+  trajectCode: meta.trajectCode || "",
+  totalCompetencies: 0,
+  completedCompetencies: 0,
+  completionPercentage: 0,
+  competencies: [],
+  uploadsByCompetency: {},
+});
+
+export function subscribeCustomerProgress(customerId, trajectId, observer) {
+  if (!customerId) {
+    observer({ data: emptyProgressState(), error: new Error("customerId ontbreekt") });
     return () => {};
   }
 
-  const threadsRef = collection(db, "threads");
-  const threadsQuery = query(threadsRef, where("participants", "array-contains", coachUid), orderBy("updatedAt", "desc"));
-
-  return onSnapshot(
-    threadsQuery,
-    async (snapshot) => {
-      try {
-        const userIndex = await getUsersIndex().catch(() => new Map());
-        const threads = snapshot.docs
-          .map((docSnap) => buildThreadEntry(docSnap, coachUid, userIndex))
-          .filter(Boolean)
-          .sort((a, b) => {
-            const timeA = a.updatedAt ? a.updatedAt.getTime() : 0;
-            const timeB = b.updatedAt ? b.updatedAt.getTime() : 0;
-            return timeB - timeA;
-          });
-        observer({ data: threads, error: null });
-      } catch (error) {
-        observer({ data: [], error });
-      }
-    },
-    (error) => observer({ data: [], error })
-  );
-}
-
-export function subscribeThreadMessages(threadId, observer) {
-  if (!threadId) {
-    observer({ data: [], error: new Error("threadId ontbreekt") });
+  if (!trajectId) {
+    observer({ data: emptyProgressState(), error: null });
     return () => {};
   }
 
-  const messagesRef = collection(db, "threads", threadId, "messages");
-  const messagesQuery = query(messagesRef, orderBy("createdAt", "asc"));
+  let competencies = [];
+  let uploads = [];
+  let trajectInfo = null;
+  let competenciesError = null;
+  let uploadsError = null;
+  let trajectError = null;
 
-  return onSnapshot(
-    messagesQuery,
+  const emit = () => {
+    const uploadsByCompetency = competencies.reduce((acc, competency) => {
+      acc[competency.id] = [];
+      return acc;
+    }, {});
+
+    uploads.forEach((upload) => {
+      const list = uploadsByCompetency[upload.competencyId] || (uploadsByCompetency[upload.competencyId] = []);
+      list.push(upload);
+    });
+
+    const totalCompetencies = competencies.length;
+    const completedCompetencies = competencies.filter(
+      (competency) => (uploadsByCompetency[competency.id] || []).length > 0
+    ).length;
+    const completionPercentage = totalCompetencies > 0 ? Math.round((completedCompetencies / totalCompetencies) * 100) : 0;
+
+    observer({
+      data: {
+        trajectId,
+        trajectName: trajectInfo?.name || "",
+        trajectCode: trajectInfo?.code || "",
+        totalCompetencies,
+        completedCompetencies,
+        completionPercentage,
+        competencies,
+        uploadsByCompetency,
+      },
+      error: competenciesError || uploadsError || trajectError || null,
+    });
+  };
+
+  observer({ data: emptyProgressState({ trajectId }), error: null });
+
+  const trajectRef = doc(db, "trajects", trajectId);
+
+  const unsubscribeTraject = onSnapshot(
+    trajectRef,
     (snapshot) => {
-      const entries = snapshot.docs.map(mapThreadMessage).filter(Boolean);
-      observer({ data: entries, error: null });
+      const data = snapshot?.data() || {};
+      trajectInfo = {
+        id: snapshot?.id || trajectId,
+        name: data.name || data.title || "",
+        code: data.code || "",
+      };
+      trajectError = null;
+      emit();
     },
-    (error) => observer({ data: [], error })
+    (error) => {
+      trajectInfo = null;
+      trajectError = error;
+      emit();
+    }
   );
-}
 
-export async function sendThreadMessage({ threadId, fromUserId, toUserId, body, authorName }) {
-  if (!threadId) throw new Error("threadId is verplicht");
-  if (!fromUserId) throw new Error("fromUserId is verplicht");
-  const trimmed = (body || "").trim();
-  if (!trimmed) throw new Error("Bericht mag niet leeg zijn");
-
-  const threadRef = doc(db, "threads", threadId);
-  const messagesRef = collection(threadRef, "messages");
-
-  await addDoc(messagesRef, {
-    authorId: fromUserId,
-    authorName: authorName || null,
-    toUserId: toUserId || null,
-    content: trimmed,
-    createdAt: serverTimestamp(),
+  const unsubscribeCompetencies = subscribeTrajectCompetencies(trajectId, ({ data, error }) => {
+    competencies = Array.isArray(data) ? data : [];
+    competenciesError = error || null;
+    emit();
   });
 
-  await updateDoc(threadRef, {
-    lastMessage: trimmed,
-    lastMessageAuthorId: fromUserId,
-    lastMessageAuthorName: authorName || null,
-    lastMessageAt: serverTimestamp(),
+  const unsubscribeUploads = subscribeCustomerUploads(customerId, ({ uploads: uploadDocs, error }) => {
+    uploads = Array.isArray(uploadDocs) ? uploadDocs : [];
+    uploadsError = error || null;
+    emit();
+  });
+
+  return () => {
+    if (typeof unsubscribeTraject === "function") unsubscribeTraject();
+    if (typeof unsubscribeCompetencies === "function") unsubscribeCompetencies();
+    if (typeof unsubscribeUploads === "function") unsubscribeUploads();
+  };
+}
+
+export function subscribeCoachCustomerNote(coachId, customerId, observer) {
+  if (!coachId || !customerId) {
+    observer({ data: null, error: new Error("coachId of customerId ontbreekt") });
+    return () => {};
+  }
+
+  const noteRef = doc(db, "notes", coachId, "customers", customerId);
+  return onSnapshot(
+    noteRef,
+    (snapshot) => observer({ data: mapNoteDoc(snapshot), error: null }),
+    (error) => observer({ data: null, error })
+  );
+}
+
+export function subscribeCoachCustomerProfile(customerId, observer) {
+  if (!customerId) {
+    observer({ data: null, error: new Error("customerId ontbreekt") });
+    return () => {};
+  }
+
+  const customerRef = doc(db, "users", customerId);
+  const profileRef = doc(db, "users", customerId, "profile", "details");
+
+  let customerData = null;
+  let profileData = { evcTrajectory: emptyCoachEvcTrajectory(), updatedAt: null };
+  let customerError = null;
+  let profileError = null;
+
+  const emit = () => {
+    if (customerError || profileError) {
+      observer({ data: null, error: customerError || profileError });
+      return;
+    }
+
+    observer({
+      data: {
+        customer: customerData,
+        profile: profileData,
+        evcTrajectory: profileData?.evcTrajectory || emptyCoachEvcTrajectory(),
+      },
+      error: null,
+    });
+  };
+
+  const unsubscribeCustomer = onSnapshot(
+    customerRef,
+    (snapshot) => {
+      customerData = mapUserDoc(snapshot);
+      customerError = null;
+      emit();
+    },
+    (error) => {
+      customerData = null;
+      customerError = error;
+      emit();
+    }
+  );
+
+  const unsubscribeProfile = onSnapshot(
+    profileRef,
+    (snapshot) => {
+      profileData = mapCoachProfileDetailsDoc(snapshot);
+      profileError = null;
+      emit();
+    },
+    (error) => {
+      profileData = { evcTrajectory: emptyCoachEvcTrajectory(), updatedAt: null };
+      profileError = error;
+      emit();
+    }
+  );
+
+  emit();
+
+  return () => {
+    if (typeof unsubscribeCustomer === "function") unsubscribeCustomer();
+    if (typeof unsubscribeProfile === "function") unsubscribeProfile();
+  };
+}
+
+export async function updateCoachCustomerVoluntary({ customerId, voluntaryParticipation }) {
+  if (!customerId) throw new Error("customerId ontbreekt");
+  const profileRef = doc(db, "users", customerId, "profile", "details");
+  const payload = {
+    "evcTrajectory.voluntaryParticipation": Boolean(voluntaryParticipation),
+    "evcTrajectory.updatedAt": serverTimestamp(),
     updatedAt: serverTimestamp(),
-  }).catch(() => undefined);
+  };
+
+  try {
+    await updateDoc(profileRef, payload);
+  } catch (error) {
+    if (error?.code !== "not-found") throw error;
+    const defaults = emptyCoachEvcTrajectory();
+    await setDoc(
+      profileRef,
+      {
+        evcTrajectory: {
+          ...defaults,
+          voluntaryParticipation: Boolean(voluntaryParticipation),
+          updatedAt: serverTimestamp(),
+        },
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+}
+
+export async function deleteCoachCustomer({ coachId, customerId }) {
+  if (!coachId) throw new Error("coachId ontbreekt");
+  if (!customerId) throw new Error("customerId ontbreekt");
+
+  const assignmentRef = doc(db, "assignments", customerId);
+  const userRef = doc(db, "users", customerId);
+  const coachLinkRef = doc(db, "assignmentsByCoach", coachId, "customers", customerId);
+
+  const batch = writeBatch(db);
+  batch.delete(coachLinkRef);
+  batch.delete(assignmentRef);
+  batch.set(
+    userRef,
+    {
+      coachId: null,
+      coachLinkedAt: null,
+      coachUnlinkedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  await batch.commit();
+}
+
+export async function saveCoachCustomerNote({ coachId, customerId, text, existingTimestamp }) {
+  if (!coachId) throw new Error("coachId ontbreekt");
+  if (!customerId) throw new Error("customerId ontbreekt");
+  const noteRef = doc(db, "notes", coachId, "customers", customerId);
+  const payload = {
+    coachId,
+    customerId,
+    text: typeof text === "string" ? text : "",
+    lastEdited: serverTimestamp(),
+  };
+
+  if (existingTimestamp instanceof Date && !Number.isNaN(existingTimestamp.getTime())) {
+    payload.timestamp = existingTimestamp;
+  } else if (!existingTimestamp) {
+    payload.timestamp = serverTimestamp();
+  }
+
+  await setDoc(noteRef, payload, { merge: true });
 }

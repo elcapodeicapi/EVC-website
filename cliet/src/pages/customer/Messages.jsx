@@ -1,214 +1,278 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import ChatWindow from "../../components/ChatWindow";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import { get, post } from "../../lib/api";
+import {
+  ensureThread,
+  sendThreadMessage,
+  subscribeThreadMessages,
+} from "../../lib/firestoreMessages";
+
+const formatTimestamp = (value) => {
+  if (!(value instanceof Date)) return "";
+  return new Intl.DateTimeFormat("nl-NL", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(value);
+};
+
+const resolveUid = (entity) =>
+  entity?.firebaseUid || entity?.uid || entity?.id || entity?.userId || null;
 
 const CustomerMessages = () => {
-  const { customer, coach, account } = useOutletContext();
+  const { customer, coach } = useOutletContext();
+  const customerId = resolveUid(customer);
+  const coachId = resolveUid(coach);
 
-  const currentUserId = account?.id ?? null;
-  const [threads, setThreads] = useState([]);
-  const [messagesByThread, setMessagesByThread] = useState({});
-  const [activeThreadId, setActiveThreadId] = useState("");
-  const [drafts, setDrafts] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [threadId, setThreadId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [file, setFile] = useState(null);
   const [sending, setSending] = useState(false);
 
-  const mapMessagesToThreads = useCallback(
-    (rawMessages) => {
-      const threadMap = new Map();
-
-      rawMessages.forEach((message) => {
-        const fromUser = message?.fromUser || {};
-        const toUser = message?.toUser || {};
-        const outgoing = fromUser?.id === currentUserId;
-        const counterpart = outgoing ? toUser : fromUser;
-        if (!counterpart?.id) return;
-
-        const threadId = String(counterpart.id);
-        if (!threadMap.has(threadId)) {
-          threadMap.set(threadId, {
-            id: threadId,
-            name: counterpart.name || counterpart.email || "Contactpersoon",
-            targetUserId: counterpart.id,
-            lastMessage: "",
-            lastTimestamp: 0,
-            messages: [],
-          });
-        }
-
-        const thread = threadMap.get(threadId);
-        const createdAt = message.createdAt ? new Date(message.createdAt) : null;
-        const timestampMs = createdAt ? createdAt.getTime() : Date.now();
-        const authorLabel = outgoing ? customer?.name || "Ik" : counterpart.name || counterpart.email || "Contactpersoon";
-
-        thread.messages.push({
-          id: message.id,
-          author: authorLabel,
-          body: message.content || "",
-          from: outgoing ? "me" : "other",
-          timestamp: createdAt ? createdAt.toLocaleString() : "",
-          timestampMs,
-        });
-        thread.lastMessage = message.content || thread.lastMessage;
-        thread.lastTimestamp = Math.max(thread.lastTimestamp, timestampMs);
-      });
-
-      const sortedThreads = Array.from(threadMap.values()).sort((a, b) => b.lastTimestamp - a.lastTimestamp);
-      const nextThreads = sortedThreads.map(({ id, name, lastMessage, targetUserId }) => ({
-        id,
-        name,
-        lastMessage,
-        targetUserId,
-      }));
-
-      const nextMessages = {};
-      sortedThreads.forEach((thread) => {
-        const ordered = thread.messages.sort((a, b) => a.timestampMs - b.timestampMs).map(({ timestampMs, ...rest }) => rest);
-        nextMessages[thread.id] = ordered;
-      });
-
-      return { threads: nextThreads, messagesByThread: nextMessages };
-    },
-    [currentUserId, customer?.name]
-  );
-
-  const loadMessages = useCallback(async () => {
-    if (!currentUserId) {
-      setThreads([]);
-      setMessagesByThread({});
-      setActiveThreadId("");
+  useEffect(() => {
+    let cancelled = false;
+    if (!customerId || !coachId) {
+      setThreadId(null);
       setLoading(false);
-      return;
+      return () => {};
     }
 
     setLoading(true);
-    try {
-      const data = await get("/messages");
-      const normalized = mapMessagesToThreads(Array.isArray(data) ? data : []);
-      setThreads(normalized.threads);
-      setMessagesByThread(normalized.messagesByThread);
-      setActiveThreadId((previous) => {
-        if (previous && normalized.threads.some((thread) => thread.id === previous)) {
-          return previous;
+    ensureThread({
+      customerId,
+      coachId,
+      customerProfile: {
+        name: customer?.name || "",
+        email: customer?.email || "",
+      },
+      coachProfile: {
+        name: coach?.name || coach?.email || "",
+        email: coach?.email || "",
+      },
+    })
+      .then((id) => {
+        if (!cancelled) {
+          setThreadId(id);
+          setError(null);
         }
-        return normalized.threads[0]?.id ?? "";
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err.message || "Kon het gesprek niet openen");
+          setThreadId(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-      setError(null);
-    } catch (err) {
-      setError(err?.data?.error || err?.message || "Berichten laden mislukt");
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUserId, mapMessagesToThreads]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [customerId, coachId, customer?.name, customer?.email, coach?.name, coach?.email]);
 
   useEffect(() => {
-    loadMessages();
-  }, [loadMessages]);
+    if (!threadId) {
+      setMessages([]);
+      return () => {};
+    }
 
-  const messages = useMemo(() => messagesByThread[activeThreadId] ?? [], [messagesByThread, activeThreadId]);
+    const unsubscribe = subscribeThreadMessages(threadId, ({ data, error: subscriptionError }) => {
+      if (subscriptionError) {
+        setError(subscriptionError.message || "Kon berichten niet laden");
+        return;
+      }
+      setError(null);
+      setMessages(Array.isArray(data) ? data : []);
+    });
 
-  const handleSend = async () => {
-    const draft = drafts[activeThreadId] ?? "";
-    const trimmed = draft.trim();
-    if (!trimmed) return;
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [threadId]);
 
-    const thread = threads.find((item) => item.id === activeThreadId);
-    if (!thread?.targetUserId) {
-      setError("Geen ontvanger gekoppeld aan dit gesprek.");
+  const formattedMessages = useMemo(() => {
+    return messages.map((message) => ({
+      ...message,
+      isOwn: message.senderId === customerId,
+      timestampLabel: formatTimestamp(message.timestamp),
+      senderInitial: (message.senderName || "?").charAt(0).toUpperCase(),
+    }));
+  }, [messages, customerId]);
+
+  const handleSend = async (event) => {
+    event.preventDefault();
+    if (!threadId || !customerId || !coachId) return;
+    const trimmedTitle = title.trim();
+    const trimmedBody = body.trim();
+    if (!trimmedTitle && !trimmedBody) {
+      setError("Voer een titel of bericht in");
       return;
     }
 
     setSending(true);
+    setError(null);
     try {
-      await post("/messages/send", { toUserId: thread.targetUserId, content: trimmed });
-      setDrafts((prev) => ({ ...prev, [activeThreadId]: "" }));
-      await loadMessages();
+      await sendThreadMessage({
+        threadId,
+        senderId: customerId,
+        receiverId: coachId,
+        senderRole: "customer",
+        senderName: customer?.name || customer?.email || "Deelnemer",
+        receiverName: coach?.name || coach?.email || "Coach",
+        messageTitle: trimmedTitle,
+        messageText: trimmedBody,
+        file,
+      });
+      setTitle("");
+      setBody("");
+      setFile(null);
     } catch (err) {
-      setError(err?.data?.error || err?.message || "Versturen mislukt");
+      setError(err.message || "Verzenden mislukt");
     } finally {
       setSending(false);
     }
   };
 
+  const handleFileChange = (event) => {
+    const selected = event.target.files?.[0] || null;
+    setFile(selected);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header className="space-y-3">
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">Contact</p>
-          <h1 className="text-3xl font-semibold text-slate-900">Berichten met je coach</h1>
-        </div>
-        <div className="max-w-2xl space-y-4 text-sm text-slate-500">
-          <p className="font-semibold text-slate-700">Werkwijze voor het kiezen van keuzedelen en feedback bij de EVC Academie</p>
-          <p>
-            Deze contactpagina is jouw centrale punt voor communicatie met je aangewezen begeleider. Of je nu keuzedelen wilt aangeven, vragen hebt of
-            simpelweg feedback zoekt, stuur ons hier een bericht. We zijn er om je te ondersteunen en te begeleiden op elk moment van je traject.
-          </p>
-          <p>
-            Bij EVC Academie vinden we het belangrijk dat je de weg kent en dat je weet wat er van je verwacht wordt. Hieronder vind je een helder
-            overzicht van de eerste stappen die je moet nemen:
-          </p>
-          <ol className="list-decimal space-y-3 pl-5 text-slate-600 marker:text-evc-blue-600">
-            <li className="space-y-2">
-              <p className="font-semibold text-slate-700">Keuzedelen voor MBO-trajecten</p>
-              <p>
-                Als je een MBO-traject volgt, is het belangrijk dat je je keuzedelen selecteert. Deze keuzedelen kun je aangeven op onze contactpagina.
-                Het helpt ons om je traject op maat te maken, zodat deze het beste bij jou past!
-              </p>
-              <p>
-                Ga naar het tabblad &apos;Portfolio&apos;. Daar tref je een knop aan met de tekst &quot;Belangrijk - klik hier en lees verder&quot;. Na het klikken
-                vind je in de daaropvolgende tekst een link naar de lijst met beschikbare keuzedelen.
-              </p>
-              <p>Volg je een HBO-traject? Goed nieuws, dit deel is voor jou niet van toepassing.</p>
-            </li>
-            <li className="space-y-2">
-              <p className="font-semibold text-slate-700">Het belang van feedback</p>
-              <p>
-                Feedback is een essentieel onderdeel van je leerproces bij EVC Academie. Door feedback te ontvangen, kun je beter inzien wat je al goed
-                doet en waar je nog aan kunt werken.
-              </p>
-              <p>
-                We zetten ons in om je binnen drie dagen van feedback te voorzien. We streven ernaar om binnen drie dagen te reageren op je
-                contactverzoek. Mocht je na deze termijn geen reactie hebben ontvangen, aarzel dan niet om contact op te nemen met EVC Academie.
-              </p>
-            </li>
-          </ol>
-          <p className="font-semibold text-slate-700">Met vriendelijke groeten,</p>
-          <p>Team EVC Academie</p>
+          <h1 className="text-3xl font-semibold text-slate-900">
+            Contact met {coach?.name || coach?.email || "je coach"}
+          </h1>
         </div>
         <p className="max-w-2xl text-sm text-slate-500">
-          Chat rechtstreeks met je coach{coach ? ` ${coach.name}` : ""}. Gebruik dit kanaal voor vragen en updates.
+          Stuur vragen of updates naar je coach. Je ontvangt automatisch een melding wanneer je coach reageert.
         </p>
       </header>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       ) : null}
 
       {loading ? (
         <LoadingSpinner label="Berichten laden" />
       ) : (
-        <ChatWindow
-          threads={threads}
-          activeThreadId={activeThreadId}
-          onSelectThread={setActiveThreadId}
-          messages={messages}
-          draft={drafts[activeThreadId] ?? ""}
-          onDraftChange={(value) =>
-            setDrafts((prev) => ({ ...prev, [activeThreadId]: value }))
-          }
-          onSend={handleSend}
-          emptyLabel={threads.length === 0 ? "Nog geen berichten. Start een gesprek met je coach." : "Selecteer een gesprek"}
-        />
-      )}
+        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-6 px-6 py-6">
+            <div className="max-h-[500px] space-y-4 overflow-y-auto pr-1">
+              {formattedMessages.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-10 text-center text-sm text-slate-400">
+                  Nog geen berichten. Stel hieronder je eerste vraag aan je coach.
+                </div>
+              ) : (
+                formattedMessages.map((message) => (
+                  <article
+                    key={message.id}
+                    className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-sm ${
+                      message.isOwn ? "border-evc-blue-100 bg-evc-blue-50/60" : "border-slate-100 bg-slate-50"
+                    }`}
+                  >
+                    <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                      message.isOwn ? "bg-evc-blue-600 text-white" : "bg-slate-200 text-slate-700"
+                    }`}>
+                      {message.senderInitial}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <header className="flex flex-wrap items-baseline justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">
+                            {message.senderName}
+                            {message.senderRole ? (
+                              <span className="ml-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                                {message.senderRole}
+                              </span>
+                            ) : null}
+                          </p>
+                          {message.messageTitle ? (
+                            <p className="text-base font-semibold text-slate-900">{message.messageTitle}</p>
+                          ) : null}
+                        </div>
+                        <time className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                          {message.timestampLabel}
+                        </time>
+                      </header>
+                      {message.messageText ? (
+                        <p className="whitespace-pre-line text-sm text-slate-700">{message.messageText}</p>
+                      ) : null}
+                      {message.fileUrl ? (
+                        <a
+                          href={message.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm font-medium text-evc-blue-700 hover:text-evc-blue-600"
+                        >
+                          <span aria-hidden>📎</span>
+                          Download {message.fileName || "bijlage"}
+                        </a>
+                      ) : null}
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
 
-      {sending ? (
-        <p className="text-xs text-slate-400">Bericht wordt verzonden…</p>
-      ) : null}
+            <form onSubmit={handleSend} className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/50 px-5 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="message-title" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Onderwerp
+                </label>
+                <input
+                  id="message-title"
+                  type="text"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Bijvoorbeeld: Vraag over planning"
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label htmlFor="message-body" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Bericht
+                </label>
+                <textarea
+                  id="message-body"
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                  rows={5}
+                  placeholder="Schrijf hier je bericht"
+                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-evc-blue-300 hover:text-evc-blue-600">
+                  <span aria-hidden>📎</span>
+                  <span>Voeg bijlage toe</span>
+                  <input type="file" className="hidden" onChange={handleFileChange} />
+                </label>
+                {file ? (
+                  <span className="text-sm text-slate-500">Geselecteerd: {file.name}</span>
+                ) : null}
+                <div className="flex-1" />
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="inline-flex items-center gap-2 rounded-full bg-evc-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-evc-blue-500 disabled:cursor-not-allowed disabled:bg-evc-blue-300"
+                >
+                  {sending ? "Versturen…" : "Verstuur bericht"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      )}
     </div>
   );
 };

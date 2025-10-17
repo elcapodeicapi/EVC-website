@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence, onIdTokenChanged } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
@@ -44,3 +44,26 @@ if (!emulatorsConnected && shouldUseEmulators) {
   }
   emulatorsConnected = true;
 }
+
+// Make sessions persistent (stay logged in until explicit logout)
+try {
+  setPersistence(auth, browserLocalPersistence);
+} catch (_) {
+  // ignore during SSR/HMR
+}
+
+// Keep ID token fresh proactively so API calls don't hit expired tokens
+let lastTokenRefresh = 0;
+onIdTokenChanged(auth, async (user) => {
+  if (!user) return;
+  const now = Date.now();
+  // Throttle explicit refreshes to at most once per 5 minutes
+  if (now - lastTokenRefresh > 5 * 60 * 1000) {
+    try {
+      await user.getIdToken(true);
+      lastTokenRefresh = now;
+    } catch (_) {
+      // best effort
+    }
+  }
+});
