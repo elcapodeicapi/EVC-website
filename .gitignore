@@ -1,3 +1,6 @@
 node_modules/ 
 cliet/.env
 *.log
+package-lock.json
+package.json
+/cliet/dist
