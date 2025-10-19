@@ -1,118 +1,89 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, LayoutDashboard, Users } from "lucide-react";
 import LegacyPageLayout from "./LegacyPageLayout";
-
-const features = [
-  "Je portfolio opbouwen met duidelijke stappen",
-  "Bewijsstukken veilig uploaden en beheren",
-  "Berichten sturen naar coaches en begeleiders",
-  "Voortgang bijhouden via planning en taken",
-];
 
 const Home = () => {
   return (
     <LegacyPageLayout showHeader={false}>
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-500 to-brand-400 text-white shadow-xl">
-        <div className="grid gap-10 px-8 py-16 sm:px-12 lg:grid-cols-2 lg:px-16">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.32em] text-white/60">EVC platform</p>
-            <h1 className="mt-6 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-              Welkom bij jouw EVC portfolio
-            </h1>
-            <p className="mt-6 max-w-xl text-lg text-white/80">
-              Werk stap voor stap naar je erkenning toe. Verzamel bewijsstukken, werk samen met je coach en houd alles op één plek bij.
+      <section className="flex min-h-[70vh] items-center justify-center">
+        <div className="grid w-full max-w-5xl gap-10 rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-2xl sm:p-10 lg:grid-cols-2">
+          <div className="flex flex-col justify-between rounded-3xl bg-brand-50/60 p-8 shadow-inner">
+            <div className="space-y-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-500">EVC platform</p>
+                <h1 className="mt-3 text-2xl font-semibold text-slate-900">Welkom bij EVC Portal</h1>
+              </div>
+              <form className="space-y-5" noValidate>
+                <div className="space-y-2">
+                  <label htmlFor="login-username" className="text-sm font-medium text-slate-700">
+                    Gebruikersnaam
+                  </label>
+                  <input
+                    id="login-username"
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    placeholder="jouw@gebruikersnaam.nl"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="login-password" className="text-sm font-medium text-slate-700">
+                    Wachtwoord
+                  </label>
+                  <input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:ring-offset-2"
+                  >
+                    Inloggen
+                  </button>
+                  <Link
+                    to="/password-reset"
+                    className="text-center text-xs font-semibold text-amber-500 transition hover:text-amber-400"
+                  >
+                    Wachtwoord vergeten?
+                  </Link>
+                </div>
+              </form>
+            </div>
+            <p className="mt-10 text-xs text-slate-500">
+              Problemen met inloggen? Neem contact op met jouw coach of beheerder.
             </p>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-brand-600 shadow-lg shadow-brand-900/10 transition hover:-translate-y-0.5 hover:bg-slate-50"
-              >
-                Naar login
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <span className="inline-flex items-center justify-center gap-2 rounded-full border border-white/40 px-5 py-3 text-sm font-semibold text-white/80">
-                Nieuwe accounts? Neem contact op met het EVC-team
-              </span>
+          </div>
+
+          <div className="flex flex-col justify-center gap-6 rounded-3xl bg-white p-2 text-slate-600">
+            <div className="space-y-4">
+              <p className="text-base leading-relaxed text-slate-700">
+                Een EVC-traject via EVC Portal leidt tot een helder en duidelijk beeld van je mogelijkheden.
+              </p>
+              <p className="text-base leading-relaxed text-slate-700">
+                Onder leiding van onze deskundige begeleiders stel je online je portfolio samen. Dit portfolio
+                bevat een scala aan bewijzen, welke worden beoordeeld door een vakbekwaam assessor.
+              </p>
+              <p className="text-base leading-relaxed text-slate-700">
+                Het hieruit voortkomende advies voor erkenning van de eerder opgedane competenties wordt
+                geformuleerd in een landelijk erkend ervaringscertificaat.
+              </p>
+            </div>
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 text-sm text-slate-600 shadow-sm">
+              <p className="font-semibold text-slate-800">Waarom EVC Portal?</p>
+              <p className="mt-2 leading-relaxed">
+                Een moderne, veilige en gebruiksvriendelijke omgeving waarmee jij en je coach inzicht houden in
+                iedere stap van het traject.
+              </p>
             </div>
           </div>
-          <div className="relative isolate">
-            <div className="absolute -top-10 right-10 h-32 w-32 rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
-            <div className="absolute -bottom-12 left-6 h-24 w-24 rounded-full bg-brand-200/40 blur-3xl" aria-hidden="true" />
-            <div className="relative rounded-2xl border border-white/20 bg-white/10 p-8 backdrop-blur">
-              <h2 className="text-xl font-semibold text-white">Alles in één vertrouwde omgeving</h2>
-              <ul className="mt-6 space-y-4">
-                {features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-sm text-white/85">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-white" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
         </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Voor kandidaten</h3>
-          <p className="mt-3 text-sm text-slate-500">
-            Werk op je eigen tempo aan opdrachten, voeg reflecties toe en beheer bewijsstukken.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Voor coaches</h3>
-          <p className="mt-3 text-sm text-slate-500">
-            Krijg realtime inzicht in voortgang, geef feedback en begeleid kandidaten gericht.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Veilig en transparant</h3>
-          <p className="mt-3 text-sm text-slate-500">
-            Bewaar bestanden veilig en werk samen in een omgeving met duidelijke rollen en rechten.
-          </p>
-        </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Link
-          to="/admin"
-          className="group flex items-start gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-brand-400 hover:shadow-lg"
-        >
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-            <LayoutDashboard className="h-5 w-5" />
-          </span>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">Bekijk de admin-ervaring</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Navigeer naar het beheerdersdashboard met klantoverzicht en toewijzingen.
-            </p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-600">
-              Naar admin-dashboard
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-            </span>
-          </div>
-        </Link>
-
-        <Link
-          to="/coach"
-          className="group flex items-start gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-brand-400 hover:shadow-lg"
-        >
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-            <Users className="h-5 w-5" />
-          </span>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">Ervaar het coachportaal</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Ga direct naar het coachdashboard met klantkaarten, feedback en berichten.
-            </p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-600">
-              Naar coach-dashboard
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-            </span>
-          </div>
-        </Link>
       </section>
     </LegacyPageLayout>
   );
