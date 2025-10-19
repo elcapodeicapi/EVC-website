@@ -4,3 +4,6 @@ cliet/.env
 package-lock.json
 package.json
 /cliet/dist
+Backend/package-lock.json
+Backend/package.json
+.env

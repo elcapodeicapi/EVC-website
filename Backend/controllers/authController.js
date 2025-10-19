@@ -1,5 +1,4 @@
 const { db: adminDb, auth: adminAuth } = require("../firebase");
-const jwt = require("jsonwebtoken");
 
 const MANAGED_ROLES = new Set(["admin", "coach", "customer", "user"]);
 
@@ -14,7 +13,7 @@ function getRedirectPath(role) {
   return roleRedirectMap[role] || "/dashboard";
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecret"; // 🔒 move to .env
+// JWT removed: API relies solely on Firebase ID tokens for authorization
 
 // POST /auth/register (password registration) — deprecated in favor of Firebase login; retained for parity
 exports.register = async (req, res) => {
@@ -28,11 +27,8 @@ exports.register = async (req, res) => {
       createdAt: new Date(),
       trajectId: trajectId || null,
     });
-    // Issue JWT keyed by Firebase UID
-    const token = jwt.sign({ uid: userRecord.uid, role }, JWT_SECRET, { expiresIn: "1h" });
     return res.json({
       message: "User registered",
-      token,
       redirectPath: getRedirectPath(role),
       user: { uid: userRecord.uid, email, role, name, trajectId },
     });
@@ -90,11 +86,7 @@ exports.firebaseLogin = async (req, res) => {
     const trajectId = profile.trajectId || null;
     const photoURL = profile.photoURL || decoded.picture || null;
 
-    // Issue API JWT with Firebase uid
-    const token = jwt.sign({ uid, role }, JWT_SECRET, { expiresIn: "1h" });
-
     return res.json({
-      token,
       redirectPath: getRedirectPath(role),
       user: { uid, email, role, name, trajectId, photoURL },
     });
@@ -127,12 +119,8 @@ exports.firebaseRegister = async (req, res) => {
       { merge: true }
     );
 
-    // Issue API JWT with Firebase uid
-    const token = jwt.sign({ uid, role }, JWT_SECRET, { expiresIn: "1h" });
-
     return res.json({
       message: "Registered via Firebase",
-      token,
       redirectPath: getRedirectPath(role),
       user: {
         uid,

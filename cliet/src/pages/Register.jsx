@@ -24,12 +24,8 @@ const Register = () => {
 				try { await updateProfile(cred.user, { displayName: name }); } catch (_) { /* noop */ }
 			}
 			const idToken = await cred.user.getIdToken();
-			// Register profile via Firestore-backed backend and receive API JWT
+			// Register profile via Firestore-backed backend (no API JWT is used)
 			const data = await post("/auth/register/firebase", { idToken, role, name });
-			if (!data?.token) {
-				throw new Error(data?.error || "Registratie mislukt");
-			}
-			localStorage.setItem("token", data.token);
 			if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
 			const redirectPath = data.redirectPath || "/dashboard";
 			navigate(redirectPath, { replace: true });
