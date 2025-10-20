@@ -49,16 +49,16 @@ export const adminProfile = {
   phone: "+31 6 9876 5432",
   location: "Utrecht, NL",
   bio:
-    "Charlotte zorgt voor een soepel verloop van alle EVC-trajecten. Ze stemt af met coaches, houdt de planning bij en bewaakt de kwaliteit van de erkenningsdossiers.",
+    "Charlotte zorgt voor een soepel verloop van alle EVC-trajecten. Ze stemt af met begeleiders, houdt de planning bij en bewaakt de kwaliteit van de erkenningsdossiers.",
   responsibilities: [
-    "Beheer van deelnemers en coaches",
+    "Beheer van deelnemers en begeleiders",
     "Planning EVC-trajecten",
     "Monitoren van kwaliteit",
     "Rapportages voor management",
   ],
   highlights: [
     { id: "hl-1", metric: "32", label: "Actieve trajecten" },
-    { id: "hl-2", metric: "98%", label: "Tevredenheid coaches" },
+    { id: "hl-2", metric: "98%", label: "Tevredenheid begeleiders" },
     { id: "hl-3", metric: "12", label: "Nieuwe deelnemers (maand)" },
   ],
   certifications: [
@@ -85,10 +85,10 @@ export const adminProfile = {
 
 export const adminUsers = [
   { id: 1, name: "Daniël Vermeer", email: "daniel.vermeer@example.com", role: "Customer", coach: "Isabelle Janssen" },
-  { id: 2, name: "Isabelle Janssen", email: "isabelle.janssen@example.com", role: "Coach", coach: "-" },
+  { id: 2, name: "Isabelle Janssen", email: "isabelle.janssen@example.com", role: "Begeleider", coach: "-" },
   { id: 3, name: "Noah Smits", email: "noah.smits@example.com", role: "Customer", coach: "Isabelle Janssen" },
   { id: 4, name: "Fatima El Amrani", email: "fatima.el-amrani@example.com", role: "Customer", coach: "Bas Smit" },
-  { id: 5, name: "Bas Smit", email: "bas.smit@example.com", role: "Coach", coach: "-" },
+  { id: 5, name: "Bas Smit", email: "bas.smit@example.com", role: "Begeleider", coach: "-" },
 ];
 
 export const competencies = [
@@ -105,7 +105,7 @@ export const assignments = [
 
 export const coachProfile = {
   name: "Isabelle Janssen",
-  role: "Senior Coach",
+  role: "Senior Begeleider",
   email: "isabelle.janssen@example.com",
   phone: "+31 6 1234 5678",
   location: "Amsterdam, NL",

@@ -33,8 +33,8 @@ const Sidebar = ({ header, navItems = [], footer, onNavigate, tone = "light" }) 
       <div className={clsx("border-b px-6 pb-4 pt-6", palette.headerBorder)}>
         {header || (
           <div className="text-current">
-            <p className="text-xs uppercase tracking-widest opacity-70">EVC Portal</p>
-            <h1 className="mt-1 text-xl font-semibold">Coaching Suite</h1>
+            <p className="text-xs uppercase tracking-widest opacity-70">EVC-portaal</p>
+            <h1 className="mt-1 text-xl font-semibold">Begeleidingssuite</h1>
           </div>
         )}
       </div>

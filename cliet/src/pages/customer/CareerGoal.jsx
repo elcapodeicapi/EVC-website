@@ -72,7 +72,7 @@ const CustomerCareerGoal = () => {
     }
   };
 
-  const StatusBanner = ({ state }) => {
+  const StatusBanner = ({ state, className = "" }) => {
     if (!state?.message) return null;
     const isError = state.type === "error";
     const Icon = isError ? TriangleAlert : CheckCircle2;
@@ -80,7 +80,7 @@ const CustomerCareerGoal = () => {
       ? "border-red-200 bg-red-50 text-red-700"
       : "border-emerald-200 bg-emerald-50 text-emerald-700";
     return (
-      <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${tone}`}>
+      <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${tone} ${className}`.trim()}>
         <Icon className="h-4 w-4" />
         <span>{state.message}</span>
       </div>
@@ -114,8 +114,6 @@ const CustomerCareerGoal = () => {
       </header>
 
       <section className="space-y-6">
-        <StatusBanner state={status} />
-
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <label htmlFor="careerGoal" className="block text-sm font-semibold text-slate-800">
             Loopbaandoel van {displayName}
@@ -138,7 +136,7 @@ const CustomerCareerGoal = () => {
           )}
         </article>
 
-        <div className="flex justify-end">
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
           <button
             type="button"
             onClick={handleSave}
@@ -148,6 +146,7 @@ const CustomerCareerGoal = () => {
             <Save className="h-4 w-4" />
             {saving ? "Opslaan..." : "Opslaan"}
           </button>
+          <StatusBanner state={status} className="w-full sm:w-auto" />
         </div>
       </section>
     </div>

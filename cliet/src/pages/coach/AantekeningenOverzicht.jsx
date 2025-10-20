@@ -101,7 +101,7 @@ const AantekeningenOverzicht = () => {
           <p className="text-xs uppercase tracking-[0.35em] text-brand-600">Aantekeningenoverzicht</p>
           <h2 className="mt-1 flex items-center gap-2 text-xl font-semibold text-slate-900">
             <NotebookPen className="h-5 w-5 text-brand-600" />
-            Persoonlijke notities per klant
+            Persoonlijke notities per kandidaat
           </h2>
           <p className="text-sm text-slate-500">
             Bewaar observaties en afspraken. Alles wordt realtime gesynchroniseerd met Firestore.
@@ -118,7 +118,7 @@ const AantekeningenOverzicht = () => {
           >
             {customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
-                {customer.name || customer.email || "Klant"}
+                {customer.name || customer.email || "Kandidaat"}
               </option>
             ))}
           </select>
@@ -127,13 +127,13 @@ const AantekeningenOverzicht = () => {
 
       {customers.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-16 text-center text-sm text-slate-500">
-          Je hebt nog geen klanten om notities voor te maken.
+          Je hebt nog geen kandidaten om notities voor te maken.
         </div>
       ) : (
         <section className="space-y-5 rounded-3xl bg-white p-6 shadow-card">
           <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-baseline sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Klant</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Kandidaat</p>
               <h3 className="text-lg font-semibold text-slate-900">{selectedCustomer?.name || selectedCustomer?.email}</h3>
               <p className="text-sm text-slate-500">
                 {selectedCustomer?.trajectName || selectedCustomer?.trajectTitle || "Traject onbekend"}

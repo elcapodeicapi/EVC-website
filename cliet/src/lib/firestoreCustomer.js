@@ -10,9 +10,11 @@ import {
   serverTimestamp,
   setDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { db, storage } from "../firebase";
+import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
 
 function mapTraject(snapshot) {
   if (!snapshot?.exists()) return null;
@@ -148,11 +150,12 @@ function selectMostRecentAssignment(docs) {
   return docs
     .map((snap) => {
       const data = snap.data() || {};
+      const status = normalizeTrajectStatus(data.status) || DEFAULT_TRAJECT_STATUS;
       return {
         id: snap.id,
         coachId: data.coachId || null,
         customerId: data.customerId || null,
-        status: data.status || "",
+        status,
         createdAt: data.createdAt ? data.createdAt.toDate?.() ?? data.createdAt : null,
       };
     })
@@ -331,6 +334,37 @@ export function subscribeCustomerContext(customerUid, observer) {
     assignmentsUnsubscribe();
     if (cachedCoachListener) cachedCoachListener();
   };
+}
+
+export async function updateCustomerAssignmentStatus({ customerId, coachId, status }) {
+  if (!customerId) throw new Error("customerId is verplicht");
+
+  const resolvedStatus = normalizeTrajectStatus(status) || DEFAULT_TRAJECT_STATUS;
+
+  const batch = writeBatch(db);
+  const assignmentRef = doc(db, "assignments", customerId);
+  batch.set(
+    assignmentRef,
+    {
+      status: resolvedStatus,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  if (coachId) {
+    const coachAssignmentRef = doc(db, "assignmentsByCoach", coachId, "customers", customerId);
+    batch.set(
+      coachAssignmentRef,
+      {
+        status: resolvedStatus,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  await batch.commit();
 }
 
 export function subscribeTrajectCompetencies(trajectId, observer) {

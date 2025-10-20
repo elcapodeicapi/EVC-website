@@ -1,3 +1,4 @@
+const admin = require("firebase-admin");
 const { db: adminDb, auth: adminAuth } = require("../firebase");
 
 const MANAGED_ROLES = new Set(["admin", "coach", "customer", "user"]);
@@ -11,6 +12,50 @@ const roleRedirectMap = {
 
 function getRedirectPath(role) {
   return roleRedirectMap[role] || "/dashboard";
+}
+
+function toDateSafe(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value.toDate === "function") {
+    try {
+      const result = value.toDate();
+      return Number.isNaN(result.getTime()) ? null : result;
+    } catch (_) {
+      return null;
+    }
+  }
+  if (typeof value._seconds === "number") {
+    const millis = value._seconds * 1000 + Math.floor((value._nanoseconds || 0) / 1e6);
+    const date = new Date(millis);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function serializeTimestamp(value) {
+  const date = toDateSafe(value);
+  return date ? date.toISOString() : null;
+}
+
+async function upsertUserLoginMetadata(uid, metadata = {}) {
+  if (!uid) {
+    return { profile: null };
+  }
+  const payload = { lastLoggedIn: admin.firestore.FieldValue.serverTimestamp() };
+  Object.entries(metadata).forEach(([key, value]) => {
+    if (value !== undefined) {
+      payload[key] = value;
+    }
+  });
+  const userRef = adminDb.collection("users").doc(uid);
+  await userRef.set(payload, { merge: true });
+  const updatedSnap = await userRef.get();
+  const profile = updatedSnap.exists ? updatedSnap.data() || {} : {};
+  return { profile };
 }
 
 // JWT removed: API relies solely on Firebase ID tokens for authorization
@@ -59,6 +104,7 @@ exports.me = async (req, res) => {
       createdAt: data.createdAt || null,
       trajectId: data.trajectId || null,
       photoURL: data.photoURL || null,
+      lastLoggedIn: serializeTimestamp(data.lastLoggedIn),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -80,15 +126,43 @@ exports.firebaseLogin = async (req, res) => {
 
     // Load profile from Firestore (role/name)
     const snap = await adminDb.collection("users").doc(uid).get();
-    const profile = snap.exists ? snap.data() : {};
+    const profile = snap.exists ? snap.data() || {} : {};
     const role = profile.role || "user";
     const name = profile.name || decoded.name || "";
     const trajectId = profile.trajectId || null;
     const photoURL = profile.photoURL || decoded.picture || null;
 
+    const metadata = {
+      email: email || profile.email || null,
+      role,
+      name,
+      trajectId,
+    };
+    if (photoURL) {
+      metadata.photoURL = photoURL;
+    }
+
+    const { profile: updatedProfile } = await upsertUserLoginMetadata(uid, metadata);
+    const finalProfile = { ...profile, ...updatedProfile };
+    const finalRole = finalProfile.role || role || "user";
+    const finalName = finalProfile.name || name || "";
+    const finalTrajectId =
+      finalProfile.trajectId !== undefined ? finalProfile.trajectId : trajectId !== undefined ? trajectId : null;
+    const finalPhotoURL =
+      finalProfile.photoURL !== undefined ? finalProfile.photoURL : photoURL !== undefined ? photoURL : null;
+    const finalEmail = finalProfile.email || email || null;
+
     return res.json({
-      redirectPath: getRedirectPath(role),
-      user: { uid, email, role, name, trajectId, photoURL },
+      redirectPath: getRedirectPath(finalRole),
+      user: {
+        uid,
+        email: finalEmail,
+        role: finalRole,
+        name: finalName,
+        trajectId: finalTrajectId,
+        photoURL: finalPhotoURL,
+        lastLoggedIn: serializeTimestamp(finalProfile.lastLoggedIn),
+      },
     });
   } catch (err) {
     return res.status(401).json({ error: err.message || "Invalid token" });
@@ -133,6 +207,19 @@ exports.firebaseRegister = async (req, res) => {
     });
   } catch (err) {
     return res.status(400).json({ error: err.message });
+  }
+};
+
+exports.trackLogin = async (req, res) => {
+  try {
+    const uid = req.user?.uid || req.user?.firebaseUid;
+    if (!uid) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const { profile } = await upsertUserLoginMetadata(uid);
+    return res.json({ lastLoggedIn: serializeTimestamp(profile?.lastLoggedIn) });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Failed to record login" });
   }
 };
 
@@ -191,7 +278,15 @@ exports.adminCreateUser = async (req, res) => {
 exports.adminListUsers = async (_req, res) => {
   try {
     const snap = await adminDb.collection("users").orderBy("createdAt", "desc").get();
-    const users = snap.docs.map((doc) => ({ id: doc.id, uid: doc.id, ...doc.data() }));
+    const users = snap.docs.map((doc) => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        uid: doc.id,
+        ...data,
+        lastLoggedIn: serializeTimestamp(data.lastLoggedIn),
+      };
+    });
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -237,6 +332,7 @@ exports.adminImpersonate = async (req, res) => {
         firebaseUid,
         impersonatedBy: adminUid,
         photoURL: data.photoURL || null,
+        lastLoggedIn: serializeTimestamp(data.lastLoggedIn),
       },
     });
   } catch (err) {

@@ -3,6 +3,20 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
 import { subscribeAdminProfile } from "../../lib/firestoreAdmin";
 
+const ROLE_LABELS = new Map([
+  ["admin", "Beheerder"],
+  ["coach", "Begeleider"],
+  ["customer", "Kandidaat"],
+  ["user", "Kandidaat"],
+]);
+
+const resolveRoleLabel = (role) => {
+  if (!role) return "Beheerder";
+  const normalized = role.toString().trim().toLowerCase();
+  if (!normalized) return "Beheerder";
+  return ROLE_LABELS.get(normalized) || role;
+};
+
 const AdminProfile = () => {
   const [uid, setUid] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -61,11 +75,9 @@ const AdminProfile = () => {
   const responsibilities = Array.isArray(profile?.responsibilities) ? profile.responsibilities : [];
   const certifications = Array.isArray(profile?.certifications) ? profile.certifications : [];
 
-  const displayRole = profile?.role
-    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
-    : "Admin";
+  const displayRole = resolveRoleLabel(profile?.role);
 
-  const displayName = profile?.name || profile?.email || "Admin";
+  const displayName = profile?.name || profile?.email || "Beheerder";
 
   if (loading) {
     return (
@@ -94,7 +106,7 @@ const AdminProfile = () => {
   return (
     <div className="space-y-8">
       <section className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 px-8 py-10 text-white shadow-card">
-        <p className="text-sm uppercase tracking-[0.35em] text-white/60">Profile</p>
+        <p className="text-sm uppercase tracking-[0.35em] text-white/60">Profiel</p>
         <div className="mt-4 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
             <h2 className="text-3xl font-semibold">{displayName}</h2>

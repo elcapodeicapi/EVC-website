@@ -38,7 +38,7 @@ const Login = () => {
 		<LegacyPageLayout
 			kicker="Inloggen"
 			title="Welkom terug bij EVC"
-			description="Log in om je traject te volgen, bewijsstukken te uploaden en contact te houden met je coach. Nieuwe accounts worden door een administrator aangemaakt."
+			description="Log in om je traject te volgen, bewijsstukken te uploaden en contact te houden met je begeleider. Nieuwe accounts worden door een beheerder aangemaakt."
 		>
 			<section className="mx-auto w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
 				<div className="flex items-center gap-3">
@@ -92,7 +92,7 @@ const Login = () => {
 						</label>
 						<button
 							type="button"
-							onClick={() => alert("Neem contact op met support om je wachtwoord te resetten.")}
+							onClick={() => alert("Neem contact op met het supportteam om je wachtwoord te resetten.")}
 							className="font-medium text-brand-600 transition hover:text-brand-500"
 						>
 							Wachtwoord vergeten?

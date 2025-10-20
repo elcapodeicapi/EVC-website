@@ -1,7 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 
-const DataTable = ({ columns = [], data = [], renderActions, emptyMessage = "No data available", dense }) => {
+const DataTable = ({ columns = [], data = [], renderActions, emptyMessage = "Geen gegevens beschikbaar", dense }) => {
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-card">
       <div className="overflow-x-auto">
@@ -17,7 +17,7 @@ const DataTable = ({ columns = [], data = [], renderActions, emptyMessage = "No 
                   {column.header}
                 </th>
               ))}
-              {renderActions ? <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th> : null}
+              {renderActions ? <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Acties</th> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">

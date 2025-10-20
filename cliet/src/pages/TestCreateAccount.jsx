@@ -3,9 +3,9 @@ import { UserPlus } from "lucide-react";
 import LegacyPageLayout from "./LegacyPageLayout";
 
 const ROLE_OPTIONS = [
-  { value: "customer", label: "Customer" },
-  { value: "coach", label: "Coach" },
-  { value: "admin", label: "Admin" },
+  { value: "customer", label: "Kandidaat" },
+  { value: "coach", label: "Begeleider" },
+  { value: "admin", label: "Beheerder" },
 ];
 
 const TestCreateAccount = () => {
@@ -77,9 +77,9 @@ const TestCreateAccount = () => {
 
   return (
     <LegacyPageLayout
-      kicker="Testing"
-      title="Test account aanmaken"
-  description="Gebruik dit formulier om snel een account aan te maken via de admin endpoint. In development kun je dit gebruiken zonder in te loggen (zet ALLOW_DEV_ACCOUNT_CREATION=true op de backend)."
+      kicker="Testpagina"
+      title="Testaccount aanmaken"
+      description="Gebruik dit formulier om snel een account aan te maken via de admin-endpoint. In de ontwikkelomgeving kun je dit doen zonder in te loggen (zet ALLOW_DEV_ACCOUNT_CREATION=true in de backend)."
     >
       <section className="mx-auto w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex items-center gap-3">

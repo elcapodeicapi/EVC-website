@@ -12,7 +12,7 @@ const videoSections = [
     description: "Stap voor stap uitleg over het toevoegen van bewijsstukken.",
   },
   {
-    title: "Samenwerken met je coach",
+    title: "Samenwerken met je begeleider",
     description: "Tips voor het plannen van contactmomenten en feedback.",
   },
 ];

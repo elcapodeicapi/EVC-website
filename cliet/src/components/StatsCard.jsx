@@ -1,7 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 
-const StatsCard = ({ title, value, trend, icon: Icon, variant = "brand" }) => {
+const StatsCard = ({ title, value, trend, description, icon: Icon, variant = "brand" }) => {
   const palette = {
     brand: "bg-brand-50 text-brand-700",
     emerald: "bg-emerald-50 text-emerald-700",
@@ -16,6 +16,7 @@ const StatsCard = ({ title, value, trend, icon: Icon, variant = "brand" }) => {
         <div>
           <p className="text-sm font-medium text-slate-500">{title}</p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">{value}</p>
+          {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
         </div>
         {Icon ? (
           <span className={clsx("rounded-full p-3", palette[variant] || palette.brand)}>

@@ -1,285 +1,548 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Users as UsersIcon, UserPlus, CheckCircle2, XCircle } from "lucide-react";
-import { get, post } from "../../lib/api";
+import { useNavigate } from "react-router-dom";
+import {
+  Users as UsersIcon,
+  Search,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  UserPlus,
+  Eye,
+  Pencil,
+  Trash2,
+  Loader2,
+  UserCog,
+} from "lucide-react";
+import { subscribeTrajects, subscribeUsers } from "../../lib/firestoreAdmin";
 
-const ROLE_OPTIONS = [
-  { value: "customer", label: "Customer" },
-  { value: "coach", label: "Coach" },
-  { value: "admin", label: "Admin" },
+const ROLE_FILTERS = [
+  { value: "all", label: "Alle rollen" },
+  { value: "customer", label: "Kandidaten" },
+  { value: "coach", label: "Begeleiders" },
+  { value: "admin", label: "Beheerders" },
 ];
 
-const initialFormState = {
-  name: "",
-  email: "",
-  password: "",
-  role: "customer",
-  trajectId: "",
+const ROLE_LABELS = new Map([
+  ["customer", "Kandidaat"],
+  ["user", "Kandidaat"],
+  ["coach", "Begeleider"],
+  ["admin", "Beheerder"],
+]);
+
+const DATE_FORMATTER = new Intl.DateTimeFormat("nl-NL", {
+  dateStyle: "medium",
+});
+
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("nl-NL", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
+const DEFAULT_SORT = { key: "name", direction: "asc" };
+
+function normalizeRole(role) {
+  return typeof role === "string" ? role.trim().toLowerCase() : "";
+}
+
+function toDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value?.toDate === "function") {
+    try {
+      const date = value.toDate();
+      return Number.isNaN(date.getTime()) ? null : date;
+    } catch (_) {
+      return null;
+    }
+  }
+  if (typeof value?._seconds === "number") {
+    const millis = value._seconds * 1000 + Math.floor((value._nanoseconds || 0) / 1e6);
+    const date = new Date(millis);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
+}
+
+function formatDate(value) {
+  const date = toDate(value);
+  if (!date) return "—";
+  try {
+    return DATE_FORMATTER.format(date);
+  } catch (_) {
+    return date.toLocaleDateString();
+  }
+}
+
+function formatDateTime(value) {
+  const date = toDate(value);
+  if (!date) return "—";
+  try {
+    return DATE_TIME_FORMATTER.format(date);
+  } catch (_) {
+    return date.toLocaleString();
+  }
+}
+
+const SortIndicator = ({ active, direction }) => {
+  if (!active) {
+    return (
+      <div className="flex flex-col text-slate-300">
+        <ChevronUp className="h-3 w-3" />
+        <ChevronDown className="-mt-1 h-3 w-3" />
+      </div>
+    );
+  }
+  return direction === "asc" ? (
+    <ChevronUp className="h-4 w-4 text-brand-600" />
+  ) : (
+    <ChevronDown className="h-4 w-4 text-brand-600" />
+  );
 };
 
-const StatusBanner = ({ status }) => {
-  if (!status?.message) return null;
-  const isError = status.type === "error";
-  const Icon = isError ? XCircle : CheckCircle2;
-  const color = isError ? "text-red-600 bg-red-50 border-red-200" : "text-emerald-600 bg-emerald-50 border-emerald-200";
-
+const ActionButton = ({ icon: Icon, label, onClick, tone = "slate" }) => {
+  const tones = {
+    slate: "border-slate-200 text-slate-500 hover:border-brand-200 hover:text-brand-600",
+    brand: "border-brand-200 text-brand-600 hover:border-brand-300 hover:bg-brand-50",
+    danger: "border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50",
+  };
   return (
-    <div className={`mb-6 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${color}`}>
-      <Icon className="h-5 w-5" />
-      <span>{status.message}</span>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${tones[tone] || tones.slate}`}
+      title={label}
+    >
+      <Icon className="h-4 w-4" aria-hidden />
+    </button>
+  );
+};
+
+const RoleBadge = ({ role }) => {
+  const label = ROLE_LABELS.get(role) || role || "Onbekend";
+  let tone = "bg-slate-100 text-slate-600 border-slate-200";
+  if (role === "coach") tone = "bg-brand-50 text-brand-700 border-brand-200";
+  if (role === "admin") tone = "bg-amber-50 text-amber-700 border-amber-200";
+  return (
+    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${tone}`}>
+      {label}
+    </span>
+  );
+};
+
+const TableHeaderButton = ({ label, sortKey, sortState, onSort, align = "left", className = "" }) => {
+  const active = sortState.key === sortKey;
+  const handleClick = () => onSort(sortKey);
+  const alignment = align === "right" ? "text-right" : "text-left";
+  return (
+    <th
+      scope="col"
+      className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${alignment} ${className}`.trim()}
+    >
+      <button type="button" onClick={handleClick} className="flex items-center gap-2">
+        <span>{label}</span>
+        <SortIndicator active={active} direction={sortState.direction} />
+      </button>
+    </th>
   );
 };
 
 const AdminUsers = () => {
-  const [users, setUsers] = useState([]);
-  const [form, setForm] = useState(initialFormState);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(null);
-  const [fetching, setFetching] = useState(false);
-  const [trajects, setTrajects] = useState([]);
-  const [loadingTrajects, setLoadingTrajects] = useState(false);
-  const trajectLookup = useMemo(() => {
-    const map = new Map();
-    trajects.forEach((traject) => {
-      map.set(traject.id, traject);
-    });
-    return map;
-  }, [trajects]);
+    const navigate = useNavigate();
+    const [users, setUsers] = useState([]);
+    const [usersError, setUsersError] = useState(null);
+    const [usersLoading, setUsersLoading] = useState(true);
 
-  const loadUsers = async () => {
-    setFetching(true);
-    try {
-      const data = await get("/auth/admin/users");
-      setUsers(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setStatus({ type: "error", message: error?.message || "Kon gebruikers niet laden" });
-    } finally {
-      setFetching(false);
-    }
-  };
+    const [trajects, setTrajects] = useState([]);
+    const [trajectsLoading, setTrajectsLoading] = useState(true);
+    const [trajectsError, setTrajectsError] = useState(null);
 
-  const loadTrajects = async () => {
-    setLoadingTrajects(true);
-    try {
-      const data = await get("/trajects");
-      const list = Array.isArray(data) ? data : [];
-      setTrajects(list);
-      setForm((prev) => ({ ...prev, trajectId: list[0]?.id || "" }));
-    } catch (error) {
-      setStatus({ type: "error", message: error?.message || "Kon trajecten niet laden" });
-    } finally {
-      setLoadingTrajects(false);
-    }
-  };
+    const [searchTerm, setSearchTerm] = useState("");
+    const [roleFilter, setRoleFilter] = useState("all");
+    const [sortState, setSortState] = useState(DEFAULT_SORT);
+    const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
+    const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    loadUsers();
-    loadTrajects();
-  }, []);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((prev) => {
-      if (name === "role") {
-        if (value === "customer") {
-          const defaultTraject = trajects[0]?.id || prev.trajectId || "";
-          return { ...prev, role: value, trajectId: defaultTraject };
+    useEffect(() => {
+      setUsersLoading(true);
+      const unsubscribe = subscribeUsers(({ data, error }) => {
+        if (error) {
+          setUsersError(error);
+          setUsers([]);
+          setUsersLoading(false);
+          return;
         }
-        return { ...prev, role: value };
-      }
-      return { ...prev, [name]: value };
-    });
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    setStatus(null);
-    try {
-      const body = {
-        name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
-        role: form.role,
-        trajectId: form.role === "customer" ? form.trajectId : null,
+        setUsers(Array.isArray(data) ? data : []);
+        setUsersError(null);
+        setUsersLoading(false);
+      });
+      return () => {
+        if (typeof unsubscribe === "function") unsubscribe();
       };
-      await post("/auth/admin/users", body);
-      setStatus({ type: "success", message: "Account aangemaakt" });
-      setForm({ ...initialFormState, trajectId: trajects[0]?.id || "" });
-      await loadUsers();
-    } catch (error) {
-      setStatus({ type: "error", message: error?.data?.error || error?.message || "Aanmaken mislukt" });
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, []);
 
-  return (
-    <div className="space-y-8">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Admin</p>
-          <h1 className="mt-1 text-2xl font-semibold text-slate-900">Beheer gebruikers</h1>
-          <p className="text-sm text-slate-500">Maak nieuwe accounts voor coaches en deelnemers.</p>
-        </div>
-        <div className="hidden items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600 sm:flex">
-          <UsersIcon className="h-4 w-4" />
-          <span>{users.length} actieve gebruikers</span>
-        </div>
-      </header>
+    useEffect(() => {
+      setTrajectsLoading(true);
+      const unsubscribe = subscribeTrajects(({ data, error }) => {
+        if (error) {
+          setTrajectsError(error);
+          setTrajects([]);
+          setTrajectsLoading(false);
+          return;
+        }
+        setTrajects(Array.isArray(data) ? data : []);
+        setTrajectsError(null);
+        setTrajectsLoading(false);
+      });
+      return () => {
+        if (typeof unsubscribe === "function") unsubscribe();
+      };
+    }, []);
 
-      <StatusBanner status={status} />
+    const trajectNameById = useMemo(() => {
+      const map = new Map();
+      trajects.forEach((traject) => {
+        map.set(traject.id, traject.name || "");
+      });
+      return map;
+    }, [trajects]);
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    const customerCountsByCoach = useMemo(() => {
+      const map = new Map();
+      users.forEach((user) => {
+        const role = normalizeRole(user.role);
+        if (role === "customer" || role === "user") {
+          const coachId = user.coachId || user.assignedCoachId || user.coachUid || user.coach?.id;
+          if (coachId) {
+            map.set(coachId, (map.get(coachId) || 0) + 1);
+          }
+        }
+      });
+      return map;
+    }, [users]);
+
+    const rows = useMemo(() => {
+      return users.map((user) => {
+        const roleKey = normalizeRole(user.role);
+        const name = user.name || "Naam onbekend";
+        const email = user.email || "—";
+        const createdAt = toDate(user.createdAt);
+        const lastLoggedIn = toDate(user.lastLoggedIn);
+        const trajectId = user.trajectId || user.currentTrajectId || user.traject?.id || null;
+        const trajectName = trajectId ? trajectNameById.get(trajectId) || user.trajectName || "Traject onbekend" : "—";
+        const coachCount = roleKey === "coach" ? customerCountsByCoach.get(user.id) || 0 : null;
+
+        return {
+          id: user.id,
+          name,
+          email,
+          roleKey,
+          roleLabel: ROLE_LABELS.get(roleKey) || (user.role ? user.role : "Onbekend"),
+          createdAt,
+          createdAtLabel: formatDate(createdAt),
+          lastLoggedIn,
+          lastLoggedInLabel: lastLoggedIn ? formatDateTime(lastLoggedIn) : "—",
+          coachCount,
+          trajectName,
+          raw: user,
+        };
+      });
+    }, [customerCountsByCoach, trajectNameById, users]);
+
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    const filteredRows = useMemo(() => {
+      return rows.filter((row) => {
+        if (roleFilter !== "all" && row.roleKey !== roleFilter) {
+          return false;
+        }
+        if (!normalizedSearch) return true;
+        const haystack = [
+          row.name,
+          row.email,
+          row.roleLabel,
+          row.trajectName,
+          row.coachCount != null ? String(row.coachCount) : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(normalizedSearch);
+      });
+    }, [normalizedSearch, roleFilter, rows]);
+
+    useEffect(() => {
+      setPage(1);
+    }, [normalizedSearch, roleFilter, pageSize]);
+
+    const sortedRows = useMemo(() => {
+      const dir = sortState.direction === "asc" ? 1 : -1;
+      const sorted = [...filteredRows].sort((a, b) => {
+        const { key } = sortState;
+        const valueA = a[key];
+        const valueB = b[key];
+
+        if (key === "coachCount") {
+          return ((valueA ?? -1) - (valueB ?? -1)) * dir;
+        }
+
+        if (valueA instanceof Date || valueB instanceof Date) {
+          const timeA = valueA ? valueA.getTime() : 0;
+          const timeB = valueB ? valueB.getTime() : 0;
+          if (timeA === timeB) return 0;
+          return timeA > timeB ? dir : -dir;
+        }
+
+        const stringA = (valueA ?? "").toString().toLowerCase();
+        const stringB = (valueB ?? "").toString().toLowerCase();
+        if (stringA === stringB) return 0;
+        return stringA.localeCompare(stringB) * dir;
+      });
+      return sorted;
+    }, [filteredRows, sortState]);
+
+    const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+
+    useEffect(() => {
+      if (page > totalPages) {
+        setPage(totalPages);
+      }
+    }, [page, totalPages]);
+
+    const paginatedRows = useMemo(() => {
+      const start = (page - 1) * pageSize;
+      return sortedRows.slice(start, start + pageSize);
+    }, [page, pageSize, sortedRows]);
+
+    const summary = useMemo(() => {
+      const totals = {
+        all: rows.length,
+        coach: 0,
+        customer: 0,
+        admin: 0,
+      };
+      rows.forEach((row) => {
+        if (row.roleKey === "coach") totals.coach += 1;
+        if (row.roleKey === "admin") totals.admin += 1;
+        if (row.roleKey === "customer" || row.roleKey === "user") totals.customer += 1;
+      });
+      return totals;
+    }, [rows]);
+
+    const handleSort = (key) => {
+      setSortState((prev) => {
+        if (prev.key === key) {
+          return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+        }
+        return { key, direction: "asc" };
+      });
+    };
+
+    const handleViewProfile = (row) => {
+      navigate(`/admin/users?focus=${row.id}`);
+    };
+
+    const handleEditUser = (row) => {
+      window.alert(`Bewerken van ${row.name} is nog niet beschikbaar in deze omgeving.`);
+    };
+
+    const handleDeleteUser = (row) => {
+      window.alert(`Verwijderen van ${row.name} is nog niet beschikbaar in deze omgeving.`);
+    };
+
+    const handleCreateUser = () => {
+      navigate("/admin/users/create");
+    };
+
+  const isLoading = usersLoading || trajectsLoading;
+  const error = usersError || trajectsError;
+  const errorMessage = error ? (typeof error === "string" ? error : error.message) : null;
+
+    return (
+      <div className="space-y-8">
+        <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Admin</p>
+            <h1 className="mt-1 text-2xl font-semibold text-slate-900">Gebruikersoverzicht</h1>
+            <p className="text-sm text-slate-500">Beheer alle accounts, filter op rol en bekijk inlogactiviteit.</p>
+          </div>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-brand-600">
-              <UserPlus className="h-5 w-5" />
+            <div className="hidden items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600 sm:flex">
+              <UsersIcon className="h-4 w-4" />
+              <span>{summary.all} gebruikers</span>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">Nieuw account</h2>
-              <p className="text-sm text-slate-500">Voer de gegevens in en kies de juiste rol.</p>
+            <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 sm:flex">
+              <UserCog className="h-4 w-4" />
+              <span>{summary.coach} begeleiders</span>
             </div>
           </div>
+        </header>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            <div className="grid gap-2">
-              <label htmlFor="user-name" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Volledige naam
-              </label>
-              <input
-                id="user-name"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                placeholder="Bijvoorbeeld: Kim de Vries"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="user-email" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                E-mail
-              </label>
-              <input
-                id="user-email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                placeholder="jij@voorbeeld.nl"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="user-password" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Tijdelijk wachtwoord
-              </label>
-              <input
-                id="user-password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                placeholder="Minimaal 8 tekens"
-                required
-              />
-              <p className="text-xs text-slate-400">De gebruiker kan dit wachtwoord later wijzigen.</p>
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="user-role" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Rol
-              </label>
-              <select
-                id="user-role"
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-              >
-                {ROLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {form.role === "customer" ? (
-              <div className="grid gap-2">
-                <label htmlFor="user-traject" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Traject
-                </label>
+        {errorMessage ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Kon gebruikers niet laden: {errorMessage || "Onbekende fout"}
+          </div>
+        ) : null}
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-1 items-center gap-3">
+              <div className="relative w-full max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Zoek op naam, e-mail, traject of begeleider"
+                  className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                />
+              </div>
+              <div className="relative">
+                <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <select
-                  id="user-traject"
-                  name="trajectId"
-                  value={form.trajectId}
-                  onChange={handleChange}
-                  disabled={loadingTrajects || trajects.length === 0}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:text-slate-400"
-                  required
+                  value={roleFilter}
+                  onChange={(event) => setRoleFilter(event.target.value)}
+                  className="w-44 rounded-full border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                 >
-                  {trajects.length === 0 ? <option value="">Geen trajecten beschikbaar</option> : null}
-                  {trajects.map((traject) => (
-                    <option key={traject.id} value={traject.id}>
-                      {traject.name}
+                  {ROLE_FILTERS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-400">
-                  Wijs deze deelnemer aan een traject toe. Dit bepaalt welke competenties zichtbaar zijn.
-                </p>
               </div>
-            ) : null}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
-            >
-              {loading ? "Account aanmaken..." : "Account aanmaken"}
-            </button>
-          </form>
-        </section>
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Bestaande gebruikers</h2>
-            <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-              {fetching ? "Bezig met laden..." : "Laatste update"}
-            </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor="page-size">
+                Rijen per pagina
+              </label>
+              <select
+                id="page-size"
+                value={pageSize}
+                onChange={(event) => setPageSize(Number(event.target.value))}
+                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleCreateUser}
+                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500"
+              >
+                <UserPlus className="h-4 w-4" />
+                Nieuwe gebruiker
+              </button>
+            </div>
           </div>
-          <div className="mt-4 max-h-[420px] space-y-4 overflow-y-auto pr-2">
-            {users.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
-                Nog geen gebruikers gevonden. Voeg de eerste toe via het formulier hiernaast.
-              </p>
-            ) : (
-              users.map((user) => (
-                <article
-                  key={user.id}
-                  className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-                >
-                  <div>
-                    <p className="font-semibold text-slate-900">{user.name || "Naam onbekend"}</p>
-                    <p className="text-xs text-slate-500">{user.email}</p>
-                    {user.trajectId ? (
-                      <p className="text-xs text-slate-400">
-                        Traject: {trajectLookup.get(user.trajectId)?.name || user.trajectId}
-                      </p>
-                    ) : null}
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    {user.role}
-                  </span>
-                </article>
-              ))
-            )}
+
+          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <TableHeaderButton label="Naam" sortKey="name" sortState={sortState} onSort={handleSort} />
+                    <TableHeaderButton label="E-mail" sortKey="email" sortState={sortState} onSort={handleSort} />
+                    <TableHeaderButton label="Rol" sortKey="roleLabel" sortState={sortState} onSort={handleSort} />
+                    <TableHeaderButton label="Traject" sortKey="trajectName" sortState={sortState} onSort={handleSort} />
+                    <TableHeaderButton label="Account aangemaakt" sortKey="createdAt" sortState={sortState} onSort={handleSort} />
+                    <TableHeaderButton label="Laatste login" sortKey="lastLoggedIn" sortState={sortState} onSort={handleSort} />
+                    <TableHeaderButton
+                      label="Begeleiderbelasting"
+                      sortKey="coachCount"
+                      sortState={sortState}
+                      onSort={handleSort}
+                      align="right"
+                    />
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Opties
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
+                        <div className="inline-flex items-center gap-2 text-sm text-slate-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Gegevens laden...
+                        </div>
+                      </td>
+                    </tr>
+                  ) : paginatedRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
+                        Geen gebruikers gevonden voor de huidige filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedRows.map((row) => (
+                      <tr key={row.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 font-semibold text-slate-900">{row.name}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.email}</td>
+                        <td className="px-4 py-3">
+                          <RoleBadge role={row.roleKey} />
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{row.trajectName}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.createdAtLabel}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.lastLoggedInLabel}</td>
+                        <td className="px-4 py-3 text-right text-slate-600">
+                          {row.roleKey === "coach" ? (
+                            <span className="font-semibold text-slate-900">{row.coachCount}</span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <ActionButton icon={Eye} label="Bekijk" onClick={() => handleViewProfile(row)} />
+                            <ActionButton icon={Pencil} label="Bewerk" onClick={() => handleEditUser(row)} tone="brand" />
+                            <ActionButton icon={Trash2} label="Verwijder" onClick={() => handleDeleteUser(row)} tone="danger" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+            <div>
+              Totaal {sortedRows.length} resultaten • Pagina {page} van {totalPages}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1}
+                className="rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Vorige
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={page >= totalPages}
+                className="rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-brand-200 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Volgende
+              </button>
+            </div>
           </div>
         </section>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 export default AdminUsers;

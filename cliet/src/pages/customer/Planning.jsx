@@ -38,7 +38,7 @@ const CustomerPlanning = () => {
     }
   });
   const customerId = customer?.id || null;
-  const participantName = customer?.name || "deelnemer";
+  const participantName = customer?.name || "kandidaat";
 
   const loadPlanning = useCallback(async () => {
     setLoadingApi(true);
@@ -355,7 +355,7 @@ const CustomerPlanning = () => {
         <h1 className="mt-2 text-3xl font-semibold text-slate-900">Jouw verzameling aan bewijsstukken</h1>
         <div className="mt-3 max-w-3xl space-y-4 text-sm text-slate-500">
           <p className="font-semibold text-slate-700">Portfolio {participantName}</p>
-          <p>Beste deelnemer,</p>
+          <p>Beste kandidaat,</p>
           <p>
             Bij de EVC-procedure beoordelen we hoe goed jouw vaardigheden en kennis overeenkomen met wat er van je verwacht wordt in je beroep,
             door te kijken naar hoe je je werk uitvoert. Dit houdt in dat je moet laten zien dat je de juiste kennis, vaardigheden en professionele
@@ -443,7 +443,7 @@ const CustomerPlanning = () => {
                       Voeg bewijsstukken toe per competentie. Geef eerst een <strong>verplichte titel</strong> in het veld ‘Naam van je upload’ en klik
                       daarna op ‘Voeg upload toe’.
                     </li>
-                    <li>Je kunt meerdere bestanden per competentie plaatsen. Je coach kan ze bekijken, downloaden en feedback geven.</li>
+                    <li>Je kunt meerdere bestanden per competentie plaatsen. Je begeleider kan ze bekijken, downloaden en feedback geven.</li>
                     <li>Gebruik de knoppen ‘Download’ en ‘Verwijder’ om je bestanden te beheren.</li>
                   </ul>
                 </div>
@@ -588,7 +588,7 @@ const CustomerPlanning = () => {
           <h2 className="text-xl font-semibold text-slate-900">Trajectportfolio</h2>
           <p className="max-w-2xl text-sm text-slate-500">
             Orden je opleiding, werkervaring en documenten per competentie. Voeg nieuwe bewijsstukken toe en houd overzicht in je voortgang.
-            {coach ? ` Je coach ${coach.name} kijkt mee en geeft feedback.` : ""}
+            {coach ? ` Je begeleider ${coach.name} kijkt mee en geeft feedback.` : ""}
           </p>
         </header>
 
@@ -790,7 +790,7 @@ const CustomerPlanning = () => {
                       <div className="flex items-start gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-[0.7rem] text-slate-500">
                         <MessageCircle className="mt-0.5 h-4 w-4 text-brand-500" />
                         <span className="leading-relaxed">
-                          Heb je vragen? Laat een bericht achter bij je coach in het berichtenoverzicht.
+                          Heb je vragen? Laat een bericht achter bij je begeleider in het berichtenoverzicht.
                         </span>
                       </div>
                     </div>

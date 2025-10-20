@@ -68,12 +68,12 @@ const Topbar = ({
           )}
         >
           <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle navigation</span>
+          <span className="sr-only">Navigatie openen of sluiten</span>
         </button>
         {resolvedLogo}
         <div>
           <p className={clsx("text-xs uppercase tracking-widest", palette.role)}>
-            {user?.role ?? "Portal"}
+            {user?.role ?? "Portaal"}
           </p>
           <h2 className={clsx("text-lg font-semibold", palette.title)}>{title}</h2>
         </div>

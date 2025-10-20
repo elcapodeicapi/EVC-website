@@ -183,7 +183,7 @@ const CustomerTrajectOverview = () => {
 
   useEffect(() => {
     if (!customerId) {
-      setProfileState({ data: null, loading: false, error: new Error("Geen klant-id") });
+  setProfileState({ data: null, loading: false, error: new Error("Geen kandidaat-id") });
       return () => {};
     }
     setProfileState((prev) => ({ ...prev, loading: true }));
@@ -254,7 +254,7 @@ const CustomerTrajectOverview = () => {
   const profileData = profileState.data?.profile || {};
   const evc = profileState.data?.evcTrajectory || profileData.evcTrajectory || {};
   const profileCustomer = profileState.data?.customer || customer;
-  const displayName = profileCustomer?.name || customer?.name || customer?.email || "Onbekende klant";
+  const displayName = profileCustomer?.name || customer?.name || customer?.email || "Onbekende kandidaat";
   const photoURL = profileCustomer?.photoURL || profileData?.photoURL || customer?.photoURL || null;
   const customerInitials = useMemo(() => {
     const source = displayName || profileCustomer?.email || customer?.email || "";
@@ -268,7 +268,9 @@ const CustomerTrajectOverview = () => {
   }, [displayName, profileCustomer?.email, customer?.email]);
 
   const lastActivity = profileCustomer?.lastActivity || customer?.lastActivity || null;
-  const lastLoginLabel = formatDateTime(lastActivity) || "Nog niet ingelogd";
+  const lastLoggedIn = profileCustomer?.lastLoggedIn || customer?.lastLoggedIn || null;
+  const lastLoginLabel = lastLoggedIn ? formatDateTime(lastLoggedIn) : "Nog niet ingelogd";
+  const lastLoginRelative = lastLoggedIn ? formatRelative(lastLoggedIn) : null;
   const voluntary = Boolean(evc?.voluntaryParticipation);
   const qualification = evc?.qualification || {};
   const qualificationSummary = useMemo(() => {
@@ -391,10 +393,10 @@ const CustomerTrajectOverview = () => {
           onClick={() => navigate(-1)}
           className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-500"
         >
-          <ArrowLeft className="h-4 w-4" /> Terug naar klanten
+          <ArrowLeft className="h-4 w-4" /> Terug naar kandidaten
         </button>
         <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-16 text-center text-sm text-slate-500">
-          Klant niet gevonden.
+          Kandidaat niet gevonden.
         </div>
       </div>
     );
@@ -430,7 +432,13 @@ const CustomerTrajectOverview = () => {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" /> {customer.email || "Geen e-mailadres"}</p>
               <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {profileData?.phone || customer.phone || "Geen telefoonnummer"}</p>
-              <p className="flex items-center gap-2"><CalendarClock className="h-4 w-4 text-slate-400" /> Laatste login: {lastLoginLabel}</p>
+              <p className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-slate-400" />
+                <span>
+                  Laatste login: {lastLoginLabel}
+                  {lastLoginRelative ? ` (${lastLoginRelative})` : ""}
+                </span>
+              </p>
             </div>
           </div>
           <div className="space-y-2">
@@ -474,7 +482,7 @@ const CustomerTrajectOverview = () => {
         return (
           <section className="space-y-4 rounded-3xl bg-white p-6 shadow-card">
             <header>
-              <h3 className="text-lg font-semibold text-slate-900">Profiel zoals de klant het ziet</h3>
+              <h3 className="text-lg font-semibold text-slate-900">Profiel zoals de kandidaat het ziet</h3>
               <p className="text-sm text-slate-500">Belangrijkste persoonsgegevens en trajectinformatie.</p>
             </header>
             <div className="grid gap-4 md:grid-cols-2">
@@ -486,7 +494,10 @@ const CustomerTrajectOverview = () => {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 <p><span className="font-semibold text-slate-700">Vrijwillige deelname:</span> {voluntary ? "Ja" : "Nee"}</p>
                 <p><span className="font-semibold text-slate-700">Huidige functie:</span> {evc?.currentRole || "Onbekend"}</p>
-                <p><span className="font-semibold text-slate-700">Laatste login:</span> {lastLoginLabel}</p>
+                <p>
+                  <span className="font-semibold text-slate-700">Laatste login:</span> {lastLoginLabel}
+                  {lastLoginRelative ? ` (${lastLoginRelative})` : ""}
+                </p>
               </div>
             </div>
           </section>
@@ -508,7 +519,7 @@ const CustomerTrajectOverview = () => {
           <section className="space-y-4 rounded-3xl bg-white p-6 shadow-card">
             <header>
               <h3 className="text-lg font-semibold text-slate-900">Loopbaandoel</h3>
-              <p className="text-sm text-slate-500">Ingevulde loopbaandoelen uit het klantenportaal.</p>
+              <p className="text-sm text-slate-500">Ingevulde loopbaandoelen uit het kandidatenportaal.</p>
             </header>
             {profileData?.careerGoal ? (
               <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
@@ -550,7 +561,7 @@ const CustomerTrajectOverview = () => {
           <section className="space-y-4 rounded-3xl bg-white p-6 shadow-card">
             <header>
               <h3 className="text-lg font-semibold text-slate-900">Contactgegevens</h3>
-              <p className="text-sm text-slate-500">Contactinformatie zoals zichtbaar voor de klant.</p>
+              <p className="text-sm text-slate-500">Contactinformatie zoals zichtbaar voor de kandidaat.</p>
             </header>
             <div className="space-y-3 text-sm text-slate-600">
               <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" /> {customer.email || "Geen e-mailadres"}</p>
@@ -712,7 +723,7 @@ const CustomerTrajectOverview = () => {
           <h3 className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900">
             <NotebookPen className="h-5 w-5 text-brand-600" /> Persoonlijke notities
           </h3>
-          <p className="text-sm text-slate-500">Alleen zichtbaar voor jou als coach.</p>
+          <p className="text-sm text-slate-500">Alleen zichtbaar voor jou als begeleider.</p>
         </div>
         <div className="text-xs text-slate-500">
           {noteRecord?.lastEdited instanceof Date
@@ -792,19 +803,20 @@ const CustomerTrajectOverview = () => {
         onClick={() => navigate(-1)}
         className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-500"
       >
-        <ArrowLeft className="h-4 w-4" /> Terug naar klanten
+        <ArrowLeft className="h-4 w-4" /> Terug naar kandidaten
       </button>
 
       <header className="rounded-3xl bg-white p-6 shadow-card">
         <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Trajectoverzicht</p>
         <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">{customer.name || "Onbekende klant"}</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">{customer.name || "Onbekende kandidaat"}</h1>
             <p className="text-sm text-slate-500">{customer.trajectName || customer.trajectTitle || "Traject onbekend"}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
               <CalendarClock className="h-3.5 w-3.5 text-slate-400" /> Laatste login {lastLoginLabel}
+              {lastLoginRelative ? ` (${lastLoginRelative})` : ""}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
               <FileText className="h-3.5 w-3.5 text-slate-400" /> Kwalificatie: {qualificationSummary}

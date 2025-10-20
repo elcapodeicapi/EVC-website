@@ -15,6 +15,7 @@ if (devBypassAdminUserCreation) {
 router.post("/login/firebase", authController.firebaseLogin);
 router.post("/login", authController.login);
 router.get("/me", authenticate, authController.me);
+router.post("/track-login", authenticate, authController.trackLogin);
 
 // Admin-managed accounts
 router.post(

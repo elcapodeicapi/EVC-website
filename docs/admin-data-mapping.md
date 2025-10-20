@@ -2,14 +2,16 @@
 
 This document summarizes the Firestore collections used by the admin experience after replacing the mock data.
 
+> Terminologie: in de UI spreken we over _begeleiders_. In de database blijven veldnamen en rolwaarden als `coach` bestaan om compatibel te blijven met bestaande data. Waar je `coach` ziet staan in een veldnaam of route, gaat het dus om een begeleider.
+
 ## users (collection)
 
 Every authenticated account created through the portal keeps a Firestore profile document under `users/{uid}`. The admin pages consume the following fields:
 
 - `name` _(string)_ – Display name for listings and profile headers.
 - `email` _(string)_ – Contact address rendered in tables and mailto links.
-- `role` _(string)_ – Case-insensitive role flag (`admin`, `coach`, `customer`).
-- `trajectId` _(string|null)_ – Optional traject identifier (shows in user lists and drives coach/customer pairing).
+- `role` _(string)_ – Case-insensitive role flag (`admin`, `coach`, `customer`). Gebruik de waarde `coach` voor begeleiders; de UI toont deze rol als "Begeleider".
+- `trajectId` _(string|null)_ – Optional traject identifier (shows in user lists and drives begeleider/customer pairing).
 - `phone`, `location`, `bio` _(strings, optional)_ – Optional contact and biography details for admin profile.
 - `responsibilities` _(string[])_ – Optional list rendered on the profile page.
 - `highlights` _(object[])_ – Optional metrics rendered as cards, with each object shaped as `{ id, metric, label }`.
@@ -24,10 +26,10 @@ An optional overlay document at `adminProfiles/{uid}` can store extended profile
 
 ## assignments (collection)
 
-Customer ↔ coach pairings live beneath `assignments`. Each document contains:
+Customer ↔ begeleider pairings live beneath `assignments`. Each document contains:
 
 - `customerId` _(string)_ – UID of the customer (references `users/{uid}`).
-- `coachId` _(string)_ – UID of the coach.
+- `coachId` _(string)_ – UID van de begeleider (datawaarde `coach`).
 - `status` _(string)_ – Friendly status label. Defaults to `pending`.
 - `createdAt` _(Timestamp)_ – Server timestamp for ordering.
 - `createdBy` _(string|null)_ – UID of the admin who created the entry.

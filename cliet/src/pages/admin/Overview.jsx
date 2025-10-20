@@ -5,6 +5,13 @@ import { post } from "../../lib/api";
 import { auth } from "../../firebase";
 import { signInWithCustomToken } from "firebase/auth";
 
+const ROLE_LABELS = new Map([
+  ["customer", "Kandidaat"],
+  ["user", "Kandidaat"],
+  ["coach", "Begeleider"],
+  ["admin", "Beheerder"],
+]);
+
 const Overview = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
@@ -34,7 +41,9 @@ const Overview = () => {
 
   const formatRole = (role) => {
     if (!role) return "Onbekend";
-    return role.charAt(0).toUpperCase() + role.slice(1);
+    const normalized = role.toString().trim().toLowerCase();
+    if (!normalized) return "Onbekend";
+    return ROLE_LABELS.get(normalized) || role;
   };
 
   const resolveRedirectPath = (role) => {
@@ -89,6 +98,11 @@ const Overview = () => {
       if (response.user) {
         localStorage.setItem("user", JSON.stringify(response.user));
       }
+      try {
+        await post("/auth/track-login", {});
+      } catch (_) {
+        // best effort
+      }
       const redirectPath = response.redirectPath || resolveRedirectPath(role);
       navigate(redirectPath, { replace: true });
     } catch (impersonationErr) {
@@ -102,9 +116,9 @@ const Overview = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Customer accounts</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Accountbeheer</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Beheer klantprofielen en stap in hun omgeving om hun voortgang in te zien.
+          Beheer accounts en stap in de kandidaat- of begeleidersomgeving om hun voortgang direct te bekijken.
         </p>
       </div>
 
@@ -157,7 +171,7 @@ const Overview = () => {
                 const isCustomer = normalizedRole === "customer" || normalizedRole === "user";
                 const isCoach = normalizedRole === "coach";
                 const canImpersonate = isCustomer || isCoach;
-                const buttonLabel = isCoach ? "Log in als coach" : isCustomer ? "Open als klant" : "Niet beschikbaar";
+                const buttonLabel = isCoach ? "Log in als begeleider" : isCustomer ? "Open als kandidaat" : "Niet beschikbaar";
                 return (
                   <tr key={user.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">{user.name || "Naam onbekend"}</td>

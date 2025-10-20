@@ -9,7 +9,7 @@ const Feedback = () => {
     return [...feedback]
       .map((item) => {
         const customer = customerIndex.get(item.customerId) || {};
-        const customerName = item.customerName || customer.name || customer.email || "Onbekende klant";
+  const customerName = item.customerName || customer.name || customer.email || "Onbekende kandidaat";
         const updatedAt = item.updatedAt instanceof Date ? item.updatedAt : null;
         const updatedAtLabel = updatedAt ? updatedAt.toLocaleString() : "";
         return {
@@ -31,8 +31,8 @@ const Feedback = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Feedback queue</h2>
-        <p className="text-sm text-slate-500">Keep track of open reviews and recently submitted guidance.</p>
+        <h2 className="text-lg font-semibold text-slate-900">Feedbackwachtrij</h2>
+        <p className="text-sm text-slate-500">Houd open beoordelingen en recente feedbackinzendingen overzichtelijk bij.</p>
       </div>
       <div className="overflow-hidden rounded-3xl bg-white shadow-card">
         {entries.length === 0 ? (

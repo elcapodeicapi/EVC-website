@@ -1,7 +1,9 @@
 import {
   collection,
+  collectionGroup,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -9,7 +11,7 @@ import {
   setDoc,
   updateDoc,
   where,
-  getDocs,
+  writeBatch,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebase";
@@ -162,6 +164,7 @@ const mapMessageDoc = (docSnap) => {
   const data = docSnap.data() || {};
   return {
     id: docSnap.id,
+    threadId: data.threadId || docSnap.ref.parent?.parent?.id || null,
     senderId: data.senderId || null,
     receiverId: data.receiverId || null,
     senderRole: data.senderRole || null,
@@ -172,6 +175,14 @@ const mapMessageDoc = (docSnap) => {
     timestamp: normalizeDate(data.timestamp) || normalizeDate(data.createdAt) || new Date(),
     fileUrl: data.fileUrl || null,
     fileName: data.fileName || null,
+    isReadByCoach:
+      data.isReadByCoach !== undefined
+        ? Boolean(data.isReadByCoach)
+        : (data.senderRole || "").toLowerCase() === "coach",
+    isReadByCustomer:
+      data.isReadByCustomer !== undefined
+        ? Boolean(data.isReadByCustomer)
+        : (data.senderRole || "").toLowerCase() === "customer",
   };
 };
 
@@ -233,6 +244,7 @@ export async function sendThreadMessage({
   }
 
   await setDoc(messageRef, {
+    threadId,
     senderId,
     receiverId: receiverId || null,
     senderRole: senderRole || null,
@@ -244,6 +256,8 @@ export async function sendThreadMessage({
     fileName,
     timestamp: serverTimestamp(),
     createdAt: serverTimestamp(),
+    isReadByCoach: (senderRole || "").toLowerCase() === "coach",
+    isReadByCustomer: (senderRole || "").toLowerCase() === "customer",
   });
 
   const threadRef = doc(db, "threads", threadId);
@@ -257,6 +271,56 @@ export async function sendThreadMessage({
   }).catch(() => undefined);
 
   return messageRef.id;
+}
+
+export async function markMessagesAsRead({ threadId, messageIds, readerRole }) {
+  if (!threadId) throw new Error("threadId ontbreekt");
+  if (!Array.isArray(messageIds) || messageIds.length === 0) return;
+  const normalizedRole = (readerRole || "").toLowerCase();
+  const field = normalizedRole === "customer" ? "isReadByCustomer" : "isReadByCoach";
+
+  const batch = writeBatch(db);
+  messageIds.forEach((messageId) => {
+    if (!messageId) return;
+    const messageRef = doc(db, "threads", threadId, "messages", messageId);
+    batch.update(messageRef, { [field]: true });
+  });
+
+  await batch.commit();
+}
+
+export function subscribeUnreadMessagesForCoach(coachId, observer) {
+  if (!coachId) {
+    observer({ data: [], error: new Error("coachId ontbreekt") });
+    return () => {};
+  }
+
+  const messagesGroup = collectionGroup(db, "messages");
+  const unreadQuery = query(messagesGroup, where("receiverId", "==", coachId));
+
+  return onSnapshot(
+    unreadQuery,
+    (snapshot) => {
+      const records = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data() || {};
+        const parentThreadId = docSnap.ref.parent?.parent?.id || null;
+        return {
+          id: docSnap.id,
+          threadId: data.threadId || parentThreadId,
+          senderId: data.senderId || null,
+          senderRole: data.senderRole || null,
+          timestamp: normalizeDate(data.timestamp) || normalizeDate(data.createdAt) || new Date(),
+          messageTitle: data.messageTitle || "",
+          isReadByCoach:
+            data.isReadByCoach !== undefined
+              ? Boolean(data.isReadByCoach)
+              : (data.senderRole || "").toLowerCase() === "coach",
+        };
+      });
+      observer({ data: records.filter((entry) => !entry.isReadByCoach), error: null });
+    },
+    (error) => observer({ data: [], error })
+  );
 }
 
 export async function fetchThreadParticipants(threadId) {

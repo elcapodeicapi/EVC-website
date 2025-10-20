@@ -1,35 +1,55 @@
 import React, { useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Users as UsersIcon, ClipboardList, Mail, Phone, MapPin, CalendarDays } from "lucide-react";
+import { Users as UsersIcon, ClipboardList, Mail, Phone, MapPin, CalendarDays, Clock } from "lucide-react";
+import { normalizeTrajectStatus, TRAJECT_STATUS } from "../../lib/trajectStatus";
 
 const CoachProfile = () => {
   const { coach, customers = [], assignments = [] } = useOutletContext() ?? {};
   const assignedCustomers = customers.length;
-  const activeAssignments = assignments.filter((item) => (item?.status || "").toLowerCase() === "active").length;
-  const completedAssignments = assignments.filter((item) => (item?.status || "").toLowerCase() === "completed").length;
+  const statusSummary = useMemo(
+    () =>
+      assignments.reduce((acc, item) => {
+        const status = normalizeTrajectStatus(item?.status);
+        if (!status) return acc;
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {}),
+    [assignments]
+  );
+  const collectingCount = statusSummary[TRAJECT_STATUS.COLLECTING] || 0;
+  const reviewPipelineCount =
+    (statusSummary[TRAJECT_STATUS.REVIEW] || 0) +
+    (statusSummary[TRAJECT_STATUS.APPROVAL] || 0);
+  const completedAssignments = statusSummary[TRAJECT_STATUS.COMPLETE] || 0;
 
   const performanceCards = useMemo(
     () => [
       {
         id: "assigned",
-        label: "Gekoppelde klanten",
+  label: "Gekoppelde kandidaten",
         value: String(assignedCustomers),
         icon: UsersIcon,
       },
       {
-        id: "active",
-        label: "Actieve trajecten",
-        value: String(activeAssignments),
+        id: "collecting",
+        label: "Portfolios in voorbereiding",
+        value: String(collectingCount),
         icon: ClipboardList,
       },
       {
+        id: "review",
+        label: "Te beoordelen",
+        value: String(reviewPipelineCount),
+        icon: Clock,
+      },
+      {
         id: "completed",
-        label: "Afgerond",
+        label: "Beoordeling gereed",
         value: String(completedAssignments),
         icon: CalendarDays,
       },
     ],
-    [activeAssignments, assignedCustomers, completedAssignments]
+    [assignedCustomers, collectingCount, completedAssignments, reviewPipelineCount]
   );
 
   const expertise = Array.isArray(coach?.expertise) ? coach.expertise : [];
@@ -39,14 +59,14 @@ const CoachProfile = () => {
   return (
     <div className="space-y-8">
       <section className="rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-10 text-white shadow-card">
-        <p className="text-sm uppercase tracking-[0.35em] text-white/70">Coachprofiel</p>
+  <p className="text-sm uppercase tracking-[0.35em] text-white/70">Begeleidersprofiel</p>
         <div className="mt-4 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
-            <h2 className="text-3xl font-semibold">{coach?.name || coach?.email || "Coach"}</h2>
-            <p className="mt-2 text-white/80">{coach?.role || "EVC Coach"}</p>
+            <h2 className="text-3xl font-semibold">{coach?.name || coach?.email || "Begeleider"}</h2>
+            <p className="mt-2 text-white/80">{coach?.role || "EVC Begeleider"}</p>
             <p className="mt-3 max-w-2xl text-sm text-white/70">{coach?.bio || "Je begeleidt professionals in hun EVC-traject en geeft richting met gerichte feedback."}</p>
           </div>
-          <dl className="grid gap-4 sm:grid-cols-3">
+          <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {performanceCards.map((card) => (
               <div
                 key={card.id}
@@ -133,7 +153,7 @@ const CoachProfile = () => {
                 key={session.id || `${session.customer}-${session.date}`}
                 className="rounded-2xl border border-slate-100 p-4 shadow-sm transition hover:border-brand-300 hover:shadow-md"
               >
-                <p className="text-sm font-semibold text-slate-900">{session.customer || "Klant"}</p>
+                <p className="text-sm font-semibold text-slate-900">{session.customer || "Kandidaat"}</p>
                 <p className="text-xs text-slate-500">{session.date || "Datum onbekend"}</p>
                 <p className="mt-3 text-sm text-slate-600">{session.focus || session.topic || "Geen onderwerp"}</p>
               </article>

@@ -9,14 +9,14 @@ const ChatWindow = ({
   draft,
   onDraftChange,
   onSend,
-  emptyLabel = "No thread selected",
+  emptyLabel = "Geen gesprek geselecteerd",
 }) => {
   return (
     <div className="grid h-[600px] grid-cols-1 overflow-hidden rounded-3xl bg-white shadow-card lg:grid-cols-[280px,1fr]">
       <aside className="border-r border-slate-100">
         <div className="px-4 py-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Conversations
+            Gesprekken
           </h3>
         </div>
         <div className="h-full overflow-y-auto px-2 pb-6">
@@ -39,7 +39,7 @@ const ChatWindow = ({
             ))}
             {threads.length === 0 ? (
               <li className="px-4 py-12 text-center text-sm text-slate-400">
-                No threads yet.
+                Nog geen gesprekken.
               </li>
             ) : null}
           </ul>
@@ -74,7 +74,7 @@ const ChatWindow = ({
               type="text"
               value={draft ?? ""}
               onChange={(event) => onDraftChange?.(event.target.value)}
-              placeholder="Type a message"
+              placeholder="Typ een bericht"
               className="flex-1 border-none bg-transparent text-sm outline-none focus:ring-0"
             />
             <button
@@ -82,7 +82,7 @@ const ChatWindow = ({
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-500"
             >
               <Send className="h-4 w-4" />
-              <span className="sr-only">Send message</span>
+              <span className="sr-only">Bericht versturen</span>
             </button>
           </div>
         </form>

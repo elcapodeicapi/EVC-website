@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { ArrowRight, Clock, Search, UserRound } from "lucide-react";
+import { ArrowRight, Clock, LogIn, Search, UserRound } from "lucide-react";
 import clsx from "clsx";
 import { subscribeCoachCustomerProfile, subscribeCustomerProgress } from "../../lib/firestoreCoach";
 
@@ -197,7 +197,7 @@ const Customers = () => {
     <div className="space-y-6">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Mijn klanten</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Mijn kandidaten</h2>
           <p className="text-sm text-slate-500">Volg realtime de voortgang per traject en bekijk bewijsstukken per competentie.</p>
         </div>
         <div className="relative">
@@ -214,11 +214,11 @@ const Customers = () => {
 
       {sortedCustomers.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-16 text-center text-sm text-slate-500">
-          Er zijn nog geen klanten aan je gekoppeld.
+          Er zijn nog geen kandidaten aan je gekoppeld.
         </div>
       ) : filteredCustomers.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-16 text-center text-sm text-slate-400">
-          Geen klanten gevonden voor deze zoekopdracht.
+          Geen kandidaten gevonden voor deze zoekopdracht.
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -231,7 +231,8 @@ const Customers = () => {
             const evc = profile?.evcTrajectory || {};
             const voluntary = Boolean(evc?.voluntaryParticipation);
             const lastActivityLabel = formatRelative(customer?.lastActivity);
-            const lastLogin = formatDateTime(customer?.lastActivity) || "Nog niet ingelogd";
+            const lastLoginRelative = customer?.lastLoggedIn ? formatRelative(customer.lastLoggedIn) : "Nog niet ingelogd";
+            const lastLoginAbsolute = customer?.lastLoggedIn ? formatDateTime(customer.lastLoggedIn) : null;
             const qualification = evc?.qualification || {};
             const progressLabel = progress?.loading
               ? "Voortgang laden..."
@@ -271,7 +272,7 @@ const Customers = () => {
               ? progressData?.uploadsByCompetency?.[loopbaanCompetency.id] || []
               : [];
             const isStatusOpen = Boolean(statusExpanded[customer.id]);
-            const displayName = customer.name || customer.email || "Onbekende klant";
+            const displayName = customer.name || customer.email || "Onbekende kandidaat";
             const photoURL = profile?.photoURL || customer?.photoURL || customer?.avatarUrl || null;
             const initials = displayName
               .split(/\s+/)
@@ -366,6 +367,10 @@ const Customers = () => {
                       <span>{evc?.contactPerson ? `Contactpersoon: ${evc.contactPerson}` : "Geen contactpersoon bekend"}</span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-600">
+                      <LogIn className="h-4 w-4 text-slate-400" />
+                      <span>Laatste login: {lastLoginRelative}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600">
                       <Clock className="h-4 w-4 text-slate-400" />
                       <span>Laatste activiteit: {lastActivityLabel}</span>
                     </div>
@@ -408,7 +413,7 @@ const Customers = () => {
                     onClick={() => handleOpenDossier(customer.id)}
                     className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-100"
                   >
-                    Overzicht client's traject
+                    Trajectoverzicht openen
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                   <button
@@ -431,7 +436,10 @@ const Customers = () => {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
                         <p className="font-semibold text-slate-700">Laatst ingelogd op</p>
-                        <p>{lastLogin}</p>
+                        <p>{lastLoginAbsolute || "Nog niet ingelogd"}</p>
+                        {lastLoginAbsolute ? (
+                          <p className="text-[11px] text-slate-400">{lastLoginRelative}</p>
+                        ) : null}
                       </div>
                       <div>
                         <p className="font-semibold text-slate-700">Kwalificatiedossier</p>

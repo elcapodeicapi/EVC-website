@@ -18,6 +18,20 @@ const formatTimestamp = (value) => {
 const resolveUid = (entity) =>
   entity?.firebaseUid || entity?.uid || entity?.id || entity?.userId || null;
 
+const ROLE_LABELS = new Map([
+  ["customer", "Kandidaat"],
+  ["user", "Kandidaat"],
+  ["coach", "Begeleider"],
+  ["admin", "Beheerder"],
+]);
+
+const formatRoleLabel = (role) => {
+  if (!role) return "";
+  const normalized = role.toString().trim().toLowerCase();
+  if (!normalized) return "";
+  return ROLE_LABELS.get(normalized) || role;
+};
+
 const CustomerMessages = () => {
   const { customer, coach } = useOutletContext();
   const customerId = resolveUid(customer);
@@ -121,8 +135,8 @@ const CustomerMessages = () => {
         senderId: customerId,
         receiverId: coachId,
         senderRole: "customer",
-        senderName: customer?.name || customer?.email || "Deelnemer",
-        receiverName: coach?.name || coach?.email || "Coach",
+  senderName: customer?.name || customer?.email || "Kandidaat",
+  receiverName: coach?.name || coach?.email || "Begeleider",
         messageTitle: trimmedTitle,
         messageText: trimmedBody,
         file,
@@ -148,11 +162,11 @@ const CustomerMessages = () => {
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">Contact</p>
           <h1 className="text-3xl font-semibold text-slate-900">
-            Contact met {coach?.name || coach?.email || "je coach"}
+            Contact met {coach?.name || coach?.email || "je begeleider"}
           </h1>
         </div>
         <p className="max-w-2xl text-sm text-slate-500">
-          Stuur vragen of updates naar je coach. Je ontvangt automatisch een melding wanneer je coach reageert.
+          Stuur vragen of updates naar je begeleider. Je ontvangt automatisch een melding wanneer je begeleider reageert.
         </p>
       </header>
 
@@ -168,7 +182,7 @@ const CustomerMessages = () => {
             <div className="max-h-[500px] space-y-4 overflow-y-auto pr-1">
               {formattedMessages.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-10 text-center text-sm text-slate-400">
-                  Nog geen berichten. Stel hieronder je eerste vraag aan je coach.
+                  Nog geen berichten. Stel hieronder je eerste vraag aan je begeleider.
                 </div>
               ) : (
                 formattedMessages.map((message) => (
@@ -190,7 +204,7 @@ const CustomerMessages = () => {
                             {message.senderName}
                             {message.senderRole ? (
                               <span className="ml-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-                                {message.senderRole}
+                                {formatRoleLabel(message.senderRole)}
                               </span>
                             ) : null}
                           </p>

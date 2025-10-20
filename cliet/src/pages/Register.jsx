@@ -114,7 +114,7 @@ const Register = () => {
 							onChange={(event) => setRole(event.target.value)}
 							className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
 						>
-							<option value="user">Deelnemer</option>
+							<option value="user">Kandidaat</option>
 							<option value="admin">Beheerder</option>
 						</select>
 					</div>

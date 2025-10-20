@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createAssignment, subscribeAssignments, subscribeUsers } from "../../lib/firestoreAdmin";
+import { getTrajectStatusLabel } from "../../lib/trajectStatus";
+
+const formatStatusLabel = (status) => getTrajectStatusLabel(status);
 
 const Assignments = () => {
   const [customers, setCustomers] = useState([]);
@@ -76,7 +79,7 @@ const Assignments = () => {
   const handleAssign = (event) => {
     event.preventDefault();
     if (!form.customerId || !form.coachId) {
-      setStatus({ type: "error", message: "Selecteer zowel een klant als een coach." });
+  setStatus({ type: "error", message: "Selecteer zowel een kandidaat als een begeleider." });
       return;
     }
     setCreating(true);
@@ -116,15 +119,15 @@ const Assignments = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Assignments</h1>
-        <p className="mt-2 text-sm text-slate-500">Pair customers with their coaches and keep the overview tidy.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">Toewijzingen</h1>
+  <p className="mt-2 text-sm text-slate-500">Koppel kandidaten aan hun begeleider en behoud direct overzicht over alle koppelingen.</p>
       </div>
 
       {renderStatusBanner()}
 
       <form onSubmit={handleAssign} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-4 sm:items-end">
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Customer</label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kandidaat</label>
           <select
             name="customerId"
             value={form.customerId}
@@ -133,7 +136,7 @@ const Assignments = () => {
             disabled={loadingCustomers || customers.length === 0}
           >
             {loadingCustomers ? <option value="">Laden...</option> : null}
-            {!loadingCustomers && customers.length === 0 ? <option value="">Geen klanten beschikbaar</option> : null}
+            {!loadingCustomers && customers.length === 0 ? <option value="">Geen kandidaten beschikbaar</option> : null}
             {customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
                 {customer.name || customer.email}
@@ -142,7 +145,7 @@ const Assignments = () => {
           </select>
         </div>
         <div className="sm:col-span-1">
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Coach</label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Begeleider</label>
           <select
             name="coachId"
             value={form.coachId}
@@ -151,7 +154,7 @@ const Assignments = () => {
             disabled={loadingCoaches || coaches.length === 0}
           >
             {loadingCoaches ? <option value="">Laden...</option> : null}
-            {!loadingCoaches && coaches.length === 0 ? <option value="">Geen coaches beschikbaar</option> : null}
+            {!loadingCoaches && coaches.length === 0 ? <option value="">Geen begeleiders beschikbaar</option> : null}
             {coaches.map((coach) => (
               <option key={coach.id} value={coach.id}>
                 {coach.name || coach.email}
@@ -165,19 +168,19 @@ const Assignments = () => {
             disabled={creating || !form.customerId || !form.coachId}
             className="inline-flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
           >
-            {creating ? "Bezig..." : "Assign"}
+            {creating ? "Bezig..." : "Toewijzen"}
           </button>
         </div>
       </form>
 
       {errors.customers ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Klanten konden niet geladen worden: {errors.customers.message || "Onbekende fout"}
+          Kandidaten konden niet geladen worden: {errors.customers.message || "Onbekende fout"}
         </div>
       ) : null}
       {errors.coaches ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Coaches konden niet geladen worden: {errors.coaches.message || "Onbekende fout"}
+          Begeleiders konden niet geladen worden: {errors.coaches.message || "Onbekende fout"}
         </div>
       ) : null}
       {errors.assignments ? (
@@ -190,8 +193,8 @@ const Assignments = () => {
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Coach</th>
+              <th className="px-4 py-3">Kandidaat</th>
+              <th className="px-4 py-3">Begeleider</th>
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
@@ -205,21 +208,21 @@ const Assignments = () => {
             ) : entries.length === 0 ? (
               <tr>
                 <td className="px-4 py-6 text-center text-slate-400" colSpan={3}>
-                  No assignments yet.
+                  Nog geen toewijzingen.
                 </td>
               </tr>
             ) : (
               entries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-900">
-                    {userLookup.get(entry.customerId)?.name || userLookup.get(entry.customerId)?.email || "Onbekende klant"}
+                    {userLookup.get(entry.customerId)?.name || userLookup.get(entry.customerId)?.email || "Onbekende kandidaat"}
                   </td>
                   <td className="px-4 py-3">
-                    {userLookup.get(entry.coachId)?.name || userLookup.get(entry.coachId)?.email || "Onbekende coach"}
+                    {userLookup.get(entry.coachId)?.name || userLookup.get(entry.coachId)?.email || "Onbekende begeleider"}
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {entry.status}
+                      {formatStatusLabel(entry.status)}
                     </span>
                   </td>
                 </tr>

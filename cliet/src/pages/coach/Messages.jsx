@@ -5,6 +5,7 @@ import {
   sendThreadMessage,
   subscribeThreadMessages,
   subscribeThreadsForUser,
+  markMessagesAsRead,
 } from "../../lib/firestoreMessages";
 
 const resolveUid = (entity) =>
@@ -18,10 +19,24 @@ const formatTimestamp = (value) => {
   }).format(value);
 };
 
+const ROLE_BADGES = new Map([
+  ["coach", "Begeleider"],
+  ["customer", "Kandidaat"],
+  ["user", "Kandidaat"],
+  ["admin", "Beheerder"],
+]);
+
+const formatRoleLabel = (role) => {
+  if (!role) return "";
+  const normalized = role.toString().trim().toLowerCase();
+  if (!normalized) return "";
+  return ROLE_BADGES.get(normalized) || role;
+};
+
 const CoachMessages = () => {
-  const { coach } = useOutletContext() ?? {};
+  const { coach, unreadMessagesByThread } = useOutletContext() ?? {};
   const coachId = resolveUid(coach);
-  const coachName = coach?.name || coach?.email || "Coach";
+  const coachName = coach?.name || coach?.email || "Begeleider";
 
   const [threads, setThreads] = useState([]);
   const [threadsLoading, setThreadsLoading] = useState(true);
@@ -41,7 +56,7 @@ const CoachMessages = () => {
     if (!coachId) {
       setThreads([]);
       setThreadsLoading(false);
-      setThreadsError(new Error("Geen coachprofiel gevonden"));
+      setThreadsError(new Error("Geen begeleidersprofiel gevonden"));
       return () => {};
     }
 
@@ -62,18 +77,36 @@ const CoachMessages = () => {
     };
   }, [coachId]);
 
+  const sortedThreads = useMemo(() => {
+    const unreadMap = unreadMessagesByThread || {};
+    return [...threads]
+      .map((thread) => {
+        const unreadCount = Array.isArray(unreadMap[thread.id]) ? unreadMap[thread.id].length : 0;
+        return {
+          ...thread,
+          unreadCount,
+          _lastStamp: thread.lastMessageAt instanceof Date ? thread.lastMessageAt.getTime() : 0,
+        };
+      })
+      .sort((a, b) => {
+        if (a.unreadCount !== b.unreadCount) return b.unreadCount - a.unreadCount;
+        return b._lastStamp - a._lastStamp;
+      });
+  }, [threads, unreadMessagesByThread]);
+
   useEffect(() => {
-    if (threads.length === 0) {
+    if (sortedThreads.length === 0) {
       setActiveThreadId(null);
       return;
     }
     setActiveThreadId((previous) => {
-      if (previous && threads.some((thread) => thread.id === previous)) {
+      if (previous && sortedThreads.some((thread) => thread.id === previous)) {
         return previous;
       }
-      return threads[0]?.id || null;
+      const firstUnread = sortedThreads.find((thread) => thread.unreadCount > 0);
+      return firstUnread?.id || sortedThreads[0]?.id || null;
     });
-  }, [threads]);
+  }, [sortedThreads]);
 
   useEffect(() => {
     if (!activeThreadId) {
@@ -90,7 +123,34 @@ const CoachMessages = () => {
         setMessagesLoading(false);
         return;
       }
-      setMessages(Array.isArray(data) ? data : []);
+
+      const records = Array.isArray(data) ? data : [];
+
+      if (coachId) {
+        const unreadForCoach = records.filter(
+          (message) => message.receiverId === coachId && !message.isReadByCoach
+        );
+        if (unreadForCoach.length > 0) {
+          const unreadIds = unreadForCoach.map((message) => message.id).filter(Boolean);
+          if (unreadIds.length > 0) {
+            markMessagesAsRead({
+              threadId: activeThreadId,
+              messageIds: unreadIds,
+              readerRole: "coach",
+            }).catch((err) => setMessagesError(err));
+            setMessages(
+              records.map((message) =>
+                unreadIds.includes(message.id) ? { ...message, isReadByCoach: true } : message
+              )
+            );
+            setMessagesError(null);
+            setMessagesLoading(false);
+            return;
+          }
+        }
+      }
+
+      setMessages(records);
       setMessagesError(null);
       setMessagesLoading(false);
     });
@@ -98,21 +158,50 @@ const CoachMessages = () => {
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
-  }, [activeThreadId]);
+  }, [activeThreadId, coachId]);
 
   const activeThread = useMemo(
-    () => threads.find((thread) => thread.id === activeThreadId) || null,
-    [threads, activeThreadId]
+    () => sortedThreads.find((thread) => thread.id === activeThreadId) || null,
+    [sortedThreads, activeThreadId]
   );
 
   const formattedMessages = useMemo(() => {
-    return messages.map((message) => ({
-      ...message,
-      isOwn: message.senderId === coachId,
-      timestampLabel: formatTimestamp(message.timestamp),
-      senderInitial: (message.senderName || "?").charAt(0).toUpperCase(),
-    }));
+    const decorated = messages.map((message) => {
+      const isUnreadForCoach = message.receiverId === coachId && !message.isReadByCoach;
+      return {
+        ...message,
+        isOwn: message.senderId === coachId,
+        timestampLabel: formatTimestamp(message.timestamp),
+        senderInitial: (message.senderName || "?").charAt(0).toUpperCase(),
+        isUnreadForCoach,
+        timestampValue: message.timestamp instanceof Date ? message.timestamp.getTime() : 0,
+      };
+    });
+    return decorated.sort((a, b) => {
+      if (a.isUnreadForCoach !== b.isUnreadForCoach) return a.isUnreadForCoach ? -1 : 1;
+      return a.timestampValue - b.timestampValue;
+    });
   }, [messages, coachId]);
+
+  const handleMessageClick = async (message) => {
+    if (!message || !activeThreadId) return;
+    if (message.receiverId !== coachId || message.isReadByCoach) return;
+    try {
+      await markMessagesAsRead({
+        threadId: activeThreadId,
+        messageIds: [message.id],
+        readerRole: "coach",
+      });
+      setMessages((previous) =>
+        previous.map((entry) =>
+          entry.id === message.id ? { ...entry, isReadByCoach: true } : entry
+        )
+      );
+      setMessagesError(null);
+    } catch (error) {
+      setMessagesError(error);
+    }
+  };
 
   const handleSend = async (event) => {
     event.preventDefault();
@@ -131,7 +220,7 @@ const CoachMessages = () => {
         receiverId: activeThread.otherParticipantId,
         senderRole: "coach",
         senderName: coachName,
-        receiverName: activeThread.otherParticipantName || "Deelnemer",
+        receiverName: activeThread.otherParticipantName || "Kandidaat",
         messageTitle: trimmedTitle,
         messageText: trimmedBody,
         file,
@@ -155,7 +244,7 @@ const CoachMessages = () => {
     <div className="space-y-6">
       <header className="space-y-1">
         <h2 className="text-lg font-semibold text-slate-900">Berichten</h2>
-        <p className="text-sm text-slate-500">Beheer de communicatie met je klanten op één plek.</p>
+        <p className="text-sm text-slate-500">Beheer de communicatie met je kandidaten op één plek.</p>
       </header>
 
       {threadsError ? (
@@ -171,27 +260,43 @@ const CoachMessages = () => {
           <aside className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Gesprekken</p>
             <ul className="space-y-2">
-              {threads.length === 0 ? (
+              {sortedThreads.length === 0 ? (
                 <li className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-400">
                   Nog geen gesprekken
                 </li>
               ) : (
-                threads.map((thread) => (
-                  <li key={thread.id}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveThreadId(thread.id)}
-                      className={`w-full rounded-2xl px-4 py-3 text-left text-sm transition ${
-                        thread.id === activeThreadId
-                          ? "bg-evc-blue-50 text-evc-blue-700"
-                          : "text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      <p className="font-semibold text-slate-900">{thread.otherParticipantName}</p>
-                      <p className="truncate text-xs text-slate-500">{thread.lastMessageSnippet || "Nieuw gesprek"}</p>
-                    </button>
-                  </li>
-                ))
+                sortedThreads.map((thread) => {
+                  const isActive = thread.id === activeThreadId;
+                  const unreadCount = thread.unreadCount || 0;
+                  const baseClasses = isActive
+                    ? "bg-evc-blue-50 text-evc-blue-700"
+                    : unreadCount > 0
+                      ? "border border-amber-200 bg-amber-50/70 text-amber-700 hover:bg-amber-50"
+                      : "text-slate-600 hover:bg-slate-50";
+                  return (
+                    <li key={thread.id}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveThreadId(thread.id)}
+                        className={`w-full rounded-2xl px-4 py-3 text-left text-sm transition ${baseClasses}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-slate-900">{thread.otherParticipantName}</p>
+                            <p className="truncate text-xs text-slate-500">
+                              {thread.lastMessageSnippet || "Nieuw gesprek"}
+                            </p>
+                          </div>
+                          {unreadCount > 0 ? (
+                            <span className="inline-flex min-w-[2rem] justify-center rounded-full bg-amber-500 px-2 py-1 text-xs font-semibold text-white">
+                              {unreadCount}
+                            </span>
+                          ) : null}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })
               )}
             </ul>
           </aside>
@@ -201,7 +306,7 @@ const CoachMessages = () => {
               <div className="flex flex-col gap-6 px-6 py-6">
                 <header>
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">
-                    Contact met {activeThread.otherParticipantName || "deelnemer"}
+                    Contact met {activeThread.otherParticipantName || "kandidaat"}
                   </p>
                 </header>
 
@@ -223,9 +328,22 @@ const CoachMessages = () => {
                       formattedMessages.map((message) => (
                         <article
                           key={message.id}
-                          className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-sm ${
-                            message.isOwn ? "border-evc-blue-100 bg-evc-blue-50/60" : "border-slate-100 bg-slate-50"
-                          }`}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleMessageClick(message)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              handleMessageClick(message);
+                            }
+                          }}
+                          className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-evc-blue-200 ${
+                            message.isOwn
+                              ? "border-evc-blue-100 bg-evc-blue-50/60"
+                              : message.isUnreadForCoach
+                                ? "border-amber-200 bg-amber-50"
+                                : "border-slate-100 bg-slate-50"
+                          } ${message.isUnreadForCoach ? "ring-2 ring-amber-200" : ""}`}
                         >
                           <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
                             message.isOwn ? "bg-evc-blue-600 text-white" : "bg-slate-200 text-slate-700"
@@ -239,7 +357,7 @@ const CoachMessages = () => {
                                   {message.senderName}
                                   {message.senderRole ? (
                                     <span className="ml-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-                                      {message.senderRole}
+                                      {formatRoleLabel(message.senderRole)}
                                     </span>
                                   ) : null}
                                 </p>
@@ -247,9 +365,14 @@ const CoachMessages = () => {
                                   <p className="text-base font-semibold text-slate-900">{message.messageTitle}</p>
                                 ) : null}
                               </div>
-                              <time className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                                {message.timestampLabel}
-                              </time>
+                              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+                                <time>{message.timestampLabel}</time>
+                                {message.isUnreadForCoach ? (
+                                  <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[0.65rem] font-semibold text-white">
+                                    Ongelezen
+                                  </span>
+                                ) : null}
+                              </div>
                             </header>
                             {message.messageText ? (
                               <p className="whitespace-pre-line text-sm text-slate-700">{message.messageText}</p>

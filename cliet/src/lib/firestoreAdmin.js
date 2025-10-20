@@ -11,6 +11,29 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
+import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
+
+function normalizeTimestamp(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value.toDate === "function") {
+    try {
+      const date = value.toDate();
+      return Number.isNaN(date.getTime()) ? null : date;
+    } catch (_) {
+      return null;
+    }
+  }
+  if (typeof value._seconds === "number") {
+    const millis = value._seconds * 1000 + Math.floor((value._nanoseconds || 0) / 1e6);
+    const date = new Date(millis);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
 function mapDoc(snapshot) {
   if (!snapshot?.exists()) return null;
@@ -18,6 +41,9 @@ function mapDoc(snapshot) {
   return {
     id: snapshot.id,
     ...data,
+    createdAt: normalizeTimestamp(data.createdAt),
+    updatedAt: normalizeTimestamp(data.updatedAt),
+    lastLoggedIn: normalizeTimestamp(data.lastLoggedIn),
   };
 }
 
@@ -77,11 +103,12 @@ export function subscribeAssignments(observer) {
     (snapshot) => {
       const entries = snapshot.docs.map((docSnap) => {
         const data = docSnap.data();
+        const status = normalizeTrajectStatus(data.status) || DEFAULT_TRAJECT_STATUS;
         return {
           id: docSnap.id,
           customerId: data.customerId || null,
           coachId: data.coachId || null,
-          status: data.status || "pending",
+          status,
           createdAt: data.createdAt ? data.createdAt.toDate?.() ?? data.createdAt : null,
           createdBy: data.createdBy || null,
         };
@@ -92,13 +119,43 @@ export function subscribeAssignments(observer) {
   );
 }
 
-export async function createAssignment({ customerId, coachId, status = "active" }) {
+export function subscribeTrajects(observer) {
+  const trajectsRef = collection(db, "trajects");
+  const q = query(trajectsRef, orderBy("name"));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list = snapshot.docs
+        .map((docSnap) => {
+          const data = docSnap.data();
+          if (!data) return null;
+          const createdAt = data.createdAt?.toDate?.() ?? data.createdAt ?? null;
+          const updatedAt = data.updatedAt?.toDate?.() ?? data.updatedAt ?? null;
+          return {
+            id: docSnap.id,
+            name: data.name || "",
+            status: data.status || null,
+            description: data.description || null,
+            createdAt,
+            updatedAt,
+          };
+        })
+        .filter(Boolean);
+      observer({ data: list, error: null });
+    },
+    (error) => observer({ data: null, error })
+  );
+}
+
+export async function createAssignment({ customerId, coachId, status = DEFAULT_TRAJECT_STATUS }) {
   if (!customerId || !coachId) {
     throw new Error("customerId and coachId are verplicht");
   }
 
   const currentUser = auth.currentUser;
   const createdBy = currentUser?.uid ?? null;
+
+  const resolvedStatus = normalizeTrajectStatus(status) || DEFAULT_TRAJECT_STATUS;
 
   const assignmentRef = doc(db, "assignments", customerId);
   const previousSnapshot = await getDoc(assignmentRef).catch(() => null);
@@ -112,7 +169,7 @@ export async function createAssignment({ customerId, coachId, status = "active" 
   const assignmentPayload = {
     customerId,
     coachId,
-    status,
+    status: resolvedStatus,
     createdBy: existingCreatedBy || createdBy || null,
     updatedAt: serverTimestamp(),
   };
@@ -137,7 +194,7 @@ export async function createAssignment({ customerId, coachId, status = "active" 
   const coachLinkPayload = {
     customerId,
     coachId,
-    status,
+    status: resolvedStatus,
     createdBy: existingCreatedBy || createdBy || null,
     updatedAt: serverTimestamp(),
   };

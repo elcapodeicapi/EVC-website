@@ -14,6 +14,7 @@ import {
 import { db } from "../firebase";
 import { getUsersIndex } from "./firestoreAdmin";
 import { subscribeCustomerUploads, subscribeTrajectCompetencies } from "./firestoreCustomer";
+import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
 
 const normalizeTimestamp = (value) => {
   if (!value) return null;
@@ -39,17 +40,19 @@ const mapUserDoc = (snapshot) => {
     lastActivity: normalizeTimestamp(data.lastActivity),
     createdAt: normalizeTimestamp(data.createdAt),
     updatedAt: normalizeTimestamp(data.updatedAt),
+    lastLoggedIn: normalizeTimestamp(data.lastLoggedIn),
   };
 };
 
 const mapAssignmentDoc = (snapshot) => {
   if (!snapshot?.exists()) return null;
   const data = snapshot.data() || {};
+  const status = normalizeTrajectStatus(data.status) || DEFAULT_TRAJECT_STATUS;
   return {
     id: snapshot.id,
     coachId: data.coachId || null,
     customerId: data.customerId || null,
-    status: data.status || "pending",
+    status,
     createdAt: normalizeTimestamp(data.createdAt),
     updatedAt: normalizeTimestamp(data.updatedAt),
   };

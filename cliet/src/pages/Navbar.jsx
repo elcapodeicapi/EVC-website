@@ -7,18 +7,18 @@ import { auth } from "../firebase";
 
 const baseNavItems = [
 	{ label: "Admin • Dashboard", to: "/admin" },
-	{ label: "Admin • Assignments", to: "/admin/assignments" },
-	{ label: "Admin • Trajects", to: "/admin/trajects" },
-	{ label: "Admin • Users", to: "/admin/users" },
-	{ label: "Admin • Profile", to: "/admin/profile" },
-	{ label: "Coach • Dashboard", to: "/coach" },
-	{ label: "Coach • My Customers", to: "/coach/customers" },
-	{ label: "Coach • Feedback", to: "/coach/feedback" },
-	{ label: "Coach • Messages", to: "/coach/messages" },
-	{ label: "Customer • Dashboard", to: "/customer/dashboard" },
-	{ label: "Customer • Messages", to: "/customer/messages" },
-	{ label: "Customer • Profile", to: "/customer/profile" },
-	{ label: "Test • Create Account", to: "/testing/create-account", badge: "DEV" },
+	{ label: "Admin • Opdrachten", to: "/admin/assignments" },
+	{ label: "Admin • Trajecten", to: "/admin/trajects" },
+	{ label: "Admin • Gebruikers", to: "/admin/users" },
+	{ label: "Admin • Profiel", to: "/admin/profile" },
+	{ label: "Begeleider • Dashboard", to: "/coach" },
+	{ label: "Begeleider • Mijn kandidaten", to: "/coach/customers" },
+	{ label: "Begeleider • Feedback", to: "/coach/feedback" },
+	{ label: "Begeleider • Berichten", to: "/coach/messages" },
+	{ label: "Kandidaat • Dashboard", to: "/customer/dashboard" },
+	{ label: "Kandidaat • Berichten", to: "/customer/messages" },
+	{ label: "Kandidaat • Profiel", to: "/customer/profile" },
+	{ label: "Test • Account aanmaken", to: "/testing/create-account", badge: "DEV" },
 ];
 
 const Navbar = () => {
@@ -77,7 +77,7 @@ const Navbar = () => {
 						onClick={() => handleNavigate("/")}
 						className="text-sm font-medium text-white transition hover:text-white/80"
 					>
-						EVC Portfolio
+						EVC-portaal
 					</button>
 				</div>
 
@@ -112,7 +112,7 @@ const Navbar = () => {
 							className="hidden items-center gap-2 rounded-full border border-white/40 px-4 py-2 text-sm font-medium text-white transition hover:border-white hover:bg-white/10 md:inline-flex"
 						>
 							<LogOut className="h-4 w-4" />
-							<span>Logout</span>
+							<span>Afmelden</span>
 						</button>
 					) : (
 						<button
@@ -121,14 +121,14 @@ const Navbar = () => {
 							className="hidden items-center gap-2 rounded-full border border-white/40 px-4 py-2 text-sm font-medium text-white transition hover:border-white hover:bg-white/10 md:inline-flex"
 						>
 							<LogIn className="h-4 w-4" />
-							<span>Login</span>
+							<span>Inloggen</span>
 						</button>
 					)}
 					<button
 						type="button"
 						onClick={() => setMobileOpen((previous) => !previous)}
 						className="inline-flex items-center justify-center rounded-full border border-white/40 p-2 text-white transition hover:border-white hover:text-white md:hidden"
-						aria-label="Toggle navigation"
+						aria-label="Navigatie openen of sluiten"
 					>
 						{mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
 					</button>
@@ -155,7 +155,7 @@ const Navbar = () => {
 										</span>
 									) : null}
 								</span>
-								{item.active && <span className="text-xs font-semibold uppercase text-white">Now</span>}
+								{item.active && <span className="text-xs font-semibold uppercase text-white">Actief</span>}
 							</button>
 						))}
 						{isLoggedIn ? (
@@ -165,7 +165,7 @@ const Navbar = () => {
 								className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-white/20"
 							>
 								<LogOut className="h-4 w-4" />
-								<span>Logout</span>
+								<span>Afmelden</span>
 							</button>
 						) : (
 							<button
@@ -174,7 +174,7 @@ const Navbar = () => {
 								className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-white/20"
 							>
 								<LogIn className="h-4 w-4" />
-								<span>Login</span>
+								<span>Inloggen</span>
 							</button>
 						)}
 					</div>

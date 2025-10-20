@@ -26,7 +26,7 @@ const ModalForm = ({ open, title, description, onClose, children, footer }) => {
           className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
         >
           <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">Sluiten</span>
         </button>
         <div className="px-6 pb-6 pt-8 sm:px-8">
           <div className="mb-6">

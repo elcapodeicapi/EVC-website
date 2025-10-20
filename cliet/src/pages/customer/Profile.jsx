@@ -233,7 +233,7 @@ const CustomerProfile = () => {
     }
   };
 
-  const StatusBanner = ({ state }) => {
+  const StatusBanner = ({ state, className = "" }) => {
     if (!state?.message) return null;
     const isError = state.type === "error";
     const Icon = isError ? TriangleAlert : CheckCircle2;
@@ -242,7 +242,7 @@ const CustomerProfile = () => {
       : "border-emerald-200 bg-emerald-50 text-emerald-700";
 
     return (
-      <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${color}`}>
+      <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${color} ${className}`.trim()}>
         <Icon className="h-4 w-4" />
         <span>{state.message}</span>
       </div>
@@ -405,7 +405,7 @@ const CustomerProfile = () => {
             </div>
             <div>
               <h2 className="text-base font-semibold text-slate-900">Profielfoto</h2>
-              <p className="text-sm text-slate-500">Upload een recente foto. Je coach ziet deze ook in het trajectoverzicht.</p>
+              <p className="text-sm text-slate-500">Upload een recente foto. Je begeleider ziet deze ook in het trajectoverzicht.</p>
             </div>
           </div>
           <div className="flex flex-col gap-2 text-sm sm:items-end">
@@ -433,36 +433,38 @@ const CustomerProfile = () => {
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-slate-900">EVC-traject details</h2>
             <p className="text-sm text-slate-500">
               Informatie over je trajectcontact en kwalificatiedossier. Pas deze gegevens aan wanneer er wijzigingen zijn.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {evcEditMode ? (
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <div className="flex flex-wrap items-center gap-3">
+              {evcEditMode ? (
+                <button
+                  type="button"
+                  onClick={handleEvcCancel}
+                  className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
+                >
+                  Annuleren
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={handleEvcCancel}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
+                onClick={handleEvcPrimaryAction}
+                disabled={evcLoading || evcSaving}
+                className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
               >
-                Annuleren
+                {evcEditMode ? (evcSaving ? "Opslaan..." : "Opslaan") : "Wijzigen"}
               </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={handleEvcPrimaryAction}
-              disabled={evcLoading || evcSaving}
-              className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
-            >
-              {evcEditMode ? (evcSaving ? "Opslaan..." : "Opslaan") : "Wijzigen"}
-            </button>
+            </div>
+            <StatusBanner state={evcStatus} className="w-full sm:w-auto" />
           </div>
         </div>
 
         <div className="mt-4 space-y-4">
-          <StatusBanner state={evcStatus} />
           {evcError ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {evcError.message || "Kon EVC-trajectgegevens niet laden."}
@@ -604,8 +606,6 @@ const CustomerProfile = () => {
       </section>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <StatusBanner state={status} />
-
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
             <div className="space-y-8">
@@ -1097,7 +1097,7 @@ const CustomerProfile = () => {
           </div>
         </section>
 
-        <div className="flex justify-end">
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
           <button
             type="submit"
             disabled={saving}
@@ -1105,6 +1105,7 @@ const CustomerProfile = () => {
           >
             {saving ? "Opslaan..." : "Opslaan"}
           </button>
+          <StatusBanner state={status} className="w-full sm:w-auto" />
         </div>
       </form>
     </div>

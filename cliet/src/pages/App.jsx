@@ -14,11 +14,12 @@ import Topbar from "../components/Topbar";
 import BrandLogo from "../components/BrandLogo";
 import Login from "./Login";
 import Home from "./Home";
-import AdminOverview from "./admin/Overview";
+import AdminDashboard from "./admin/Dashboard";
 import AdminAssignments from "./admin/Assignments";
 import AdminTrajects from "./admin/Trajects";
 import AdminProfile from "./admin/Profile";
 import AdminUsers from "./admin/Users";
+import AdminCreateUser from "./admin/CreateUser";
 import TestCreateAccount from "./TestCreateAccount";
 import CustomerDashboard from "./customer/Dashboard";
 import CustomerPlanning from "./customer/Planning";
@@ -28,6 +29,8 @@ import CustomerCareerGoal from "./customer/CareerGoal";
 import CustomerWorkplaceVisit from "./customer/WorkplaceVisit";
 import CustomerCriteriumInterview from "./customer/CriteriumInterview";
 import CustomerManual from "./customer/Manual";
+import CustomerReady from "./customer/Klaar";
+import CustomerVragenlijst from "./customer/Vragenlijst";
 import CoachDashboard from "./coach/Dashboard";
 import CoachCustomers from "./coach/Customers";
 import CoachCustomerCompetency from "./coach/CustomerCompetency";
@@ -43,11 +46,13 @@ import {
 	MessageSquare,
 	IdCard,
 	Goal,
-	FolderOpen,
+		FolderOpen,
 	Briefcase,
 	ClipboardCheck,
 	BookOpen,
-	NotebookPen,
+		NotebookPen,
+		CheckCircle2,
+		CircleHelp,
 } from "lucide-react";
 import { onAuthStateChanged, signOut, signInWithCustomToken } from "firebase/auth";
 import { auth } from "../firebase";
@@ -59,34 +64,44 @@ import {
 	subscribeCoachFeedback,
 	subscribeCoachProfile,
 } from "../lib/firestoreCoach";
-import { get } from "../lib/api";
+import { subscribeUnreadMessagesForCoach } from "../lib/firestoreMessages";
+import { get, post } from "../lib/api";
+import {
+	getTrajectStatusLabel,
+	isCollectingStatus,
+	normalizeTrajectStatus,
+	TRAJECT_STATUS,
+} from "../lib/trajectStatus";
 
 const ADMIN_NAV_ITEMS = [
 	{ label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
-	{ label: "Assignments", to: "/admin/assignments", icon: FileSpreadsheet },
-	{ label: "Trajects", to: "/admin/trajects", icon: FileText },
-	{ label: "Users", to: "/admin/users", icon: UsersIcon },
-	{ label: "Profile", to: "/admin/profile", icon: IdCard },
+	{ label: "Opdrachten", to: "/admin/assignments", icon: FileSpreadsheet },
+	{ label: "Trajecten", to: "/admin/trajects", icon: FileText },
+	{ label: "Gebruikers", to: "/admin/users", icon: UsersIcon },
+	{ label: "Profiel", to: "/admin/profile", icon: IdCard },
 ];
 
 const COACH_NAV_ITEMS = [
 	{ label: "Dashboard", to: "/coach", icon: LayoutDashboard, end: true },
-	{ label: "My Customers", to: "/coach/customers", icon: UsersIcon },
+	{ label: "Mijn kandidaten", to: "/coach/customers", icon: UsersIcon },
 	{ label: "Feedback", to: "/coach/feedback", icon: FileText },
 	{ label: "Aantekeningen", to: "/coach/aantekeningen", icon: NotebookPen },
-	{ label: "Messages", to: "/coach/messages", icon: Mail },
+	{ label: "Berichten", to: "/coach/messages", icon: Mail },
 ];
 
-const CUSTOMER_NAV_ITEMS = [
+const BASE_CUSTOMER_NAV_ITEMS = [
 	{ label: "Dashboard", to: "/customer/dashboard", icon: LayoutDashboard, end: true },
 	{ label: "Mijn profiel", to: "/customer/profile", icon: IdCard },
 	{ label: "Mijn loopbaandoel", to: "/customer/career-goal", icon: Goal },
+	{ label: "Vragenlijst", to: "/customer/vragenlijst", icon: CircleHelp },
 	{ label: "Mijn portfolio", to: "/customer/portfolio", icon: FolderOpen },
 	{ label: "Werkplekbezoek", to: "/customer/workplace-visit", icon: Briefcase },
 	{ label: "Criteriumgericht interview", to: "/customer/criterium-interview", icon: ClipboardCheck },
 	{ label: "Contact", to: "/customer/contact", icon: MessageSquare },
 	{ label: "Handleiding", to: "/customer/manual", icon: BookOpen },
 ];
+
+const READY_NAV_ITEM = { label: "Klaar?", to: "/customer/klaar", icon: CheckCircle2 };
 
 const normalizeUserRecord = (user) => {
 	if (!user || typeof user !== "object") return user ?? null;
@@ -155,11 +170,11 @@ const AdminLayout = () => {
 		};
 	}, [uid]);
 
-	const displayName = profile?.name || profile?.email || "Admin";
+	const displayName = profile?.name || profile?.email || "Beheerder";
 	const displayRole = profile?.role
 		? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
-		: "Administrator";
-	const subtitle = profileError ? "Administrator" : displayRole;
+		: "Beheerder";
+	const subtitle = profileError ? "Beheerder" : displayRole;
 
 	return (
 		<DashboardLayout
@@ -172,7 +187,7 @@ const AdminLayout = () => {
 						<div className="space-y-4 text-white">
 							<BrandLogo className="w-fit" tone="dark" />
 							<div className="space-y-1">
-								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Admin</p>
+								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Beheerder</p>
 								<h1 className="text-xl font-semibold text-white">EVC Control</h1>
 							</div>
 						</div>
@@ -184,32 +199,32 @@ const AdminLayout = () => {
 							onClick={handleLogout}
 							className="flex w-full items-center justify-center rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20"
 						>
-							Sign out
+							Afmelden
 						</button>
 					}
 				/>
 			}
 			topbar={
 				<Topbar
-					title="Administration overview"
+						title="Administratie-overzicht"
 					tone="brand"
-					user={{ name: displayName, subtitle, role: "Admin" }}
+						user={{ name: displayName, subtitle, role: "Beheerder" }}
 					logoTo="/admin"
 					rightSlot={
 						<div className="hidden items-center gap-3 md:flex">
 							<button
 								type="button"
-								onClick={() => alert("Mock: generate report")}
+								onClick={() => alert("Mock: rapport genereren")}
 								className="rounded-full border border-white/40 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10"
 							>
-								Generate report
+								Rapport genereren
 							</button>
 							<button
 								type="button"
 								onClick={handleLogout}
 								className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-evc-blue-600 shadow-lg transition hover:bg-white/90"
 							>
-								Sign out
+								Afmelden
 							</button>
 						</div>
 					}
@@ -348,6 +363,28 @@ const CoachLayout = () => {
 
 	const [feedbackItems, setFeedbackItems] = useState([]);
 	const [feedbackError, setFeedbackError] = useState(null);
+	const [unreadMessages, setUnreadMessages] = useState([]);
+	const [unreadMessagesError, setUnreadMessagesError] = useState(null);
+
+	useEffect(() => {
+		if (!coachUid) {
+			setUnreadMessages([]);
+			setUnreadMessagesError(null);
+			return () => {};
+		}
+		const unsubscribe = subscribeUnreadMessagesForCoach(coachUid, ({ data, error }) => {
+			if (error) {
+				setUnreadMessagesError(error);
+				setUnreadMessages([]);
+				return;
+			}
+			setUnreadMessages(Array.isArray(data) ? data : []);
+			setUnreadMessagesError(null);
+		});
+		return () => {
+			if (typeof unsubscribe === "function") unsubscribe();
+		};
+	}, [coachUid]);
 
 	useEffect(() => {
 		if (!coachUid) {
@@ -371,10 +408,10 @@ const CoachLayout = () => {
 
 	const customerOptions = useMemo(() => {
 		const options = [
-			{ value: "all", label: "Alle klanten" },
+			{ value: "all", label: "Alle kandidaten" },
 			...customersList.map((customer) => ({
 				value: customer.id,
-				label: customer.name || customer.email || "Unknown customer",
+				label: customer.name || customer.email || "Onbekende kandidaat",
 			})),
 		];
 		return options;
@@ -405,17 +442,39 @@ const CoachLayout = () => {
 	const subtitle = useMemo(() => {
 		const parts = [];
 		if (isImpersonating) {
-			parts.push(`Meespelen door ${impersonatingAdminLabel || "Admin"}`);
+			parts.push(`Meespelen door ${impersonatingAdminLabel || "Beheerder"}`);
 		}
 		if (selectedCustomer) {
-			parts.push(`Focus: ${selectedCustomer.name || selectedCustomer.email || "Customer"}`);
+			parts.push(`Focus: ${selectedCustomer.name || selectedCustomer.email || "Kandidaat"}`);
 		} else if (customersList.length === 0) {
-			parts.push("Geen klanten gekoppeld");
+			parts.push("Geen kandidaten gekoppeld");
 		} else {
-			parts.push(`${customersList.length} klanten gekoppeld`);
+			parts.push(`${customersList.length} kandidaten gekoppeld`);
 		}
 		return parts.join(" • ");
 	}, [customersList.length, impersonatingAdminLabel, isImpersonating, selectedCustomer]);
+
+	const unreadMessagesByThread = useMemo(() => {
+		const map = {};
+		unreadMessages.forEach((message) => {
+			if (!message?.threadId) return;
+			if (!map[message.threadId]) map[message.threadId] = [];
+			map[message.threadId].push(message);
+		});
+		return map;
+	}, [unreadMessages]);
+
+	const unreadMessageSummary = useMemo(() => {
+		const uniqueSenders = new Set();
+		unreadMessages.forEach((message) => {
+			if (message?.senderId) uniqueSenders.add(message.senderId);
+		});
+		return {
+			total: unreadMessages.length,
+			uniqueSenders: uniqueSenders.size,
+			error: unreadMessagesError,
+		};
+	}, [unreadMessages, unreadMessagesError]);
 
 	const topbarUser = {
 		name:
@@ -423,9 +482,9 @@ const CoachLayout = () => {
 			sqlUser?.name ||
 			coachDoc?.email ||
 			sqlUser?.email ||
-			"Coach",
+			"Begeleider",
 		subtitle,
-		role: "Coach",
+		role: "Begeleider",
 		email: coachDoc?.email || sqlUser?.email || "",
 		photoURL: coachDoc?.photoURL || sqlUser?.photoURL || sqlUser?.photoUrl || null,
 	};
@@ -450,6 +509,11 @@ const CoachLayout = () => {
 		if (backup?.adminCustomToken) {
 			try {
 				await signInWithCustomToken(auth, backup.adminCustomToken);
+				try {
+					await post("/auth/track-login", {});
+				} catch (_) {
+					// best-effort tracking, non-blocking
+				}
 			} catch (error) {
 				adminSignInError = error;
 			}
@@ -482,6 +546,8 @@ const CoachLayout = () => {
 		setAssignmentsError(null);
 		setFeedbackItems([]);
 		setFeedbackError(null);
+		setUnreadMessages([]);
+		setUnreadMessagesError(null);
 		setSelectedCustomerId("all");
 
 		if (adminSignInError) {
@@ -513,6 +579,8 @@ const CoachLayout = () => {
 		setAssignmentsError(null);
 		setFeedbackItems([]);
 		setFeedbackError(null);
+		setUnreadMessages([]);
+		setUnreadMessagesError(null);
 		setSelectedCustomerId("all");
 		navigate("/login", { replace: true });
 	};
@@ -525,12 +593,16 @@ const CoachLayout = () => {
 			assignments,
 			feedback: feedbackItems,
 			selectedCustomer,
+			unreadMessages,
+			unreadMessagesByThread,
+			unreadMessageSummary,
 			errors: {
 				user: userError,
 				profile: coachProfileError,
 				customers: customersError,
 				assignments: assignmentsError,
 				feedback: feedbackError,
+				messages: unreadMessagesError,
 			},
 			loading: {
 				user: loadingUser,
@@ -545,10 +617,14 @@ const CoachLayout = () => {
 			customersList,
 			feedbackError,
 			feedbackItems,
+			unreadMessageSummary,
+			unreadMessages,
+			unreadMessagesByThread,
 			loadingUser,
 			selectedCustomer,
 			sqlUser,
 			userError,
+			unreadMessagesError,
 		]
 	);
 
@@ -563,8 +639,8 @@ const CoachLayout = () => {
 						<div className="space-y-4 text-white">
 							<BrandLogo className="w-fit" tone="dark" />
 							<div className="space-y-1">
-								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Coach</p>
-								<h1 className="text-xl font-semibold text-white">EVC Workspace</h1>
+								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Begeleider</p>
+								<h1 className="text-xl font-semibold text-white">EVC Werkruimte</h1>
 							</div>
 						</div>
 					}
@@ -573,7 +649,7 @@ const CoachLayout = () => {
 			}
 			topbar={
 				<Topbar
-					title="Coaching dashboard"
+					title="Begeleidersdashboard"
 					tone="brand"
 					user={topbarUser}
 					logoTo="/coach"
@@ -585,7 +661,7 @@ const CoachLayout = () => {
 									onClick={handleExitImpersonation}
 									className="rounded-full border border-white/40 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
 								>
-									Stop meespelen als coach
+									Stop meespelen als begeleider
 								</button>
 							) : null}
 							<select
@@ -604,7 +680,7 @@ const CoachLayout = () => {
 								onClick={handleLogout}
 								className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-evc-blue-600 shadow-lg transition hover:bg-white/90"
 							>
-								Sign out
+								Afmelden
 							</button>
 						</div>
 					}
@@ -717,7 +793,7 @@ const CustomerLayout = () => {
 			id: fallbackUid,
 			uid: fallbackUid,
 			firebaseUid: fallbackUid,
-			name: sqlUser.name || sqlUser.email || "Customer",
+			name: sqlUser.name || sqlUser.email || "Kandidaat",
 			email: sqlUser.email || "",
 			role: sqlUser.role || "customer",
 			trajectId: sqlUser.trajectId || null,
@@ -729,6 +805,19 @@ const CustomerLayout = () => {
 		if (coachDoc) return coachDoc;
 		return null;
 	}, [coachDoc]);
+
+	const normalizedAssignmentStatus = useMemo(
+		() => normalizeTrajectStatus(assignmentDoc?.status),
+		[assignmentDoc?.status]
+	);
+
+	const customerNavItems = useMemo(() => {
+		const items = [...BASE_CUSTOMER_NAV_ITEMS];
+		if (isCollectingStatus(normalizedAssignmentStatus)) {
+			return [...items.filter((item) => item.to !== READY_NAV_ITEM.to), READY_NAV_ITEM];
+		}
+		return items;
+	}, [normalizedAssignmentStatus]);
 
 		const activityLabel = useMemo(() => {
 			if (!resolvedCustomer?.lastActivity) return "-";
@@ -749,33 +838,38 @@ const CustomerLayout = () => {
 
 		const subtitleParts = [];
 		if (isImpersonating) {
-			subtitleParts.push(`Meekijken door ${impersonatingAdminLabel || "Admin"}`);
+			subtitleParts.push(`Meekijken door ${impersonatingAdminLabel || "Beheerder"}`);
 		}
-		if (resolvedCoach?.name) subtitleParts.push(`Coach: ${resolvedCoach.name}`);
-		if (assignmentDoc?.status) subtitleParts.push(assignmentDoc.status);
-		const subtitle = subtitleParts.join(" • ") || "Customer";
+		if (resolvedCoach?.name) subtitleParts.push(`Begeleider: ${resolvedCoach.name}`);
+		if (assignmentDoc?.status) {
+			const statusLabel = getTrajectStatusLabel(assignmentDoc.status);
+			if (statusLabel && statusLabel !== "Onbekend") {
+				subtitleParts.push(statusLabel);
+			}
+		}
+		const subtitle = subtitleParts.join(" • ") || "Kandidaat";
 
 		const activeCustomerNav = useMemo(() => {
 			const currentPath = location.pathname;
 			return (
-				CUSTOMER_NAV_ITEMS.find((item) => currentPath.startsWith(item.to)) ||
-				CUSTOMER_NAV_ITEMS[0]
+				customerNavItems.find((item) => currentPath.startsWith(item.to)) ||
+				customerNavItems[0]
 			);
-		}, [location.pathname]);
+		}, [customerNavItems, location.pathname]);
 
 		const topbarTitle = activeCustomerNav?.label || "Mijn EVC";
 
-	const topbarUser = {
-		name: resolvedCustomer?.name || "Customer",
-		subtitle,
-		role: "Customer",
-		email: resolvedCustomer?.email || sqlUser?.email || "",
-		photoURL:
-			resolvedCustomer?.photoURL ||
-			sqlUser?.photoURL ||
-			sqlUser?.photoUrl ||
-			null,
-	};
+		const topbarUser = {
+			name: resolvedCustomer?.name || "Kandidaat",
+			subtitle,
+			role: "Kandidaat",
+			email: resolvedCustomer?.email || sqlUser?.email || "",
+			photoURL:
+				resolvedCustomer?.photoURL ||
+				sqlUser?.photoURL ||
+				sqlUser?.photoUrl ||
+				null,
+		};
 
 	const handleCustomerLogout = async () => {
 		try {
@@ -813,6 +907,11 @@ const CustomerLayout = () => {
 		if (backup?.adminCustomToken) {
 			try {
 				await signInWithCustomToken(auth, backup.adminCustomToken);
+				try {
+					await post("/auth/track-login", {});
+				} catch (_) {
+					// best-effort tracking, non-blocking
+				}
 			} catch (err) {
 				adminSignInError = err;
 			}
@@ -861,12 +960,12 @@ const CustomerLayout = () => {
 						<div className="space-y-4 text-white">
 							<BrandLogo className="w-fit" tone="dark" />
 							<div className="space-y-1">
-								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Customer</p>
+								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Kandidaat</p>
 								<h1 className="text-xl font-semibold text-white">Mijn EVC</h1>
 							</div>
 						</div>
 					}
-					navItems={CUSTOMER_NAV_ITEMS}
+					navItems={customerNavItems}
 				/>
 			}
 			topbar={
@@ -898,7 +997,7 @@ const CustomerLayout = () => {
 							</span>
 							{resolvedCoach ? (
 								<span className="hidden rounded-full bg-white px-3 py-1 font-medium text-evc-blue-600 sm:inline">
-									Coach {resolvedCoach.name}
+									Begeleider {resolvedCoach.name}
 								</span>
 							) : null}
 						</div>
@@ -929,11 +1028,12 @@ const App = () => {
 				<Route path="/login" element={<Login />} />
 				<Route path="/testing/create-account" element={<TestCreateAccount />} />
 				<Route path="/admin" element={<AdminLayout />}>
-					<Route index element={<AdminOverview />} />
+					<Route index element={<AdminDashboard />} />
 					<Route path="assignments" element={<AdminAssignments />} />
 					<Route path="trajects" element={<AdminTrajects />} />
 					<Route path="profile" element={<AdminProfile />} />
 					<Route path="users" element={<AdminUsers />} />
+					<Route path="users/create" element={<AdminCreateUser />} />
 				</Route>
 
 				<Route path="/coach" element={<CoachLayout />}>
@@ -950,7 +1050,9 @@ const App = () => {
 					<Route path="dashboard" element={<CustomerDashboard />} />
 					<Route path="profile" element={<CustomerProfile />} />
 					<Route path="career-goal" element={<CustomerCareerGoal />} />
-					<Route path="portfolio" element={<CustomerPlanning />} />
+					  <Route path="vragenlijst" element={<CustomerVragenlijst />} />
+					  <Route path="portfolio" element={<CustomerPlanning />} />
+					<Route path="klaar" element={<CustomerReady />} />
 					<Route path="workplace-visit" element={<CustomerWorkplaceVisit />} />
 					<Route path="criterium-interview" element={<CustomerCriteriumInterview />} />
 					<Route path="contact" element={<CustomerMessages />} />
