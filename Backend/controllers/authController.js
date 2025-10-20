@@ -208,20 +208,24 @@ exports.adminImpersonate = async (req, res) => {
     const data = snap.data() || {};
     const normalizedRole = String(data.role || "").toLowerCase();
     if (!MANAGED_ROLES.has(normalizedRole)) return res.status(400).json({ error: "Target user has unsupported role" });
-    if (!["customer", "user"].includes(normalizedRole)) return res.status(403).json({ error: "Only customer accounts can be impersonated" });
+    if (!["customer", "user", "coach"].includes(normalizedRole)) {
+      return res.status(403).json({ error: "Only customer or coach accounts can be impersonated" });
+    }
 
     const adminUid = req.user?.uid || req.user?.firebaseUid;
     if (!adminUid) return res.status(401).json({ error: "Not authenticated" });
 
     // Create custom tokens for both admin (to switch back) and the target customer
-    const customerCustomToken = await adminAuth.createCustomToken(firebaseUid, {
+    const impersonationCustomToken = await adminAuth.createCustomToken(firebaseUid, {
       impersonatedBy: adminUid,
       role: normalizedRole,
     });
     const adminCustomToken = await adminAuth.createCustomToken(adminUid, { role: "admin" });
 
     return res.json({
-      customerCustomToken,
+      customerCustomToken: impersonationCustomToken,
+      targetCustomToken: impersonationCustomToken,
+      targetRole: normalizedRole,
       adminCustomToken,
       redirectPath: getRedirectPath(normalizedRole),
       user: {

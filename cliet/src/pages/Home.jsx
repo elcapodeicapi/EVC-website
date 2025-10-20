@@ -1,8 +1,35 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import LegacyPageLayout from "./LegacyPageLayout";
+import { post } from "../lib/api";
+import { auth } from "../firebase";
 
 const Home = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const credentials = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await credentials.user.getIdToken();
+      const data = await post("/auth/login/firebase", { idToken });
+      if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
+      const redirectPath = data.redirectPath || "/dashboard";
+      navigate(redirectPath, { replace: true });
+    } catch (err) {
+      setError(err?.data?.error || err?.message || "Inloggen is niet gelukt. Controleer je gegevens.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <LegacyPageLayout showHeader={false}>
       <section className="flex min-h-[70vh] items-center justify-center">
@@ -13,39 +40,51 @@ const Home = () => {
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-500">EVC platform</p>
                 <h1 className="mt-3 text-2xl font-semibold text-slate-900">Welkom bij EVC Portal</h1>
               </div>
-              <form className="space-y-5" noValidate>
+              <form className="space-y-5" noValidate onSubmit={handleSubmit}>
+                {error ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
                 <div className="space-y-2">
-                  <label htmlFor="login-username" className="text-sm font-medium text-slate-700">
-                    Gebruikersnaam
+                  <label htmlFor="home-login-email" className="text-sm font-medium text-slate-700">
+                    E-mail
                   </label>
                   <input
-                    id="login-username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
-                    placeholder="jouw@gebruikersnaam.nl"
+                    id="home-login-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="jij@voorbeeld.nl"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="login-password" className="text-sm font-medium text-slate-700">
+                  <label htmlFor="home-login-password" className="text-sm font-medium text-slate-700">
                     Wachtwoord
                   </label>
                   <input
-                    id="login-password"
+                    id="home-login-password"
                     name="password"
                     type="password"
                     autoComplete="current-password"
                     placeholder="••••••••"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    required
                   />
                 </div>
                 <div className="flex flex-col gap-3">
                   <button
                     type="submit"
-                    className="inline-flex w-full items-center justify-center rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:ring-offset-2"
+                    disabled={loading}
+                    className="inline-flex w-full items-center justify-center rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-brand-300"
                   >
-                    Inloggen
+                    {loading ? "Bezig met inloggen..." : "Inloggen"}
                   </button>
                   <Link
                     to="/password-reset"

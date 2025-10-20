@@ -231,6 +231,14 @@ const CoachLayout = () => {
 			return null;
 		}
 	});
+	const [impersonationBackup, setImpersonationBackup] = useState(() => {
+		try {
+			const raw = localStorage.getItem("impersonationBackup");
+			return raw ? JSON.parse(raw) : null;
+		} catch (_) {
+			return null;
+		}
+	});
 	const [loadingUser, setLoadingUser] = useState(!sqlUser);
 	const [userError, setUserError] = useState(null);
 
@@ -373,6 +381,12 @@ const CoachLayout = () => {
 	}, [customersList]);
 
 	const [selectedCustomerId, setSelectedCustomerId] = useState("all");
+	const isImpersonating = Boolean(impersonationBackup);
+	const impersonatingAdminLabel = useMemo(() => {
+		if (!impersonationBackup?.userData) return null;
+		const { name, email } = impersonationBackup.userData;
+		return name || email || null;
+	}, [impersonationBackup]);
 
 	useEffect(() => {
 		if (!customerOptions.some((option) => option.value === selectedCustomerId)) {
@@ -389,14 +403,19 @@ const CoachLayout = () => {
 	);
 
 	const subtitle = useMemo(() => {
+		const parts = [];
+		if (isImpersonating) {
+			parts.push(`Meespelen door ${impersonatingAdminLabel || "Admin"}`);
+		}
 		if (selectedCustomer) {
-			return `Focus: ${selectedCustomer.name || selectedCustomer.email || "Customer"}`;
+			parts.push(`Focus: ${selectedCustomer.name || selectedCustomer.email || "Customer"}`);
+		} else if (customersList.length === 0) {
+			parts.push("Geen klanten gekoppeld");
+		} else {
+			parts.push(`${customersList.length} klanten gekoppeld`);
 		}
-		if (customersList.length === 0) {
-			return "Geen klanten gekoppeld";
-		}
-		return `${customersList.length} klanten gekoppeld`;
-	}, [selectedCustomer, customersList.length]);
+		return parts.join(" • ");
+	}, [customersList.length, impersonatingAdminLabel, isImpersonating, selectedCustomer]);
 
 	const topbarUser = {
 		name:
@@ -411,9 +430,90 @@ const CoachLayout = () => {
 		photoURL: coachDoc?.photoURL || sqlUser?.photoURL || sqlUser?.photoUrl || null,
 	};
 
-	const handleLogout = () => {
+	const handleExitImpersonation = async () => {
+		if (!isImpersonating) {
+			navigate("/admin", { replace: true });
+			return;
+		}
+
+		let backup = impersonationBackup;
+		if (!backup) {
+			try {
+				const raw = localStorage.getItem("impersonationBackup");
+				backup = raw ? JSON.parse(raw) : null;
+			} catch (_) {
+				backup = null;
+			}
+		}
+
+		let adminSignInError = null;
+		if (backup?.adminCustomToken) {
+			try {
+				await signInWithCustomToken(auth, backup.adminCustomToken);
+			} catch (error) {
+				adminSignInError = error;
+			}
+		}
+
+		if (backup && Object.prototype.hasOwnProperty.call(backup, "user")) {
+			if (backup.user === null) {
+				localStorage.removeItem("user");
+				setSqlUser(null);
+			} else {
+				localStorage.setItem("user", backup.user);
+				try {
+					setSqlUser(normalizeUserRecord(JSON.parse(backup.user)));
+				} catch (_) {
+					setSqlUser(null);
+				}
+			}
+		} else {
+			localStorage.removeItem("user");
+			setSqlUser(null);
+		}
+
+		localStorage.removeItem("impersonationBackup");
+		setImpersonationBackup(null);
+		setCoachDoc(null);
+		setCoachProfileError(null);
+		setCustomersList([]);
+		setCustomersError(null);
+		setAssignments([]);
+		setAssignmentsError(null);
+		setFeedbackItems([]);
+		setFeedbackError(null);
+		setSelectedCustomerId("all");
+
+		if (adminSignInError) {
+			localStorage.removeItem("user");
+			setSqlUser(null);
+			navigate("/login", { replace: true });
+			return;
+		}
+
+		navigate("/admin", { replace: true });
+	};
+
+	const handleLogout = async () => {
+		try {
+			await signOut(auth);
+		} catch (_) {
+			// best-effort sign-out
+		}
 		localStorage.removeItem("token");
 		localStorage.removeItem("user");
+		localStorage.removeItem("impersonationBackup");
+		setImpersonationBackup(null);
+		setSqlUser(null);
+		setCoachDoc(null);
+		setCoachProfileError(null);
+		setCustomersList([]);
+		setCustomersError(null);
+		setAssignments([]);
+		setAssignmentsError(null);
+		setFeedbackItems([]);
+		setFeedbackError(null);
+		setSelectedCustomerId("all");
 		navigate("/login", { replace: true });
 	};
 
@@ -479,6 +579,15 @@ const CoachLayout = () => {
 					logoTo="/coach"
 					rightSlot={
 						<div className="flex items-center gap-3">
+							{isImpersonating ? (
+								<button
+									type="button"
+									onClick={handleExitImpersonation}
+									className="rounded-full border border-white/40 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+								>
+									Stop meespelen als coach
+								</button>
+							) : null}
 							<select
 								value={selectedCustomerId}
 								onChange={(event) => setSelectedCustomerId(event.target.value)}
