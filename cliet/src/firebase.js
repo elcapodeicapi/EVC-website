@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { getAnalytics, isSupported as analyticsIsSupported } from "firebase/analytics";
 import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence, onIdTokenChanged } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
@@ -8,12 +9,33 @@ const firebaseConfig = {
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "localhost",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "evcwebsite12345",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Initialize Analytics only in supported environments and when configured
+export let analytics;
+if (typeof window !== "undefined") {
+  try {
+    analyticsIsSupported().then((supported) => {
+      if (supported && (import.meta?.env?.VITE_FIREBASE_MEASUREMENT_ID || firebaseConfig.measurementId)) {
+        try {
+          analytics = getAnalytics(app);
+        } catch (_) {
+          // No-op if analytics fails to initialize (e.g., in some browsers / emulator contexts)
+        }
+      }
+    });
+  } catch (_) {
+    // ignore
+  }
+}
 
 // Connect to local emulators in development. Use VITE_USE_EMULATORS=true to force.
 const isLocalHost =
@@ -23,6 +45,7 @@ const isLocalHost =
 const shouldUseEmulators =
   import.meta?.env?.DEV === true ||
   import.meta?.env?.VITE_USE_EMULATORS === "true" ||
+  import.meta?.env?.USE_FIREBASE_EMULATORS === "true" ||
   isLocalHost;
 
 let emulatorsConnected = false;

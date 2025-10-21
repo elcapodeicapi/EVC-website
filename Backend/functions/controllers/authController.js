@@ -1,5 +1,5 @@
 const admin = require("firebase-admin");
-const { db: adminDb, auth: adminAuth } = require("../firebase");
+const { getDb, getAuth } = require("../firebase");
 
 const MANAGED_ROLES = new Set(["admin", "coach", "customer", "user"]);
 
@@ -45,13 +45,20 @@ async function upsertUserLoginMetadata(uid, metadata = {}) {
   if (!uid) {
     return { profile: null };
   }
-  const payload = { lastLoggedIn: admin.firestore.FieldValue.serverTimestamp() };
+  // Use server timestamp when available; fall back to Timestamp.now() or Date to avoid crashes in environments
+  // where FieldValue may be undefined due to SDK/runtime differences.
+  const serverTsFn = admin?.firestore?.FieldValue?.serverTimestamp;
+  const timestampNow = admin?.firestore?.Timestamp?.now;
+  const lastLoggedIn = typeof serverTsFn === "function"
+    ? serverTsFn()
+    : (typeof timestampNow === "function" ? timestampNow() : new Date());
+  const payload = { lastLoggedIn };
   Object.entries(metadata).forEach(([key, value]) => {
     if (value !== undefined) {
       payload[key] = value;
     }
   });
-  const userRef = adminDb.collection("users").doc(uid);
+  const userRef = getDb().collection("users").doc(uid);
   await userRef.set(payload, { merge: true });
   const updatedSnap = await userRef.get();
   const profile = updatedSnap.exists ? updatedSnap.data() || {} : {};
@@ -64,8 +71,8 @@ async function upsertUserLoginMetadata(uid, metadata = {}) {
 exports.register = async (req, res) => {
   try {
     const { email, password, role = "user", name, trajectId = null } = req.body;
-    const userRecord = await adminAuth.createUser({ email, password, displayName: name });
-  await adminDb.collection("users").doc(userRecord.uid).set({
+  const userRecord = await getAuth().createUser({ email, password, displayName: name });
+	await getDb().collection("users").doc(userRecord.uid).set({
       name,
       email,
       role,
@@ -93,7 +100,7 @@ exports.me = async (req, res) => {
   try {
     const uid = req.user?.uid || req.user?.firebaseUid;
     if (!uid) return res.status(401).json({ error: "Not authenticated" });
-    const snap = await adminDb.collection("users").doc(uid).get();
+  const snap = await getDb().collection("users").doc(uid).get();
     if (!snap.exists) return res.status(404).json({ error: "User not found" });
     const data = snap.data() || {};
     res.json({
@@ -120,12 +127,12 @@ exports.firebaseLogin = async (req, res) => {
       return res.status(400).json({ error: "Missing idToken" });
     }
 
-    const decoded = await adminAuth.verifyIdToken(idToken);
+  const decoded = await getAuth().verifyIdToken(idToken);
     const uid = decoded.uid;
     const email = decoded.email;
 
     // Load profile from Firestore (role/name)
-    const snap = await adminDb.collection("users").doc(uid).get();
+  const snap = await getDb().collection("users").doc(uid).get();
     const profile = snap.exists ? snap.data() || {} : {};
     const role = profile.role || "user";
     const name = profile.name || decoded.name || "";
@@ -177,12 +184,12 @@ exports.firebaseRegister = async (req, res) => {
     if (!idToken) {
       return res.status(400).json({ error: "Missing idToken" });
     }
-    const decoded = await adminAuth.verifyIdToken(idToken);
+  const decoded = await getAuth().verifyIdToken(idToken);
     const uid = decoded.uid;
     const email = decoded.email;
 
     // Write/merge profile to Firestore
-    await adminDb.collection("users").doc(uid).set(
+  await getDb().collection("users").doc(uid).set(
       {
         name: name || decoded.name || "",
         email,
@@ -241,16 +248,16 @@ exports.adminCreateUser = async (req, res) => {
     }
 
     // Prevent duplicates (Firestore)
-    const existingSnap = await adminDb.collection("users").where("email", "==", email).limit(1).get();
+  const existingSnap = await getDb().collection("users").where("email", "==", email).limit(1).get();
     if (!existingSnap.empty) return res.status(409).json({ error: "User already exists" });
 
-    const userRecord = await adminAuth.createUser({
+  const userRecord = await getAuth().createUser({
       email,
       password,
       displayName: name,
     });
 
-    await adminDb.collection("users").doc(userRecord.uid).set({
+  await getDb().collection("users").doc(userRecord.uid).set({
       name,
       email,
       role: normalizedRole,
@@ -277,7 +284,7 @@ exports.adminCreateUser = async (req, res) => {
 // GET /auth/admin/users
 exports.adminListUsers = async (_req, res) => {
   try {
-    const snap = await adminDb.collection("users").orderBy("createdAt", "desc").get();
+  const snap = await getDb().collection("users").orderBy("createdAt", "desc").get();
     const users = snap.docs.map((doc) => {
       const data = doc.data() || {};
       return {
@@ -298,7 +305,7 @@ exports.adminImpersonate = async (req, res) => {
     const { firebaseUid } = req.body || {};
     if (!firebaseUid) return res.status(400).json({ error: "firebaseUid is required" });
 
-    const snap = await adminDb.collection("users").doc(firebaseUid).get();
+  const snap = await getDb().collection("users").doc(firebaseUid).get();
     if (!snap.exists) return res.status(404).json({ error: "Target user not found" });
     const data = snap.data() || {};
     const normalizedRole = String(data.role || "").toLowerCase();
@@ -311,11 +318,11 @@ exports.adminImpersonate = async (req, res) => {
     if (!adminUid) return res.status(401).json({ error: "Not authenticated" });
 
     // Create custom tokens for both admin (to switch back) and the target customer
-    const impersonationCustomToken = await adminAuth.createCustomToken(firebaseUid, {
+  const impersonationCustomToken = await getAuth().createCustomToken(firebaseUid, {
       impersonatedBy: adminUid,
       role: normalizedRole,
     });
-    const adminCustomToken = await adminAuth.createCustomToken(adminUid, { role: "admin" });
+  const adminCustomToken = await getAuth().createCustomToken(adminUid, { role: "admin" });
 
     return res.json({
       customerCustomToken: impersonationCustomToken,

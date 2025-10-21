@@ -1,4 +1,4 @@
-const { db } = require("../firebase");
+const { getDb } = require("../firebase");
 const { uploadBuffer, sanitizeFilename, bucket } = require("../utils/storage");
 const crypto = require("crypto");
 
@@ -164,8 +164,8 @@ exports.getProfile = async (req, res) => {
     if (!uid) return res.status(400).json({ error: "Missing Firebase user id" });
 
     const [userSnap, profileSnap] = await Promise.all([
-      db.collection("users").doc(uid).get(),
-      db.collection("profiles").doc(uid).get(),
+  getDb().collection("users").doc(uid).get(),
+  getDb().collection("profiles").doc(uid).get(),
     ]);
 
     if (!userSnap.exists) {
@@ -195,11 +195,11 @@ exports.updateProfile = async (req, res) => {
 
     const payload = sanitizePayload(req.body);
 
-    await db.collection("profiles").doc(uid).set(payload, { merge: true });
+  await getDb().collection("profiles").doc(uid).set(payload, { merge: true });
 
     const [userSnap, profileSnap] = await Promise.all([
-      db.collection("users").doc(uid).get(),
-      db.collection("profiles").doc(uid).get(),
+  getDb().collection("users").doc(uid).get(),
+  getDb().collection("profiles").doc(uid).get(),
     ]);
     const user = userSnap.exists ? userSnap.data() : {};
     const normalized = normalizeProfile(profileSnap.exists ? profileSnap.data() : payload);
@@ -248,11 +248,11 @@ exports.uploadCertificate = async (req, res) => {
       uploadedAt: new Date().toISOString(),
     };
 
-    const snap = await db.collection("profiles").doc(uid).get();
+  const snap = await getDb().collection("profiles").doc(uid).get();
     const profile = snap.exists ? snap.data() : {};
     const certificates = Array.isArray(profile.certificates) ? [...profile.certificates] : [];
     certificates.push({ id: generateId(), title: originalName, ...metadata });
-    await db.collection("profiles").doc(uid).set({ certificates }, { merge: true });
+  await getDb().collection("profiles").doc(uid).set({ certificates }, { merge: true });
 
     return res.json(metadata);
   } catch (error) {
@@ -286,8 +286,8 @@ exports.uploadProfilePhoto = async (req, res) => {
       },
     });
 
-    const profileRef = db.collection("profiles").doc(uid);
-    const userRef = db.collection("users").doc(uid);
+  const profileRef = getDb().collection("profiles").doc(uid);
+  const userRef = getDb().collection("users").doc(uid);
 
     const [profileSnap, userSnap] = await Promise.all([
       profileRef.get().catch(() => null),

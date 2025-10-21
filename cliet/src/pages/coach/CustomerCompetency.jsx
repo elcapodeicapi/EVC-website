@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -169,6 +169,28 @@ const CustomerTrajectOverview = () => {
 
   const [activeSection, setActiveSection] = useState("overzicht");
   const [openDropdown, setOpenDropdown] = useState(null);
+  const dropdownCloseTimeoutRef = useRef(null);
+
+  const cancelDropdownClose = () => {
+    if (dropdownCloseTimeoutRef.current) {
+      clearTimeout(dropdownCloseTimeoutRef.current);
+      dropdownCloseTimeoutRef.current = null;
+    }
+  };
+
+  const handleDropdownEnter = (key) => {
+    cancelDropdownClose();
+    setOpenDropdown(key);
+  };
+
+  const handleDropdownLeave = () => {
+    cancelDropdownClose();
+    dropdownCloseTimeoutRef.current = setTimeout(() => {
+      setOpenDropdown(null);
+      dropdownCloseTimeoutRef.current = null;
+    }, 120);
+  };
+  useEffect(() => () => cancelDropdownClose(), []);
 
   const [profileState, setProfileState] = useState({ data: null, loading: true, error: null });
   const [progressState, setProgressState] = useState({ data: null, loading: false, error: null });
@@ -836,8 +858,8 @@ const CustomerTrajectOverview = () => {
 
         <div
           className="relative"
-          onMouseEnter={() => setOpenDropdown("candidate")}
-          onMouseLeave={() => setOpenDropdown(null)}
+          onMouseEnter={() => handleDropdownEnter("candidate")}
+          onMouseLeave={handleDropdownLeave}
         >
           <button
             type="button"
@@ -847,7 +869,11 @@ const CustomerTrajectOverview = () => {
             Kandidaat <ChevronDown className="h-3.5 w-3.5" />
           </button>
           {openDropdown === "candidate" ? (
-            <div className="absolute left-0 z-20 mt-2 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+            <div
+              className="absolute left-0 z-20 mt-2 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg"
+              onMouseEnter={() => handleDropdownEnter("candidate")}
+              onMouseLeave={handleDropdownLeave}
+            >
               {[
                 { key: "candidate-profile", label: "Profiel" },
                 { key: "candidate-intake", label: "Intake" },
@@ -858,7 +884,10 @@ const CustomerTrajectOverview = () => {
                 <button
                   key={option.key}
                   type="button"
-                  onClick={() => setActiveSection(option.key)}
+                  onClick={() => {
+                    setActiveSection(option.key);
+                    setOpenDropdown(null);
+                  }}
                   className={clsx(
                     "w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-slate-600 hover:bg-brand-50",
                     activeSection === option.key ? "bg-brand-50 font-semibold text-brand-700" : null
@@ -873,8 +902,8 @@ const CustomerTrajectOverview = () => {
 
         <div
           className="relative"
-          onMouseEnter={() => setOpenDropdown("instrumenten")}
-          onMouseLeave={() => setOpenDropdown(null)}
+          onMouseEnter={() => handleDropdownEnter("instrumenten")}
+          onMouseLeave={handleDropdownLeave}
         >
           <button
             type="button"
@@ -884,7 +913,11 @@ const CustomerTrajectOverview = () => {
             Instrumenten <ChevronDown className="h-3.5 w-3.5" />
           </button>
           {openDropdown === "instrumenten" ? (
-            <div className="absolute left-0 z-20 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+            <div
+              className="absolute left-0 z-20 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg"
+              onMouseEnter={() => handleDropdownEnter("instrumenten")}
+              onMouseLeave={handleDropdownLeave}
+            >
               {[
                 { key: "instrument-portfolio", label: "Portfolio" },
                 { key: "instrument-werkplek", label: "Werkplekbezoek" },
@@ -893,7 +926,10 @@ const CustomerTrajectOverview = () => {
                 <button
                   key={option.key}
                   type="button"
-                  onClick={() => setActiveSection(option.key)}
+                  onClick={() => {
+                    setActiveSection(option.key);
+                    setOpenDropdown(null);
+                  }}
                   className={clsx(
                     "w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-slate-600 hover:bg-brand-50",
                     activeSection === option.key ? "bg-brand-50 font-semibold text-brand-700" : null

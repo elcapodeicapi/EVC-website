@@ -7,26 +7,31 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
+const {onRequest} = require("firebase-functions/v2/https");
+const {onInit} = require("firebase-functions/v2/core");
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+const createApp = require("./app");
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+// Global options moved per-function to avoid requiring the heavy v2 root module.
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+let appInstance;
+
+onInit(() => {
+	// Intentionally keep cold-start work minimal; app is created lazily on first request
+});
+
+exports.app = onRequest({
+	region: "europe-west1",
+	maxInstances: 10,
+	memory: "512MiB",
+	// Run as the App Engine default service account so custom-token signing works without extra IAM bindings.
+	serviceAccount: "evcwebsite12345@appspot.gserviceaccount.com",
+}, (req, res) => {
+	if (req.url.startsWith("/api/")) {
+		req.url = req.url.replace(/^\/api/, "");
+	} else if (req.url === "/api") {
+		req.url = "/";
+	}
+	if (!appInstance) appInstance = createApp();
+	return appInstance(req, res);
+});

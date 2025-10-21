@@ -1,4 +1,4 @@
-const { db: adminDb } = require("../firebase");
+const { getDb } = require("../firebase");
 
 function mapTrajectDoc(doc) {
   const data = doc.data();
@@ -153,7 +153,7 @@ async function commitBatch(actions) {
     return;
   }
 
-  let batch = adminDb.batch();
+  let batch = getDb().batch();
   let counter = 0;
 
   for (const apply of actions) {
@@ -161,7 +161,7 @@ async function commitBatch(actions) {
     counter += 1;
     if (counter >= 450) {
       await batch.commit();
-      batch = adminDb.batch();
+  batch = getDb().batch();
       counter = 0;
     }
   }
@@ -172,7 +172,7 @@ async function commitBatch(actions) {
 }
 
 async function fetchTrajectDetail(trajectId) {
-  const trajectRef = adminDb.collection("trajects").doc(trajectId);
+  const trajectRef = getDb().collection("trajects").doc(trajectId);
   const trajectSnap = await trajectRef.get();
   if (!trajectSnap.exists) {
     return null;
@@ -197,7 +197,7 @@ async function fetchTrajectDetail(trajectId) {
     groupMap.set(key, group);
   });
 
-  const competenciesSnap = await adminDb
+  const competenciesSnap = await getDb()
     .collection("competencies")
     .where("trajectId", "==", trajectId)
     .get();
@@ -252,7 +252,7 @@ async function fetchTrajectDetail(trajectId) {
 
 exports.listTrajects = async (_req, res) => {
   try {
-    const snapshot = await adminDb.collection("trajects").orderBy("name").get();
+  const snapshot = await getDb().collection("trajects").orderBy("name").get();
     const trajects = snapshot.docs.map(mapTrajectDoc);
     res.json(trajects);
   } catch (error) {
@@ -276,7 +276,7 @@ exports.createTraject = async (req, res) => {
       return res.status(400).json({ error: "Voeg minimaal één competentiecluster toe." });
     }
 
-    const trajectRef = adminDb.collection("trajects").doc();
+  const trajectRef = getDb().collection("trajects").doc();
     const trajectId = trajectRef.id;
     const now = new Date();
 
@@ -295,7 +295,7 @@ exports.createTraject = async (req, res) => {
     });
 
     const createActions = competencyDocs.map((competency) => (batch) => {
-      const competencyRef = adminDb.collection("competencies").doc();
+  const competencyRef = getDb().collection("competencies").doc();
       batch.set(competencyRef, {
         trajectId,
         code: competency.code,
@@ -349,7 +349,7 @@ exports.updateTraject = async (req, res) => {
       return res.status(400).json({ error: "Traject ID is vereist" });
     }
 
-    const trajectRef = adminDb.collection("trajects").doc(id);
+  const trajectRef = getDb().collection("trajects").doc(id);
     const existingDoc = await trajectRef.get();
     if (!existingDoc.exists) {
       return res.status(404).json({ error: "Traject niet gevonden" });
@@ -384,7 +384,7 @@ exports.updateTraject = async (req, res) => {
       updatedAt: now,
     });
 
-    const existingCompetenciesSnap = await adminDb
+    const existingCompetenciesSnap = await getDb()
       .collection("competencies")
       .where("trajectId", "==", id)
       .get();
@@ -393,7 +393,7 @@ exports.updateTraject = async (req, res) => {
     await commitBatch(deleteActions);
 
     const createActions = competencyDocs.map((competency) => (batch) => {
-      const competencyRef = adminDb.collection("competencies").doc();
+  const competencyRef = getDb().collection("competencies").doc();
       batch.set(competencyRef, {
         trajectId: id,
         code: competency.code,
@@ -427,23 +427,23 @@ exports.getCustomerPlanning = async (req, res) => {
     const firebaseUid = req.user?.uid || req.user?.firebaseUid;
     if (!firebaseUid) return res.status(401).json({ error: "Not authenticated" });
 
-    const userSnap = await adminDb.collection("users").doc(firebaseUid).get();
+  const userSnap = await getDb().collection("users").doc(firebaseUid).get();
     if (!userSnap.exists) return res.status(404).json({ error: "User profile not found" });
     const userData = userSnap.data() || {};
     const trajectId = userData.trajectId || null;
     if (!trajectId) return res.status(404).json({ error: "No traject assigned" });
 
-    const trajectSnap = await adminDb.collection("trajects").doc(trajectId).get();
+  const trajectSnap = await getDb().collection("trajects").doc(trajectId).get();
     if (!trajectSnap.exists) return res.status(404).json({ error: "Traject not found" });
     const traject = mapTrajectDoc(trajectSnap);
 
-    const competenciesSnap = await adminDb
+    const competenciesSnap = await getDb()
       .collection("competencies")
       .where("trajectId", "==", trajectId)
       .get();
 
     // Prefer per-user uploads subcollection (new path), fall back to legacy evidences collection
-    const uploadsSnap = await adminDb
+    const uploadsSnap = await getDb()
       .collection("users")
       .doc(firebaseUid)
       .collection("uploads")
@@ -466,7 +466,7 @@ exports.getCustomerPlanning = async (req, res) => {
 
     // Legacy evidence collection support
     if (evidencesByCompetency.size === 0) {
-      const legacySnap = await adminDb
+      const legacySnap = await getDb()
         .collection("evidences")
         .where("userId", "==", firebaseUid)
         .where("trajectId", "==", trajectId)

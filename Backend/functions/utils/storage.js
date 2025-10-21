@@ -1,5 +1,5 @@
 const path = require("path");
-const { bucket } = require("../firebase");
+const { getBucket } = require("../firebase");
 
 function sanitizeFilename(name) {
   if (!name) return `file-${Date.now()}`;
@@ -8,6 +8,10 @@ function sanitizeFilename(name) {
 }
 
 async function saveBuffer(destination, buffer, { contentType, metadata } = {}) {
+  const bucket = getBucket();
+  if (!bucket) {
+    throw new Error("Firebase Storage bucket is not configured. Set FIREBASE_STORAGE_BUCKET or VITE_FIREBASE_STORAGE_BUCKET.");
+  }
   const file = bucket.file(destination);
   await file.save(buffer, {
     resumable: false,
@@ -20,6 +24,8 @@ async function saveBuffer(destination, buffer, { contentType, metadata } = {}) {
 function buildEmulatorDownloadUrl(file) {
   const host = process.env.FIREBASE_STORAGE_EMULATOR_HOST;
   if (!host) return null;
+  const bucket = getBucket();
+  if (!bucket) return null;
   return `http://${host}/v0/b/${bucket.name}/o/${encodeURIComponent(file.name)}?alt=media`;
 }
 
@@ -42,9 +48,16 @@ async function uploadBuffer(destination, buffer, options = {}) {
 }
 
 module.exports = {
-  bucket,
+  // re-export a live bucket getter for compatibility
+  getBucket,
   sanitizeFilename,
   saveBuffer,
   getDownloadUrl,
   uploadBuffer,
 };
+
+// Back-compat: expose a dynamic `bucket` property that resolves via getBucket()
+Object.defineProperty(module.exports, "bucket", {
+  enumerable: true,
+  get: () => getBucket(),
+});

@@ -1,4 +1,4 @@
-const { db } = require("../firebase");
+const { getDb } = require("../firebase");
 
 const COLLECTION = "careerGoals";
 const MAX_LENGTH = 10000;
@@ -20,7 +20,7 @@ exports.getCareerGoal = async (req, res) => {
       return res.status(400).json({ error: "Missing Firebase user id" });
     }
 
-    const snap = await db.collection(COLLECTION).doc(uid).get();
+  const snap = await getDb().collection(COLLECTION).doc(uid).get();
     const data = snap.exists ? snap.data() : {};
     return res.json(serialize(data));
   } catch (error) {
@@ -49,7 +49,7 @@ exports.updateCareerGoal = async (req, res) => {
       impersonatedBy: req.user?.impersonatedBy || null,
     };
 
-    await db.collection(COLLECTION).doc(uid).set(payload, { merge: true });
+  await getDb().collection(COLLECTION).doc(uid).set(payload, { merge: true });
     return res.json(serialize(payload));
   } catch (error) {
     return res.status(500).json({ error: error.message || "Failed to update career goal" });

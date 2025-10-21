@@ -6,23 +6,41 @@
     "indexes": "firestore.indexes.json"
   },
   "storage": {
-    "rules": "storage.rules",
-    "bucket": "evcwebsite12345.appspot.com"
+    "rules": "storage.rules"
   },
-  "functions": [
-    {
-      "source": "Backend/functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ],
-      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run lint"]
-    }
-  ],
+  "functions": {
+    "source": "Backend/functions",
+    "codebase": "default",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local"
+    ],
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run manifest",
+      "npm ci --prefix \"$RESOURCE_DIR\" --no-audit --no-fund",
+      "npm --prefix \"$RESOURCE_DIR\" run lint"
+    ]
+  },
+  "hosting": {
+    "public": "cliet/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": {
+          "functionId": "app",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "emulators": {
     "auth": {
       "port": 9099

@@ -1,4 +1,4 @@
-const { db } = require("../firebase");
+const { getDb } = require("../firebase");
 
 
 // GET all messages for the logged-in user (forum-like)
@@ -8,7 +8,7 @@ exports.getAllMessages = async (req, res) => {
     if (!uid) return res.status(400).json({ error: "Missing Firebase user id" });
 
     // Threads where current uid is a participant
-    const threadsSnap = await db
+    const threadsSnap = await getDb()
       .collection("threads")
       .where("participants", "array-contains", uid)
       .orderBy("updatedAt", "desc")
@@ -17,7 +17,7 @@ exports.getAllMessages = async (req, res) => {
     const threads = await Promise.all(
       threadsSnap.docs.map(async (docSnap) => {
         const data = docSnap.data();
-        const messagesSnap = await db
+        const messagesSnap = await getDb()
           .collection("threads")
           .doc(docSnap.id)
           .collection("messages")
@@ -48,7 +48,7 @@ exports.sendMessage = async (req, res) => {
       const participants = [fromUserId, toUserId].filter(Boolean).sort();
       if (participants.length < 2) return res.status(400).json({ error: "Missing recipient" });
 
-      const existing = await db
+      const existing = await getDb()
         .collection("threads")
         .where("participants", "array-contains", fromUserId)
         .get();
@@ -59,7 +59,7 @@ exports.sendMessage = async (req, res) => {
       if (found) {
         resolvedThreadId = found.id;
       } else {
-        const threadRef = await db.collection("threads").add({
+        const threadRef = await getDb().collection("threads").add({
           participants,
           participantProfiles: {},
           createdAt: new Date(),
@@ -69,7 +69,7 @@ exports.sendMessage = async (req, res) => {
       }
     }
 
-    const msgRef = await db
+    const msgRef = await getDb()
       .collection("threads")
       .doc(resolvedThreadId)
       .collection("messages")
@@ -79,7 +79,7 @@ exports.sendMessage = async (req, res) => {
         createdAt: new Date(),
       });
 
-    await db.collection("threads").doc(resolvedThreadId).update({
+    await getDb().collection("threads").doc(resolvedThreadId).update({
       lastMessage: content.trim(),
       lastMessageAuthorId: fromUserId,
       updatedAt: new Date(),

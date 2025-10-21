@@ -2,27 +2,40 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const { authenticate, authorizeRoles } = require("../Middleware/authMiddleware");
-const { auth: adminAuth } = require("../firebase");
+const { auth: adminAuth, getDb } = require("../firebase");
 
 const devBypassAdminUserCreation =
-  (process.env.ALLOW_DEV_ACCOUNT_CREATION || "false").toLowerCase() === "true";
+	(process.env.ALLOW_DEV_ACCOUNT_CREATION || "false").toLowerCase() === "true";
 
-if (devBypassAdminUserCreation) {
-  // eslint-disable-next-line no-console
-  console.warn("⚠️  Dev mode: /auth/admin/users does not require authentication.");
+// Middleware: allow bootstrap (first admin) without auth, else require admin
+async function allowBootstrapOrRequireAdmin(req, res, next) {
+	try {
+		if (devBypassAdminUserCreation) {
+			return next();
+		}
+		const snap = await getDb().collection("users").where("role", "==", "admin").limit(1).get();
+		if (snap.empty) {
+			// No admin exists yet: allow unauthenticated bootstrap creation
+			return next();
+		}
+		// Admin exists: enforce authentication and admin role
+		return authenticate(req, res, () => authorizeRoles("admin")(req, res, next));
+	} catch (e) {
+		return res.status(500).json({ error: e.message || "Auth bootstrap check failed" });
+	}
 }
 
 router.post("/login/firebase", authController.firebaseLogin);
+// Registration endpoints for client
+router.post("/register/firebase", authController.firebaseRegister);
+// Optional: legacy password-based registration (not recommended)
+router.post("/register", authController.register);
 router.post("/login", authController.login);
 router.get("/me", authenticate, authController.me);
 router.post("/track-login", authenticate, authController.trackLogin);
 
 // Admin-managed accounts
-router.post(
-	"/admin/users",
-	...(devBypassAdminUserCreation ? [] : [authenticate, authorizeRoles("admin")]),
-	authController.adminCreateUser
-);
+router.post("/admin/users", allowBootstrapOrRequireAdmin, authController.adminCreateUser);
 
 router.get(
 	"/admin/users",

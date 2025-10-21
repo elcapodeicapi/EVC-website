@@ -1,0 +1,23 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Deploy functions",
+			"type": "shell",
+			"command": "firebase deploy --only functions",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Deploy functions with dotenv",
+			"type": "shell",
+			"command": "firebase deploy --only functions",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}
