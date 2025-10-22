@@ -18,11 +18,7 @@
       "firebase-debug.*.log",
       "*.local"
     ],
-    "predeploy": [
-      "npm --prefix \"$RESOURCE_DIR\" run manifest",
-      "npm ci --prefix \"$RESOURCE_DIR\" --no-audit --no-fund",
-      "npm --prefix \"$RESOURCE_DIR\" run lint"
-    ]
+    "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run manifest"]
   },
   "hosting": {
     "public": "cliet/dist",

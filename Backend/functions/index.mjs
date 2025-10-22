@@ -2,38 +2,58 @@ import { onRequest } from "firebase-functions/v2/https";
 import { onInit } from "firebase-functions/v2/core";
 import * as functions from "firebase-functions";
 import sgMail from "@sendgrid/mail";
-import * as admin from "firebase-admin";
 import { createRequire } from "node:module";
+// Removed v2 identity import to use stable v1 auth trigger
+
 
 const require = createRequire(import.meta.url);
-const createApp = require("./app");
-const firebaseHelpers = require("./firebase");
+const functionsV1 = require("firebase-functions/v1");
+let firebaseHelpers; // lazy-loaded
+let createAppFactory; // lazy require to avoid heavy work during manifest generation
 
-const { ensureAppInitialized, getDb } = firebaseHelpers;
-
-// Ensure the Admin SDK is initialized with the project's preferred configuration.
-ensureAppInitialized();
-if (!admin.apps.length) {
-  admin.initializeApp();
+function getDbLazy() {
+  if (!firebaseHelpers) firebaseHelpers = require("./firebase");
+  return firebaseHelpers.getDb();
 }
 
-const sendgridConfig = functions.config().sendgrid || {};
-const sendgridKey = sendgridConfig.key || "";
-if (sendgridKey) {
-  sgMail.setApiKey(sendgridKey);
-} else {
-  functions.logger.warn(
-    "SendGrid API key is not configured. Set it with `firebase functions:config:set sendgrid.key=\"YOUR_SENDGRID_KEY\"`."
-  );
+function getAuthLazy() {
+  if (!firebaseHelpers) firebaseHelpers = require("./firebase");
+  return firebaseHelpers.getAuth();
 }
 
-const mailFrom = (functions.config().evc && functions.config().evc.from_email) || "info@mijnevcgo.nl";
-const websiteUrl = (functions.config().evc && functions.config().evc.site_url) || "https://mijnevcgo.nl";
+// Defer Admin SDK init to firebaseHelpers (ensureAppInitialized is called inside getDb/getAuth)
+
+// Lazily read runtime config and set SendGrid key once
+let sendgridConfigured = false;
+function getRuntimeConfig() {
+  const cfg = (functions.config && typeof functions.config === "function") ? functions.config() : {};
+  const sendgridKey = cfg?.sendgrid?.key || "";
+  const mailFrom = cfg?.evc?.from_email || "info@mijnevcgo.nl";
+  const websiteUrl = cfg?.evc?.site_url || "https://mijnevcgo.nl";
+  if (sendgridKey && !sendgridConfigured) {
+    try {
+      sgMail.setApiKey(sendgridKey);
+      sendgridConfigured = true;
+    } catch (e) {
+      functions.logger.error("Failed to set SendGrid API key", e?.message || e);
+    }
+  }
+  return { sendgridKey, mailFrom, websiteUrl };
+}
 
 let appInstance;
 
 onInit(() => {
-  // Intentionally left blank to keep cold-start work minimal.
+  // Defer any initialization to runtime, not at import time, to avoid deployment timeouts
+  // Warm up runtime config (and set SendGrid key once if present)
+  try {
+    getRuntimeConfig();
+  } catch (_) {
+    // ignore; config may not be available in all contexts
+  }
+  // Optionally, warm-load the Express app after startup (not during deployment manifest phase)
+  // Leaving it lazy keeps cold starts smaller; uncomment to pre-warm:
+  // try { if (!createAppFactory) { createAppFactory = require("./app"); } } catch {}
 });
 
 export const app = onRequest({ region: "europe-west1", maxInstances: 10, memory: "512MiB" }, (req, res) => {
@@ -43,7 +63,12 @@ export const app = onRequest({ region: "europe-west1", maxInstances: 10, memory:
     req.url = req.url.replace(/^\/api/, "") || "/";
   }
 
-  if (!appInstance) appInstance = createApp();
+  if (!appInstance) {
+    if (!createAppFactory) {
+      createAppFactory = require("./app");
+    }
+    appInstance = createAppFactory();
+  }
   return appInstance(req, res);
 });
 
@@ -79,9 +104,10 @@ function shouldSendEmail(user, userData) {
   return role === "customer" || role === "user";
 }
 
-export const sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
-  const email = user.email;
-  const uid = user.uid;
+export const sendWelcomeEmail = functionsV1.region("europe-west1").auth.user().onCreate(async (user) => {
+  const { sendgridKey, mailFrom, websiteUrl } = getRuntimeConfig();
+  const email = user?.email;
+  const uid = user?.uid;
 
   if (!email) {
     functions.logger.warn("Skipping welcome email; user has no email address.", { uid });
@@ -95,7 +121,7 @@ export const sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
 
   let userData = null;
   try {
-    const db = getDb();
+    const db = getDbLazy();
     const snap = await db.collection("users").doc(uid).get();
     if (snap.exists) {
       userData = snap.data() || null;
@@ -114,9 +140,39 @@ export const sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
   }
 
   const name = (
-    (userData?.name || user.displayName || email.split("@")[0] || "deelnemer")
+    (userData?.name || user?.displayName || email.split("@")[0] || "deelnemer")
   ).trim();
-  const passwordForEmail = resolvePasswordPlaceholder(userData);
+  let passwordForEmail = resolvePasswordPlaceholder(userData);
+
+  // If no password was found in Firestore metadata, generate a temporary one,
+  // update the Auth user, and store it back to Firestore for traceability.
+  if (!passwordForEmail || passwordForEmail === "[password]") {
+    try {
+      // Generate a strong temporary password
+      const temp = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+        .map((b) => (b % 36).toString(36))
+        .join("");
+
+      // Fallback if crypto.getRandomValues is unavailable in this runtime
+      const tmpPwd = temp && /[a-z0-9]{12}/.test(temp) ? temp : Math.random().toString(36).slice(2, 14);
+
+      const auth = getAuthLazy();
+      await auth.updateUser(uid, { password: tmpPwd });
+
+      const db = getDbLazy();
+      await db.collection("users").doc(uid).set({ temporaryPassword: tmpPwd, passwordGeneratedAt: new Date().toISOString() }, { merge: true });
+
+      passwordForEmail = tmpPwd;
+    } catch (err) {
+      functions.logger.error("Failed to generate and set a temporary password.", {
+        uid,
+        email,
+        error: err?.message || err,
+      });
+      // As a last resort, include a reset instruction instead of a placeholder
+      passwordForEmail = "(stel je wachtwoord in via 'Wachtwoord vergeten')";
+    }
+  }
 
   const textLines = [
     `Beste ${name},`,
