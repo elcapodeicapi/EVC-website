@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { get, postForm, put } from "../../lib/api";
-import { subscribeCustomerProfileDetails, updateCustomerProfileDetails } from "../../lib/firestoreCustomer";
+import { get, put } from "../../lib/api";
+import { subscribeCustomerProfileDetails, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 
@@ -263,13 +263,15 @@ const CustomerProfile = () => {
       setPhotoInputKey((value) => value + 1);
       return;
     }
-
-    const formData = new FormData();
-    formData.append("file", file);
+    if (!customerId) {
+      setPhotoStatus({ type: "error", message: "Kon je accountgegevens niet vinden." });
+      setPhotoInputKey((value) => value + 1);
+      return;
+    }
     setPhotoUploading(true);
     setPhotoStatus(null);
     try {
-      const response = await postForm("/customer/profile/photo", formData);
+      const response = await uploadCustomerProfilePhoto(customerId, file);
       setForm((prev) => ({ ...prev, photoURL: response?.photoURL || prev.photoURL }));
       setPhotoStatus({ type: "success", message: "Profielfoto bijgewerkt" });
     } catch (error) {
@@ -338,13 +340,18 @@ const CustomerProfile = () => {
       return;
     }
 
+    const maxSize = 5 * 1024 * 1024; // 5 MB (aligned with backend limit previously)
+    if (certificateDraft.file.size > maxSize) {
+      setCertificateStatus({ type: "error", message: "Bestand is groter dan 5MB." });
+      return;
+    }
+
     const title = certificateDraft.title.trim() || certificateDraft.file.name;
     setCertificateUploading(true);
     setCertificateStatus(null);
     try {
-      const formData = new FormData();
-      formData.append("file", certificateDraft.file);
-      const upload = await postForm("/customer/profile/certificates/upload", formData);
+      if (!customerId) throw new Error("Kon je accountgegevens niet vinden.");
+      const upload = await uploadCustomerCertificateFile(customerId, certificateDraft.file, title);
 
       const entry = {
         id: createId(),

@@ -8,7 +8,24 @@ const { uploadBuffer, sanitizeFilename, bucket } = require("../utils/storage");
 const router = express.Router();
 
 // Multer setup (memory storage for direct upload to Firebase Storage)
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB cap for evidence uploads
+});
+
+function handleUpload(fieldName) {
+  const singleUpload = upload.single(fieldName);
+  return (req, res, next) => {
+    singleUpload(req, res, (err) => {
+      if (err) {
+        const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+        const message = err?.message || "Bestand kon niet worden verwerkt";
+        return res.status(status).json({ error: message });
+      }
+      return next();
+    });
+  };
+}
 
 function buildStoragePath(uid, originalName) {
   const safeName = sanitizeFilename(originalName || "upload.bin");
@@ -20,7 +37,7 @@ router.post(
   "/upload",
   authenticate,
   authorizeRoles("admin", "coach", "customer", "user"),
-  upload.single("file"),
+  handleUpload("file"),
   async (req, res) => {
     try {
       const { name = "", type = null, competencyId = null, trajectId: bodyTrajectId = null } = req.body;

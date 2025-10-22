@@ -1,4 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+// TODO Checklist:
+// [x] Make desiredOutcome optional in admin traject form payloads and validation
+// [x] Ensure competency accordions expand to fit tall content with scroll support
+// [x] Replace customer dashboard placeholders with live traject status data
+// [ ] Enable staff profiles (admin/coach/kwaliteit/assessor) to edit core details
+// [x] Remove the "Rapport genereren" mock button from staff topbars
 import {
 	BrowserRouter,
 	Routes,
@@ -37,6 +43,7 @@ import CoachCustomerCompetency from "./coach/CustomerCompetency";
 import CoachFeedback from "./coach/Feedback";
 import CoachMessages from "./coach/Messages";
 import CoachNotes from "./coach/AantekeningenOverzicht";
+import CoachProfile from "./coach/Profile";
 import {
 	LayoutDashboard,
 	Users as UsersIcon,
@@ -90,6 +97,7 @@ const COACH_NAV_BLUEPRINT = [
 	{ label: "Feedback", path: "/feedback", icon: FileText },
 	{ label: "Aantekeningen", path: "/aantekeningen", icon: NotebookPen },
 	{ label: "Berichten", path: "/messages", icon: Mail },
+	{ label: "Profiel", path: "/profile", icon: IdCard },
 ];
 
 const buildCoachNavItems = (basePath) => {
@@ -235,13 +243,6 @@ const AdminLayout = () => {
 					logoTo="/admin"
 					rightSlot={
 						<div className="hidden items-center gap-3 md:flex">
-							<button
-								type="button"
-								onClick={() => alert("Mock: rapport genereren")}
-								className="rounded-full border border-white/40 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-							>
-								Rapport genereren
-							</button>
 							<button
 								type="button"
 								onClick={handleLogout}
@@ -1201,6 +1202,7 @@ const App = () => {
 					<Route path="feedback" element={<CoachFeedback />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
+									<Route path="profile" element={<CoachProfile />} />
 				</Route>
 
 				<Route
@@ -1213,6 +1215,7 @@ const App = () => {
 					<Route path="feedback" element={<CoachFeedback />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
+									<Route path="profile" element={<CoachProfile />} />
 				</Route>
 
 				<Route
@@ -1225,6 +1228,7 @@ const App = () => {
 					<Route path="feedback" element={<CoachFeedback />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
+									<Route path="profile" element={<CoachProfile />} />
 				</Route>
 
 				<Route path="/customer" element={<CustomerLayout />}>

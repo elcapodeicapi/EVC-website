@@ -275,7 +275,6 @@ const AdminTrajects = () => {
           (competency) =>
             !competency.code ||
             !competency.title ||
-            !competency.desiredOutcome ||
             !competency.subjectKnowledge ||
             !competency.behavioralComponents
         )
@@ -556,7 +555,7 @@ const AdminTrajects = () => {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Gewenst resultaat</label>
+                          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Gewenst resultaat (optioneel)</label>
                           <textarea
                             value={competency.desiredOutcome}
                             onChange={(event) => handleCompetencyChange(group.id, competency.id, "desiredOutcome", event.target.value)}

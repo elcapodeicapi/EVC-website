@@ -16,7 +16,7 @@ import { getUsersIndex } from "./firestoreAdmin";
 import { subscribeCustomerUploads, subscribeTrajectCompetencies } from "./firestoreCustomer";
 import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
 import { normalizeQuestionnaireResponses, questionnaireIsComplete } from "./questionnaire";
-import { Timestamp } from "@google-cloud/firestore";
+import { Timestamp } from "firebase/firestore";
 
 const normalizeTimestamp = (value) => {
   if (!value) return null;
@@ -430,6 +430,77 @@ export function subscribeCoachProfile(coachUid, observer) {
     unsubscribeBase();
     unsubscribeOverlay();
   };
+}
+
+export async function updateCoachProfile(uid, payload = {}) {
+  if (!uid) throw new Error("Missing uid");
+
+  const userRef = doc(db, "users", uid);
+  const overlayRef = doc(db, "coachProfiles", uid);
+
+  const hasOwn = Object.prototype.hasOwnProperty;
+  const normalizeString = (value) => {
+    if (typeof value === "string") return value.trim();
+    if (value === null || value === undefined) return "";
+    return String(value).trim();
+  };
+  const pickString = (key) => (hasOwn.call(payload, key) ? normalizeString(payload[key]) : undefined);
+
+  const name = pickString("name");
+  const phone = pickString("phone");
+  const phoneMobile = pickString("phoneMobile");
+  const phoneFixed = pickString("phoneFixed");
+  const location = pickString("location");
+  const city = pickString("city");
+  const bio = hasOwn.call(payload, "bio") ? normalizeString(payload.bio) : undefined;
+  const dateOfBirth = pickString("dateOfBirth");
+  const placeOfBirth = pickString("placeOfBirth");
+  const nationality = pickString("nationality");
+  const street = pickString("street");
+  const houseNumber = pickString("houseNumber");
+  const addition = pickString("addition");
+  const postalCode = pickString("postalCode");
+
+  const userUpdate = {};
+  if (name !== undefined) userUpdate.name = name;
+  const resolvedPhone = phoneMobile !== undefined ? phoneMobile : phone;
+  if (resolvedPhone !== undefined) {
+    userUpdate.phone = resolvedPhone;
+  }
+  if (location !== undefined) {
+    userUpdate.location = location;
+  } else if (city !== undefined && !hasOwn.call(payload, "location")) {
+    userUpdate.location = city;
+  }
+
+  const overlayUpdate = {};
+  if (bio !== undefined) overlayUpdate.bio = bio;
+  if (phoneFixed !== undefined) overlayUpdate.phoneFixed = phoneFixed;
+  if (phoneMobile !== undefined) overlayUpdate.phoneMobile = phoneMobile;
+  if (dateOfBirth !== undefined) overlayUpdate.dateOfBirth = dateOfBirth;
+  if (placeOfBirth !== undefined) overlayUpdate.placeOfBirth = placeOfBirth;
+  if (nationality !== undefined) overlayUpdate.nationality = nationality;
+  if (street !== undefined) overlayUpdate.street = street;
+  if (houseNumber !== undefined) overlayUpdate.houseNumber = houseNumber;
+  if (addition !== undefined) overlayUpdate.addition = addition;
+  if (postalCode !== undefined) overlayUpdate.postalCode = postalCode;
+  if (city !== undefined) overlayUpdate.city = city;
+
+  const operations = [];
+  const now = serverTimestamp();
+  if (Object.keys(userUpdate).length > 0) {
+    userUpdate.updatedAt = now;
+    operations.push(setDoc(userRef, userUpdate, { merge: true }));
+  }
+
+  if (Object.keys(overlayUpdate).length > 0) {
+    overlayUpdate.updatedAt = now;
+    operations.push(setDoc(overlayRef, overlayUpdate, { merge: true }));
+  }
+
+  if (operations.length === 0) return;
+
+  await Promise.all(operations);
 }
 
 export function subscribeCoachCustomers(coachUid, observer) {
@@ -847,8 +918,8 @@ export async function updateCoachCustomerVoluntary({ customerId, voluntaryPartic
   const profileRef = doc(db, "users", customerId, "profile", "details");
   const payload = {
     "evcTrajectory.voluntaryParticipation": Boolean(voluntaryParticipation),
-    "evcTrajectory.updatedAt": serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    "evcTrajectory.updatedAt": Timestamp.now(),
+    updatedAt: Timestamp.now(),
   };
 
   try {
@@ -862,9 +933,9 @@ export async function updateCoachCustomerVoluntary({ customerId, voluntaryPartic
         evcTrajectory: {
           ...defaults,
           voluntaryParticipation: Boolean(voluntaryParticipation),
-          updatedAt: serverTimestamp(),
+          updatedAt: Timestamp.now(),
         },
-        updatedAt: serverTimestamp(),
+        updatedAt: Timestamp.now(),
       },
       { merge: true }
     );
@@ -887,7 +958,7 @@ export async function deleteCoachCustomer({ coachId, customerId }) {
     {
       coachId: null,
       coachLinkedAt: null,
-      coachUnlinkedAt: serverTimestamp(),
+      coachUnlinkedAt: Timestamp.now(),
     },
     { merge: true }
   );
@@ -903,13 +974,13 @@ export async function saveCoachCustomerNote({ coachId, customerId, text, existin
     coachId,
     customerId,
     text: typeof text === "string" ? text : "",
-    lastEdited: serverTimestamp(),
+    lastEdited: Timestamp.now(),
   };
 
   if (existingTimestamp instanceof Date && !Number.isNaN(existingTimestamp.getTime())) {
     payload.timestamp = existingTimestamp;
   } else if (!existingTimestamp) {
-    payload.timestamp = serverTimestamp();
+    payload.timestamp = Timestamp.now();
   }
 
   await setDoc(noteRef, payload, { merge: true });

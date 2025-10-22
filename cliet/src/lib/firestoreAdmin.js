@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
+import { uid as createId } from "./utils";
 
 const STATUS_HISTORY_LIMIT = 50;
 
@@ -313,7 +314,7 @@ export async function createAssignment({ customerId, coachId, status = DEFAULT_T
     customerRef,
     {
       coachId,
-      coachLinkedAt: serverTimestamp(),
+      coachLinkedAt: now,
     },
     { merge: true }
   );
@@ -412,6 +413,129 @@ export function subscribeAdminProfile(uid, observer) {
     unsubscribeBase();
     unsubscribeOverlay();
   };
+}
+
+export async function updateAdminProfile(uid, payload = {}) {
+  if (!uid) throw new Error("Missing uid");
+
+  const userRef = doc(db, "users", uid);
+  const overlayRef = doc(db, "adminProfiles", uid);
+
+  const hasOwn = Object.prototype.hasOwnProperty;
+  const normalizeString = (value) => {
+    if (typeof value === "string") return value.trim();
+    if (value === null || value === undefined) return "";
+    return String(value).trim();
+  };
+  const pickString = (key) => (hasOwn.call(payload, key) ? normalizeString(payload[key]) : undefined);
+
+  const name = pickString("name");
+  const phone = pickString("phone");
+  const phoneMobile = pickString("phoneMobile");
+  const phoneFixed = pickString("phoneFixed");
+  const location = pickString("location");
+  const city = pickString("city");
+  const bio = hasOwn.call(payload, "bio") ? normalizeString(payload.bio) : undefined;
+  const dateOfBirth = pickString("dateOfBirth");
+  const placeOfBirth = pickString("placeOfBirth");
+  const nationality = pickString("nationality");
+  const street = pickString("street");
+  const houseNumber = pickString("houseNumber");
+  const addition = pickString("addition");
+  const postalCode = pickString("postalCode");
+
+  const responsibilitiesArray = hasOwn.call(payload, "responsibilities")
+    ? (Array.isArray(payload.responsibilities)
+        ? payload.responsibilities
+            .map((item) => (typeof item === "string" ? item.trim() : ""))
+            .filter((item) => item.length > 0)
+        : [])
+    : undefined;
+
+  const highlightsArray = hasOwn.call(payload, "highlights")
+    ? (Array.isArray(payload.highlights)
+        ? payload.highlights
+            .map((entry) => {
+              if (!entry || typeof entry !== "object") return null;
+              const label = typeof entry.label === "string" ? entry.label.trim() : "";
+              const metric = typeof entry.metric === "string" ? entry.metric.trim() : "";
+              if (!label && !metric) return null;
+              return {
+                id: entry.id || createId(),
+                label,
+                metric,
+              };
+            })
+            .filter(Boolean)
+        : [])
+    : undefined;
+
+  const certificationsArray = hasOwn.call(payload, "certifications")
+    ? (Array.isArray(payload.certifications)
+        ? payload.certifications
+            .map((entry) => {
+              if (!entry || typeof entry !== "object") return null;
+              const title = typeof entry.title === "string" ? entry.title.trim() : "";
+              const issuer = typeof entry.issuer === "string" ? entry.issuer.trim() : "";
+              const yearRaw = entry.year;
+              const year = typeof yearRaw === "string" ? yearRaw.trim() : yearRaw ? String(yearRaw) : "";
+              if (!title && !issuer && !year) return null;
+              return {
+                id: entry.id || createId(),
+                title,
+                issuer,
+                year,
+              };
+            })
+            .filter(Boolean)
+        : [])
+    : undefined;
+
+  const userUpdate = {};
+  if (name !== undefined) userUpdate.name = name;
+  const resolvedPhone = phoneMobile !== undefined ? phoneMobile : phone;
+  if (resolvedPhone !== undefined) {
+    userUpdate.phone = resolvedPhone;
+  }
+  if (location !== undefined) {
+    userUpdate.location = location;
+  } else if (city !== undefined && !hasOwn.call(payload, "location")) {
+    userUpdate.location = city;
+  }
+
+  const overlayUpdate = {};
+  if (bio !== undefined) overlayUpdate.bio = bio;
+  if (phoneFixed !== undefined) overlayUpdate.phoneFixed = phoneFixed;
+  if (phoneMobile !== undefined) overlayUpdate.phoneMobile = phoneMobile;
+  if (dateOfBirth !== undefined) overlayUpdate.dateOfBirth = dateOfBirth;
+  if (placeOfBirth !== undefined) overlayUpdate.placeOfBirth = placeOfBirth;
+  if (nationality !== undefined) overlayUpdate.nationality = nationality;
+  if (street !== undefined) overlayUpdate.street = street;
+  if (houseNumber !== undefined) overlayUpdate.houseNumber = houseNumber;
+  if (addition !== undefined) overlayUpdate.addition = addition;
+  if (postalCode !== undefined) overlayUpdate.postalCode = postalCode;
+  if (city !== undefined) overlayUpdate.city = city;
+  if (responsibilitiesArray !== undefined) overlayUpdate.responsibilities = responsibilitiesArray;
+  if (highlightsArray !== undefined) overlayUpdate.highlights = highlightsArray;
+  if (certificationsArray !== undefined) overlayUpdate.certifications = certificationsArray;
+
+  const operations = [];
+  const now = serverTimestamp();
+  if (Object.keys(userUpdate).length > 0) {
+    userUpdate.updatedAt = now;
+    operations.push(setDoc(userRef, userUpdate, { merge: true }));
+  }
+
+  if (Object.keys(overlayUpdate).length > 0) {
+    overlayUpdate.updatedAt = now;
+    operations.push(setDoc(overlayRef, overlayUpdate, { merge: true }));
+  }
+
+  if (operations.length === 0) {
+    return;
+  }
+
+  await Promise.all(operations);
 }
 
 export async function fetchUserDoc(uid) {

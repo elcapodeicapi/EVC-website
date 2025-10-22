@@ -80,8 +80,10 @@ function createApp() {
   const jsonParser = express.json({ limit: "10mb" });
   const urlencodedParser = express.urlencoded({ extended: true, limit: "10mb" });
   app.use((req, res, next) => {
-    const contentType = req.headers["content-type"] || "";
-    if (contentType.startsWith("multipart/form-data")) {
+    const raw = req.headers["content-type"] || "";
+    const contentType = typeof raw === "string" ? raw.toLowerCase() : "";
+    if (contentType.includes("multipart/form-data")) {
+      // Let multer/busboy handle multipart bodies at the route level
       return next();
     }
     if (contentType.startsWith("application/x-www-form-urlencoded")) {

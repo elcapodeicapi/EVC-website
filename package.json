@@ -13,6 +13,7 @@
     "start": "concurrently -n API,WEB -c green,cyan \"node Backend/server.js\" \"npm --prefix cliet run dev\"",
     "start:api": "node Backend/server.js",
     "start:web": "npm --prefix cliet run dev",
-    "build": "npm --prefix cliet run build"
+    "lint": "npm --prefix Backend/functions run lint",
+    "build": "npm run lint && npm --prefix cliet run build"
   }
 }

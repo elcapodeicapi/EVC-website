@@ -90,7 +90,7 @@ export async function ensureThread({
     participantProfiles: mergedProfiles,
     customerId: existing.customerId || customerId,
     coachId: existing.coachId || coachId,
-    updatedAt: serverTimestamp(),
+    updatedAt: Timestamp.now(),
   }).catch(() => undefined);
 
   return threadId;
@@ -264,10 +264,10 @@ export async function sendThreadMessage({
   await updateDoc(threadRef, {
     lastMessageTitle: title,
     lastMessageSnippet: buildMessagePreview(title, text),
-    lastMessageAt: serverTimestamp(),
+    lastMessageAt: Timestamp.now(),
     lastMessageSenderId: senderId,
     lastMessageSenderName: senderName || "",
-    updatedAt: serverTimestamp(),
+    updatedAt: Timestamp.now(),
   }).catch(() => undefined);
 
   return messageRef.id;

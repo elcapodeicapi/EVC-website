@@ -1,11 +1,8 @@
-const fs = require("fs");
-const path = require("path");
 const admin = require("firebase-admin");
-
-// Ensure environment variables from workspace .env files are available when running in the
-// Functions emulator where dotenv is not automatically invoked.
-(() => {
-  // Load dotenv only if available (emulators/local). In production, env vars are provided by the platform.
+let dotenvLoaded = false;
+function maybeLoadDotenv() {
+  if (dotenvLoaded) return;
+  // Load dotenv only if available (local emulator). In production, env vars are provided by the platform.
   let dotenv;
   try {
     // eslint-disable-next-line global-require
@@ -13,19 +10,24 @@ const admin = require("firebase-admin");
   } catch (_) {
     dotenv = null;
   }
-  if (!dotenv) return;
-  const candidates = [
-    path.resolve(__dirname, "../../.env"),
-    path.resolve(__dirname, "../.env"),
-    path.resolve(__dirname, "../../cliet/.env"),
-  ];
-  candidates.forEach((file) => {
-    if (process.env.DOTENV_CONFIG_PATH === file) return;
-    if (fs.existsSync(file)) {
-      dotenv.config({ path: file, override: false });
+  if (!dotenv) {
+    dotenvLoaded = true;
+    return;
+  }
+  try {
+    // Load default .env if explicitly configured
+    if (process.env.DOTENV_CONFIG_PATH) {
+      dotenv.config({ path: process.env.DOTENV_CONFIG_PATH, override: false });
+    } else {
+      // Best-effort: load .env from repo root if present
+      dotenv.config({ override: false });
     }
-  });
-})();
+  } catch (_) {
+    // ignore dotenv issues in emulator; envs are optional
+  } finally {
+    dotenvLoaded = true;
+  }
+}
 
 function readFirebaseConfig() {
   try {
@@ -78,6 +80,8 @@ let emulatorLogPrinted = false;
 
 function ensureAppInitialized() {
   if (appInitialized) return;
+  // Lazily load dotenv so module import stays fast for the emulator manifest step
+  maybeLoadDotenv();
 
   const options = { projectId };
   if (storageBucket) {

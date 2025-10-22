@@ -14,6 +14,9 @@ import {
   UserCog,
 } from "lucide-react";
 import { subscribeTrajects, subscribeUsers } from "../../lib/firestoreAdmin";
+import { post } from "../../lib/api";
+import { auth } from "../../firebase";
+import { signInWithCustomToken } from "firebase/auth";
 
 const ROLE_FILTERS = [
   { value: "all", label: "Alle rollen" },
@@ -174,6 +177,9 @@ const AdminUsers = () => {
     const [sortState, setSortState] = useState(DEFAULT_SORT);
     const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
     const [page, setPage] = useState(1);
+
+  const [impersonationError, setImpersonationError] = useState(null);
+  const [impersonationTarget, setImpersonationTarget] = useState(null);
 
     useEffect(() => {
       setUsersLoading(true);
@@ -366,6 +372,70 @@ const AdminUsers = () => {
       navigate("/admin/users/create");
     };
 
+    const resolveRedirectPath = (role) => {
+      switch (role) {
+        case "coach":
+          return "/coach";
+        case "kwaliteitscoordinator":
+          return "/kwaliteitscoordinator";
+        case "assessor":
+          return "/assessor";
+        case "customer":
+        case "user":
+          return "/customer";
+        default:
+          return "/dashboard";
+      }
+    };
+
+    const handleImpersonate = async (row) => {
+      if (!row) return;
+      const targetId = row.id || row.firebaseUid;
+      if (!targetId) return;
+      const role = (row.roleKey || "").toLowerCase();
+      // Only allow known roles to be impersonated
+      if (!role || !["customer", "user", "coach", "kwaliteitscoordinator", "assessor"].includes(role)) return;
+
+      setImpersonationError(null);
+      setImpersonationTarget(targetId);
+      try {
+        const response = await post("/auth/admin/impersonate", { firebaseUid: targetId });
+        const customToken = response?.targetCustomToken || response?.customerCustomToken;
+        if (!customToken) throw new Error("Geen impersonatie-token ontvangen");
+
+        const currentUser = localStorage.getItem("user") || null;
+        let parsedUser = null;
+        if (currentUser) {
+          try { parsedUser = JSON.parse(currentUser); } catch (_) { parsedUser = null; }
+        }
+
+        const backup = {
+          user: currentUser,
+          userData: parsedUser,
+          targetFirebaseUid: targetId,
+          targetRole: role,
+          targetName: row.name || row.email || "",
+          createdAt: new Date().toISOString(),
+          adminCustomToken: response?.adminCustomToken || null,
+        };
+        localStorage.setItem("impersonationBackup", JSON.stringify(backup));
+
+        await signInWithCustomToken(auth, customToken);
+        if (response?.user) {
+          localStorage.setItem("user", JSON.stringify(response.user));
+        }
+        try { await post("/auth/track-login", {}); } catch (_) { /* best-effort */ }
+
+        const redirectPath = response?.redirectPath || resolveRedirectPath(role);
+        navigate(redirectPath, { replace: true });
+      } catch (err) {
+        const message = err?.data?.error || err?.message || "Kon account niet openen";
+        setImpersonationError(message);
+      } finally {
+        setImpersonationTarget(null);
+      }
+    };
+
   const isLoading = usersLoading || trajectsLoading;
   const error = usersError || trajectsError;
   const errorMessage = error ? (typeof error === "string" ? error : error.message) : null;
@@ -393,6 +463,12 @@ const AdminUsers = () => {
         {errorMessage ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             Kon gebruikers niet laden: {errorMessage || "Onbekende fout"}
+          </div>
+        ) : null}
+
+        {impersonationError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {impersonationError}
           </div>
         ) : null}
 
@@ -510,7 +586,9 @@ const AdminUsers = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
-                            <ActionButton icon={Eye} label="Bekijk" onClick={() => handleViewProfile(row)} />
+                            {(["customer", "user", "coach", "kwaliteitscoordinator", "assessor"].includes(row.roleKey)) && (
+                              <ActionButton icon={Eye} label="Open als gebruiker" onClick={() => handleImpersonate(row)} />
+                            )}
                             <ActionButton icon={Pencil} label="Bewerk" onClick={() => handleEditUser(row)} tone="brand" />
                             <ActionButton icon={Trash2} label="Verwijder" onClick={() => handleDeleteUser(row)} tone="danger" />
                           </div>

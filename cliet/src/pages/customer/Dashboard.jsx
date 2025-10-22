@@ -1,54 +1,374 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { ArrowRight, PlayCircle, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import {
+  subscribeCustomerProfileDetails,
+  subscribeCustomerQuestionnaire,
+} from "../../lib/firestoreCustomer";
+import { subscribeCustomerProgress } from "../../lib/firestoreCoach";
+import { get } from "../../lib/api";
+import { getTrajectStatusLabel, getStatusOwnerRoles } from "../../lib/trajectStatus";
+import { QUESTIONNAIRE_SECTION_IDS } from "../../lib/questionnaire";
 
-const videoSections = [
-  {
-    title: "Introductie tot jouw traject",
-    description: "Korte introductie over het EVC-proces en wat je mag verwachten.",
-  },
-  {
-    title: "Aan de slag met je portfolio",
-    description: "Stap voor stap uitleg over het toevoegen van bewijsstukken.",
-  },
-  {
-    title: "Samenwerken met je begeleider",
-    description: "Tips voor het plannen van contactmomenten en feedback.",
-  },
-];
+const dateTimeFormatter = new Intl.DateTimeFormat("nl-NL", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
-const statusRows = [
-  {
-    label: "Opleidingen, diploma's en certificaten",
-    status: "1 diploma",
-    owner: "Jijzelf",
-  },
-  {
-    label: "Relevante werkervaring",
-    status: "1 werkervaring",
-    owner: "Jijzelf",
-  },
-  {
-    label: "Overige informatie en documenten",
-    status: "7 items",
-    owner: "Jijzelf",
-  },
-  {
-    label: "Criteriumgericht interview",
-    status: "Nog niet ingevuld",
-    owner: "Traject Beheer",
-  },
-  {
-    label: "Werkplekbezoek",
-    status: "Nog niet ingevuld",
-    owner: "Traject Beheer",
-  },
-];
+const toDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value.toDate === "function") {
+    try {
+      const converted = value.toDate();
+      return Number.isNaN(converted.getTime()) ? null : converted;
+    } catch (_) {
+      return null;
+    }
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatDateTime = (value) => {
+  const date = toDate(value);
+  if (!date) return null;
+  try {
+    return dateTimeFormatter.format(date);
+  } catch (_) {
+    return date.toLocaleString();
+  }
+};
+
+const formatRelative = (value) => {
+  const date = toDate(value);
+  if (!date) return null;
+  const diffMs = Date.now() - date.getTime();
+  const absMs = Math.abs(diffMs);
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  if (absMs < minute) return "Zojuist";
+  if (absMs < hour) {
+    const minutes = Math.round(absMs / minute);
+    return `${minutes} minuut${minutes === 1 ? "" : "en"} geleden`;
+  }
+  if (absMs < day) {
+    const hours = Math.round(absMs / hour);
+    return `${hours} uur${hours === 1 ? "" : "en"} geleden`;
+  }
+  if (absMs < 7 * day) {
+    const days = Math.round(absMs / day);
+    return `${days} dag${days === 1 ? "" : "en"} geleden`;
+  }
+  return formatDateTime(date);
+};
+
+const pluralise = (count, singular, plural) => {
+  if (count === 1) return singular;
+  if (plural) return plural;
+  if (singular.endsWith("k")) return `${singular}ken`;
+  if (singular.endsWith("s")) return `${singular}en`;
+  return `${singular}s`;
+};
 
 const CustomerDashboard = () => {
-  const { customer } = useOutletContext();
+  const { customer, coach, assignment } = useOutletContext();
+  const customerId = customer?.id || customer?.firebaseUid || customer?.uid || null;
+  const trajectId = customer?.trajectId || assignment?.trajectId || null;
+
+  const [profileDetails, setProfileDetails] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(Boolean(customerId));
+  const [profileError, setProfileError] = useState(null);
+
+  const [questionnaireRecord, setQuestionnaireRecord] = useState(null);
+  const [questionnaireLoading, setQuestionnaireLoading] = useState(Boolean(customerId));
+  const [questionnaireError, setQuestionnaireError] = useState(null);
+
+  const [progressData, setProgressData] = useState(null);
+  const [progressLoading, setProgressLoading] = useState(Boolean(customerId && trajectId));
+  const [progressError, setProgressError] = useState(null);
+
+  const [careerGoal, setCareerGoal] = useState({ content: "", updatedAt: null });
+  const [careerGoalLoading, setCareerGoalLoading] = useState(Boolean(customerId));
+  const [careerGoalError, setCareerGoalError] = useState(null);
+
+  useEffect(() => {
+    if (!customerId) {
+      setProfileDetails(null);
+      setProfileLoading(false);
+      setProfileError(null);
+      return () => {};
+    }
+    setProfileLoading(true);
+    const unsubscribe = subscribeCustomerProfileDetails(customerId, ({ data, error }) => {
+      if (error) {
+        setProfileError(error);
+        setProfileDetails(null);
+      } else {
+        setProfileError(null);
+        setProfileDetails(data || null);
+      }
+      setProfileLoading(false);
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [customerId]);
+
+  useEffect(() => {
+    if (!customerId) {
+      setQuestionnaireRecord(null);
+      setQuestionnaireLoading(false);
+      setQuestionnaireError(null);
+      return () => {};
+    }
+    setQuestionnaireLoading(true);
+    const unsubscribe = subscribeCustomerQuestionnaire(customerId, ({ data, error }) => {
+      if (error) {
+        setQuestionnaireError(error);
+        setQuestionnaireRecord(null);
+      } else {
+        setQuestionnaireError(null);
+        setQuestionnaireRecord(data || null);
+      }
+      setQuestionnaireLoading(false);
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [customerId]);
+
+  useEffect(() => {
+    if (!customerId || !trajectId) {
+      setProgressData(null);
+      setProgressLoading(false);
+      setProgressError(null);
+      return () => {};
+    }
+    setProgressLoading(true);
+    const unsubscribe = subscribeCustomerProgress(customerId, trajectId, ({ data, error }) => {
+      if (error) {
+        setProgressError(error);
+        setProgressData(null);
+      } else {
+        setProgressError(null);
+        setProgressData(data || null);
+      }
+      setProgressLoading(false);
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [customerId, trajectId]);
+
+  useEffect(() => {
+    let active = true;
+    if (!customerId) {
+      setCareerGoal({ content: "", updatedAt: null });
+      setCareerGoalLoading(false);
+      setCareerGoalError(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    const loadCareerGoal = async () => {
+      setCareerGoalLoading(true);
+      try {
+        const data = await get("/customer/career-goal");
+        if (!active) return;
+        setCareerGoal({
+          content: typeof data?.content === "string" ? data.content : "",
+          updatedAt: data?.updatedAt || null,
+        });
+        setCareerGoalError(null);
+      } catch (error) {
+        if (!active) return;
+        setCareerGoal({ content: "", updatedAt: null });
+        setCareerGoalError(error);
+      } finally {
+        if (active) setCareerGoalLoading(false);
+      }
+    };
+
+    loadCareerGoal();
+    return () => {
+      active = false;
+    };
+  }, [customerId]);
+
   const customerName = customer?.name?.split(" ")[0] || customer?.name || "kandidaat";
   const fullCustomerName = customer?.name || customerName;
+
+  const ownerRoleLabels = useMemo(
+    () => ({
+      customer: "Jijzelf",
+      user: "Jijzelf",
+      coach: coach?.name ? `Begeleider ${coach.name}` : "Begeleider",
+      kwaliteitscoordinator: "Kwaliteitscoördinator",
+      assessor: "Assessor",
+      admin: "Trajectbeheer",
+    }),
+    [coach?.name]
+  );
+
+  const statusLabel = assignment ? getTrajectStatusLabel(assignment.status) : "Nog niet gestart";
+  const statusOwnerRoles = useMemo(
+    () => getStatusOwnerRoles(assignment?.status || ""),
+    [assignment?.status]
+  );
+  const statusOwnerLabel = useMemo(() => {
+    if (!assignment) return "Nog niet toegewezen";
+    if (!statusOwnerRoles.length) return "Trajectbeheer";
+    return statusOwnerRoles.map((role) => ownerRoleLabels[role] || role).join(", ");
+  }, [assignment, ownerRoleLabels, statusOwnerRoles]);
+
+  const totalCompetencies = progressData?.totalCompetencies ?? 0;
+  const completedCompetencies = progressData?.completedCompetencies ?? 0;
+  const completionPercentage = progressData?.completionPercentage ?? 0;
+  const trajectName = progressData?.trajectName || "";
+
+  const totalUploads = useMemo(() => {
+    if (!progressData?.uploadsByCompetency) return 0;
+    return Object.values(progressData.uploadsByCompetency).reduce(
+      (acc, value) => acc + (Array.isArray(value) ? value.length : 0),
+      0
+    );
+  }, [progressData?.uploadsByCompetency]);
+
+  const portfolioStatus = useMemo(() => {
+    if (totalCompetencies > 0) {
+      const proofLabel = pluralise(totalUploads, "bewijsstuk", "bewijsstukken");
+      const competencySummary = `${completedCompetencies}/${totalCompetencies} competenties voorzien`;
+      const uploadsSummary = `${totalUploads} ${proofLabel}`;
+      return `${competencySummary} • ${uploadsSummary}`;
+    }
+    if (totalUploads > 0) {
+      const proofLabel = pluralise(totalUploads, "bewijsstuk", "bewijsstukken");
+      return `${totalUploads} ${proofLabel} geüpload`;
+    }
+    return "Nog niet gestart";
+  }, [completedCompetencies, totalCompetencies, totalUploads]);
+
+  const loopbaanUploadsCount = useMemo(() => {
+    if (!progressData?.competencies) return 0;
+    const match = progressData.competencies.find((competency) => {
+      const haystack = `${competency?.title || ""} ${competency?.code || ""}`.toLowerCase();
+      return haystack.includes("loopbaan") || haystack.includes("burgerschap");
+    });
+    if (!match) return 0;
+    const uploads = progressData?.uploadsByCompetency?.[match.id];
+    return Array.isArray(uploads) ? uploads.length : 0;
+  }, [progressData?.competencies, progressData?.uploadsByCompetency]);
+
+  const careerGoalContent = typeof careerGoal.content === "string" ? careerGoal.content.trim() : "";
+  const loopbaanCompleted = careerGoalContent.length > 0;
+  const careerGoalRelative = formatRelative(careerGoal.updatedAt);
+  const loopbaanStatus = useMemo(() => {
+    if (loopbaanCompleted) {
+      return careerGoalRelative
+        ? `Loopbaandoel opgeslagen • ${careerGoalRelative.toLowerCase()}`
+        : "Loopbaandoel opgeslagen";
+    }
+    if (loopbaanUploadsCount > 0) {
+      const proofLabel = pluralise(loopbaanUploadsCount, "bewijsstuk", "bewijsstukken");
+      return `${loopbaanUploadsCount} ${proofLabel} toegevoegd`;
+    }
+    return "Nog niet ingevuld";
+  }, [careerGoalRelative, loopbaanCompleted, loopbaanUploadsCount]);
+
+  const questionnaireResponses = questionnaireRecord?.responses || {};
+  const questionnaireCompleted = questionnaireRecord?.completed === true;
+  const questionnaireUpdatedRelative = formatRelative(
+    questionnaireRecord?.completedAt || questionnaireRecord?.updatedAt
+  );
+  const questionnaireFilledCount = useMemo(
+    () =>
+      QUESTIONNAIRE_SECTION_IDS.filter((sectionId) => {
+        const value = questionnaireResponses?.[sectionId];
+        return typeof value === "string" && value.trim().length > 0;
+      }).length,
+    [questionnaireResponses]
+  );
+  const questionnaireStatus = useMemo(() => {
+    if (questionnaireCompleted) {
+      if (questionnaireUpdatedRelative) {
+        return `Compleet ingevuld • ${questionnaireUpdatedRelative.toLowerCase()}`;
+      }
+      return "Compleet ingevuld";
+    }
+    if (questionnaireFilledCount > 0) {
+      return `${questionnaireFilledCount} van ${QUESTIONNAIRE_SECTION_IDS.length} onderdelen ingevuld`;
+    }
+    return "Nog niet ingevuld";
+  }, [questionnaireCompleted, questionnaireFilledCount, questionnaireUpdatedRelative]);
+
+  const voluntaryParticipation = Boolean(profileDetails?.evcTrajectory?.voluntaryParticipation);
+  const currentRole = (profileDetails?.evcTrajectory?.currentRole || "").trim();
+  const voluntaryStatus = voluntaryParticipation
+    ? currentRole
+      ? `Ja • huidige rol: ${currentRole}`
+      : "Ja"
+    : "Nog niet bevestigd";
+
+  const lastActivity = customer?.lastActivity || customer?.lastLoggedIn || null;
+  const lastActivityRelative = formatRelative(lastActivity);
+  const lastActivityAbsolute = formatDateTime(lastActivity);
+  const lastActivityStatus = lastActivity
+    ? lastActivityRelative
+      ? `${lastActivityRelative}${lastActivityAbsolute ? ` (${lastActivityAbsolute})` : ""}`
+      : lastActivityAbsolute || "Onbekend"
+    : "Nog geen activiteit geregistreerd";
+
+  const hasCoach = Boolean(coach?.name || coach?.email);
+  const coachStatus = hasCoach ? coach?.name || coach?.email : "Nog niet gekoppeld";
+  const coachOwner = hasCoach ? coach?.email || coach?.name || "Begeleiding" : "Trajectbeheer";
+
+  const statusRows = useMemo(
+    () => [
+      { label: "Trajectstatus", status: statusLabel, owner: statusOwnerLabel },
+      { label: "Portfolio bewijslast", status: portfolioStatus, owner: "Jijzelf" },
+      { label: "Loopbaan en burgerschap", status: loopbaanStatus, owner: "Jijzelf" },
+      { label: "Vragenlijst Loopbaan & Burgerschap", status: questionnaireStatus, owner: "Jijzelf" },
+      { label: "Vrijwillige deelname", status: voluntaryStatus, owner: "Jijzelf" },
+      { label: "Laatste activiteit", status: lastActivityStatus, owner: "Jijzelf" },
+      { label: "Begeleider", status: coachStatus, owner: coachOwner },
+    ],
+    [
+      coachOwner,
+      coachStatus,
+      lastActivityStatus,
+      loopbaanStatus,
+      portfolioStatus,
+      questionnaireStatus,
+      statusLabel,
+      statusOwnerLabel,
+      voluntaryStatus,
+    ]
+  );
+
+  const statusLoading = profileLoading || questionnaireLoading || progressLoading || careerGoalLoading;
+  const statusError = profileError || questionnaireError || progressError || careerGoalError;
+  const statusErrorMessage =
+    typeof statusError === "string"
+      ? statusError
+      : statusError?.data?.error || statusError?.message || "Onbekende fout";
+
+  const highlightChips = useMemo(() => {
+    const chips = [`Status: ${statusLabel}`];
+    if (totalCompetencies > 0) {
+      chips.push(`Voortgang: ${completionPercentage}%`);
+    }
+    chips.push(`Bewijsstukken: ${totalUploads}`);
+    if (hasCoach) {
+      chips.push(`Begeleider: ${coachStatus}`);
+    }
+    return chips;
+  }, [coachStatus, completionPercentage, hasCoach, statusLabel, totalCompetencies, totalUploads]);
 
   return (
     <div className="space-y-10">
@@ -62,75 +382,48 @@ const CustomerDashboard = () => {
               Welkom
             </span>
             <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">
-              Welkom {customerName} bij EVC Academie
+              Goed dat je er bent, {customerName}!
             </h1>
             <div className="max-w-2xl space-y-3 text-base text-slate-600">
-              <p>Welkom {fullCustomerName}</p>
-              <p>Welkom bij EVC Academie!</p>
               <p>
-                Dit is het portaal waarin jij de komende tijd aan de slag zult gaan met jouw EVC traject. Hieronder vind je een aantal
-                instructievideo&apos;s die jou zullen helpen om zo goed mogelijk van start te kunnen gaan.
+                Welkom {fullCustomerName}. Hier zie je in één oogopslag hoe jouw traject ervoor staat
+                {trajectName ? ` (${trajectName})` : ""}.
               </p>
-              <p>Kijk alle video&apos;s en lees de handleiding goed door!</p>
+              <p>
+                Werk stap voor stap je dossier bij. Zodra jij of je begeleider iets aanpast, verschijnt het direct op deze pagina.
+              </p>
             </div>
             <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 font-medium">
-                <ArrowRight className="h-4 w-4" />
-                Bekijk de stappen van jouw traject
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 font-medium">
-                <PlayCircle className="h-4 w-4" />
-                Start met de uitlegvideo's hieronder
-              </span>
+              {highlightChips.map((chip) => (
+                <span
+                  key={chip}
+                  className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 font-medium"
+                >
+                  {chip}
+                </span>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Uitlegvideo's</h2>
-            <p className="text-sm text-slate-500">Korte instructies om je snel op weg te helpen.</p>
-          </div>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-full border border-evc-blue-200 px-4 py-2 text-sm font-medium text-evc-blue-700 transition hover:border-evc-blue-400 hover:text-evc-blue-900"
-          >
-            Externe videotheek
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </header>
-        <div className="grid gap-4 md:grid-cols-3">
-          {videoSections.map((video) => (
-            <article
-              key={video.title}
-              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-evc-blue-500/5 via-transparent to-evc-blue-600/10 opacity-0 transition group-hover:opacity-100" />
-              <div className="relative flex h-full flex-col gap-4 p-6">
-                <div className="flex h-40 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
-                  <PlayCircle className="h-12 w-12" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-base font-semibold text-slate-900">{video.title}</h3>
-                  <p className="text-sm text-slate-500">{video.description}</p>
-                </div>
-                <span className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-evc-blue-600 group-hover:text-evc-blue-700">
-                  Video openen
-                  <ArrowRight className="h-4 w-4" />
-                </span>
-              </div>
-            </article>
-          ))}
         </div>
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-xl font-semibold text-slate-900">Stand van zaken</h2>
-          <p className="text-sm text-slate-500">Een momentopname van je voortgang en belangrijke aandachtspunten.</p>
-          <div className="mt-4 overflow-hidden rounded-2xl border border-evc-blue-200 bg-evc-blue-50/60">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Stand van zaken</h2>
+            <p className="text-sm text-slate-500">
+              Actuele status van je traject en wie aan zet is voor de volgende stap.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 overflow-hidden rounded-2xl border border-evc-blue-200 bg-evc-blue-50/60">
+          {statusError ? (
+            <div className="px-4 py-6 text-sm text-red-700">{statusErrorMessage}</div>
+          ) : statusLoading ? (
+            <div className="flex justify-center px-4 py-6">
+              <LoadingSpinner label="Gegevens laden" />
+            </div>
+          ) : statusRows.length > 0 ? (
             <table className="min-w-full divide-y divide-evc-blue-200 text-sm text-evc-blue-900">
               <thead className="bg-evc-blue-100/60 text-left text-xs font-semibold uppercase tracking-[0.2em] text-evc-blue-700">
                 <tr>
@@ -149,7 +442,9 @@ const CustomerDashboard = () => {
                 ))}
               </tbody>
             </table>
-          </div>
+          ) : (
+            <div className="px-4 py-6 text-sm text-slate-600">Nog geen gegevens beschikbaar.</div>
+          )}
         </div>
       </section>
     </div>
@@ -157,3 +452,4 @@ const CustomerDashboard = () => {
 };
 
 export default CustomerDashboard;
+

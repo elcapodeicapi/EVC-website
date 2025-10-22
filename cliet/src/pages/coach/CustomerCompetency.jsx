@@ -14,6 +14,7 @@ import {
   Phone,
   Save,
   UserRound,
+  Paperclip,
 } from "lucide-react";
 import clsx from "clsx";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -23,6 +24,7 @@ import {
   subscribeCoachCustomerProfile,
   subscribeCustomerProgress,
 } from "../../lib/firestoreCoach";
+import { resolveUploadDownloadUrl } from "../../lib/firestoreCustomer";
 import {
   QUESTIONNAIRE_SECTIONS,
   QUESTIONNAIRE_SECTION_IDS,
@@ -827,16 +829,65 @@ const CustomerTrajectOverview = () => {
                 Nog geen competenties beschikbaar.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {competencies.map((competency) => {
                   const uploads = uploadsByCompetency[competency.id] || [];
                   const titleParts = [];
                   if (competency.code) titleParts.push(competency.code);
                   if (competency.title) titleParts.push(competency.title);
                   return (
-                    <article key={competency.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <p className="text-sm font-semibold text-slate-800">{titleParts.length > 0 ? titleParts.join(" • ") : competency.title || competency.code || "Competentie"}</p>
-                      <p className="text-xs text-slate-500">{uploads.length} bewijsstuk{uploads.length === 1 ? "" : "ken"}</p>
+                    <article key={competency.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <header className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-slate-800">
+                          {titleParts.length > 0 ? titleParts.join(" • ") : competency.title || competency.code || "Competentie"}
+                        </p>
+                        <span className="rounded-full bg-white px-2 py-1 text-[0.65rem] font-semibold text-slate-600">
+                          {uploads.length} bewijsstuk{uploads.length === 1 ? "" : "ken"}
+                        </span>
+                      </header>
+                      {uploads.length === 0 ? (
+                        <p className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm text-slate-400">
+                          Nog geen bewijsstukken geüpload.
+                        </p>
+                      ) : (
+                        <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                          {uploads.map((upload) => {
+                            const key = upload.id || upload.storagePath || upload.fileName || upload.name;
+                            const uploadedAtLabel = upload.uploadedAt ? formatDateTime(upload.uploadedAt) : null;
+                            const isBusy = downloadInProgress === key;
+                            return (
+                              <li key={key} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                                <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate font-medium text-slate-900">{upload.displayName || upload.name || upload.fileName || "Bestand"}</p>
+                                  {uploadedAtLabel ? (
+                                    <p className="mt-0.5 text-xs text-slate-500">Geüpload op {uploadedAtLabel}</p>
+                                  ) : null}
+                                </div>
+                                <div className="ml-auto">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const downloadKey = key;
+                                      if (downloadKey) setDownloadInProgress(downloadKey);
+                                      try {
+                                        const url = await resolveUploadDownloadUrl(upload);
+                                        if (url) window.open(url, "_blank", "noopener");
+                                      } finally {
+                                        setDownloadInProgress(null);
+                                      }
+                                    }}
+                                    disabled={isBusy}
+                                    className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                                  >
+                                    {isBusy ? "Bezig..." : "Download"}
+                                  </button>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
                     </article>
                   );
                 })}
@@ -890,6 +941,7 @@ const CustomerTrajectOverview = () => {
             const titleParts = [];
             if (competency.code) titleParts.push(competency.code);
             if (competency.title) titleParts.push(competency.title);
+            const uploads = (progressData?.uploadsByCompetency || {})[competency.id] || [];
             return (
               <article key={competency.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                 <button
@@ -909,8 +961,10 @@ const CustomerTrajectOverview = () => {
                 </button>
                 <div
                   className={clsx(
-                    "grid gap-4 border-t border-slate-200 px-5 transition-all duration-200",
-                    isOpen ? "max-h-[520px] py-4" : "max-h-0 overflow-hidden"
+                    "grid gap-4 border-t border-slate-200 px-5 transition-[max-height] duration-300 ease-in-out",
+                    isOpen
+                      ? "max-h-[9999px] overflow-visible py-4"
+                      : "max-h-0 overflow-hidden"
                   )}
                 >
                   {competency.desiredOutcome ? (
@@ -947,6 +1001,7 @@ const CustomerTrajectOverview = () => {
       )}
     </section>
   );
+  const [downloadInProgress, setDownloadInProgress] = useState(null);
 
   const renderNotes = () => (
     <section className="space-y-5 rounded-3xl bg-white p-6 shadow-card">

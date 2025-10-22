@@ -13,6 +13,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { arrayUnion, updateDoc } from "firebase/firestore";
 import { db, storage } from "../firebase";
 import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
 import { normalizeQuestionnaireResponses, questionnaireIsComplete } from "./questionnaire";
@@ -390,6 +391,95 @@ export async function deleteCustomerEvidence({ userId, uploadId, storagePath }) 
   }
 
   await deleteDoc(uploadDocRef);
+}
+
+// Upload a customer's profile photo via Firebase Storage and update profile/user docs.
+export async function uploadCustomerProfilePhoto(userId, file) {
+  if (!userId) throw new Error("Missing user id");
+  if (!file) throw new Error("Missing file");
+  if (!file.type?.startsWith("image/")) throw new Error("Alleen afbeeldingsbestanden zijn toegestaan");
+
+  const safeName = file.name || "profielfoto.png";
+  const storagePath = `profilePhotos/${userId}/${Date.now()}-${safeName}`;
+  const fileRef = ref(storage, storagePath);
+  const metadata = file.type ? { contentType: file.type, customMetadata: { originalName: safeName, type: "profile-photo" } } : undefined;
+  await uploadBytes(fileRef, file, metadata);
+  const downloadURL = await getDownloadURL(fileRef);
+
+  const userRef = doc(db, "users", userId);
+  const profileRef = doc(db, "profiles", userId);
+  const ts = serverTimestamp();
+  await Promise.all([
+    setDoc(userRef, { photoURL: downloadURL, photoStoragePath: storagePath, photoUpdatedAt: ts }, { merge: true }),
+    setDoc(profileRef, { photoURL: downloadURL, photoStoragePath: storagePath, photoUpdatedAt: ts }, { merge: true }),
+  ]);
+
+  return { photoURL: downloadURL, storagePath, contentType: file.type || null, size: typeof file.size === "number" ? file.size : null };
+}
+
+// Upload a certificate/diploma file via Firebase Storage, link it under users/{uid}/uploads, and append to profiles.{uid}.certificates
+export async function uploadCustomerCertificateFile(userId, file, title) {
+  if (!userId) throw new Error("Missing user id");
+  if (!file) throw new Error("Missing file");
+  const displayTitle = (title || file.name || "Certificaat").trim();
+
+  const safeName = file.name || "document.pdf";
+  const storagePath = `certificates/${userId}/${Date.now()}-${safeName}`;
+  const fileRef = ref(storage, storagePath);
+  const metadata = file.type ? { contentType: file.type, customMetadata: { originalName: safeName, type: "certificate" } } : undefined;
+  await uploadBytes(fileRef, file, metadata);
+  const downloadURL = await getDownloadURL(fileRef);
+
+  // Create an uploads subdoc for consistency with other evidences
+  const uploadsCollection = collection(db, "users", userId, "uploads");
+  const uploadDoc = await addDoc(uploadsCollection, {
+    name: displayTitle,
+    fileName: safeName,
+    downloadURL,
+    storagePath,
+    competencyId: null,
+    userId,
+    trajectId: null,
+    uploadedAt: serverTimestamp(),
+    contentType: file.type || null,
+    size: typeof file.size === "number" ? file.size : null,
+    type: "certificate",
+  });
+
+  // Append to profile certificates array for backwards compatibility with profile UI
+  const profileRef = doc(db, "profiles", userId);
+  await updateDoc(profileRef, {
+    certificates: arrayUnion({
+      id: uploadDoc.id,
+      title: displayTitle,
+      filePath: downloadURL,
+      fileName: safeName,
+      size: typeof file.size === "number" ? file.size : null,
+      uploadedAt: new Date().toISOString(),
+    }),
+  }).catch(async () => {
+    // If profile doc doesn't exist yet, create it
+    await setDoc(profileRef, {
+      certificates: [
+        {
+          id: uploadDoc.id,
+          title: displayTitle,
+          filePath: downloadURL,
+          fileName: safeName,
+          size: typeof file.size === "number" ? file.size : null,
+          uploadedAt: new Date().toISOString(),
+        },
+      ],
+    }, { merge: true });
+  });
+
+  return {
+    id: uploadDoc.id,
+    filePath: downloadURL,
+    fileName: safeName,
+    size: typeof file.size === "number" ? file.size : null,
+    uploadedAt: new Date().toISOString(),
+  };
 }
 
 export function subscribeCustomerUploads(userId, observer) {

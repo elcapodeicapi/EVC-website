@@ -13,8 +13,9 @@
   "engines": {
     "node": "22"
   },
-  "main": "index.js",
+  "main": "index.mjs",
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "evc-root": "file:../..",

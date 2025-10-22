@@ -281,7 +281,7 @@ const CustomerPlanning = () => {
             className={`flex items-start gap-3 rounded-xl bg-white/70 ${padding} shadow-sm`}
           >
             <span className={`${badgeSize} flex-shrink-0 rounded-full bg-brand-500`} />
-            <span className="leading-relaxed">{String(value)}</span>
+            <span className="leading-relaxed break-words whitespace-pre-line">{String(value)}</span>
           </li>
         ))}
       </ul>
@@ -633,8 +633,8 @@ const CustomerPlanning = () => {
 
                 <div
                   id={detailId}
-                  className={`overflow-hidden border-t border-slate-100 px-5 transition-[max-height] duration-500 ${
-                    isExpanded ? "max-h-[1200px] py-5" : "max-h-0"
+                  className={`border-t border-slate-100 px-5 transition-[max-height] duration-500 ${
+                    isExpanded ? "max-h-[9999px] overflow-visible py-5" : "max-h-0 overflow-hidden"
                   }`}
                 >
                   {isExpanded ? (
