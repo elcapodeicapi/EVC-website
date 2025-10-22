@@ -1,52 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { CircleHelp } from "lucide-react";
+import {
+  saveCustomerQuestionnaireResponses,
+  subscribeCustomerQuestionnaire,
+} from "../../lib/firestoreCustomer";
+import {
+  QUESTIONNAIRE_SECTIONS,
+  QUESTIONNAIRE_SECTION_IDS,
+  emptyQuestionnaireResponses,
+  normalizeQuestionnaireResponses,
+  questionnaireIsComplete,
+} from "../../lib/questionnaire";
 
 const STORAGE_NAMESPACE = "evc-vragenlijst-responses";
-
-const QUESTION_SECTIONS = [
-  {
-    id: "werknemer",
-    title: "De economische dimensie: functioneren als werknemer in een arbeidsorganisatie",
-    instruction:
-  "Beschrijf hoe u zich als een goede werknemer gedraagt. Vertel bijvoorbeeld hoe u omgaat met collega's, hoe u op de hoogte blijft van regels en procedures, hoe u uw rechten als werknemer kent, of hoe u omgaat met overwerk en stress.",
-  },
-  {
-    id: "politiek",
-    title: "Burgerschap: de politiek-juridische dimensie",
-    instruction:
-      "Vertel hoe u zich een mening vormt over politieke onderwerpen. Geef aan of u stemt bij verkiezingen, hoe u beslist op wie u stemt en welke thema’s u belangrijk vindt in de politiek.",
-  },
-  {
-    id: "consument",
-    title: "De economische dimensie: functioneren als kritisch consument",
-    instruction:
-  "Beschrijf uw gedrag als consument. Vertel hoe u beslissingen neemt over aankopen of het kiezen van een dienstverlener. Denk aan het verzamelen van informatie, letten op aanbiedingen, onderhandelen over prijzen en het bewaken van uw uitgaven.",
-  },
-  {
-    id: "sociaal",
-    title: "De sociaal-maatschappelijke dimensie: deelnemen in sociale verbanden",
-    instruction:
-      "Beschrijf hoe u deelneemt aan sociale verbanden en wat u doet om de leefbaarheid van uw omgeving te versterken. Vertel bijvoorbeeld over vrijwilligerswerk, verenigingen, goede doelen of manieren waarop u anderen helpt.",
-  },
-  {
-    id: "vitaal",
-    title: "De dimensie vitaal burgerschap: zorgen voor de eigen gezondheid en die van anderen",
-    instruction:
-      "Beschrijf hoe u met uw gezondheid omgaat en hoe u rekening houdt met de gezondheid van anderen. Denk aan sport, voeding, stoppen met roken, het zoeken van informatie en weten waar u hulp kunt vinden.",
-  },
-  {
-    id: "loopbaan",
-    title: "Loopbaan: sturen van de eigen loopbaan",
-    instruction:
-      "Vertel hoe u uw loopbaan richting geeft. Beschrijf uw sterke kanten, wat u wilt leren, welke baan goed bij u past en welke stappen u wilt zetten om uw toekomstige doelen te bereiken.",
-  },
-];
-
-const emptyResponses = QUESTION_SECTIONS.reduce((acc, section) => {
-  acc[section.id] = "";
-  return acc;
-}, {});
 
 const StatusBanner = ({ state, className = "" }) => {
   if (!state) return null;
@@ -65,8 +32,12 @@ const CustomerVragenlijst = () => {
   const customerId = customer?.firebaseUid || customer?.id || customer?.uid || null;
   const storageKey = useMemo(() => (customerId ? `${STORAGE_NAMESPACE}:${customerId}` : null), [customerId]);
 
-  const [responses, setResponses] = useState(emptyResponses);
+  const [responses, setResponses] = useState(() => emptyQuestionnaireResponses());
   const [status, setStatus] = useState(null);
+  const [remoteRecord, setRemoteRecord] = useState(null);
+  const [remoteLoading, setRemoteLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     if (!storageKey) return;
@@ -86,20 +57,115 @@ const CustomerVragenlijst = () => {
     const { value } = event.target;
     setResponses((previous) => ({ ...previous, [sectionId]: value }));
     setStatus(null);
+    setIsDirty(true);
   };
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (!customerId) {
+      setRemoteRecord(null);
+      setRemoteLoading(false);
+      return () => {};
+    }
+
+    let active = true;
+    setRemoteLoading(true);
+
+    const unsubscribe = subscribeCustomerQuestionnaire(customerId, ({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        setStatus({ type: "error", message: error?.message || "Kon vragenlijst niet laden." });
+        setRemoteLoading(false);
+        return;
+      }
+      setRemoteRecord(data || null);
+      setRemoteLoading(false);
+      if (!isDirty && data?.responses) {
+        setResponses((previous) => ({ ...previous, ...normalizeQuestionnaireResponses(data.responses) }));
+      }
+    });
+
+    return () => {
+      active = false;
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [customerId, isDirty]);
+
+  useEffect(() => {
+    if (!remoteRecord?.responses) return;
+    if (isDirty) return;
+    const normalizedRemote = normalizeQuestionnaireResponses(remoteRecord.responses);
+    setResponses((previous) => {
+      const differs = QUESTIONNAIRE_SECTION_IDS.some((sectionId) => {
+        const left = typeof previous?.[sectionId] === "string" ? previous[sectionId] : "";
+        const right = normalizedRemote[sectionId] || "";
+        return left !== right;
+      });
+      return differs ? normalizedRemote : previous;
+    });
+    if (!storageKey) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(normalizedRemote));
+    } catch (_) {
+      // ignore storage errors
+    }
+  }, [remoteRecord, isDirty, storageKey]);
+
+  const handleSave = async () => {
     if (!storageKey) {
       setStatus({ type: "error", message: "Log opnieuw in om uw antwoorden op te slaan." });
       return;
     }
+    if (!customerId) {
+      setStatus({ type: "error", message: "Kon geen kandidaat-id vinden." });
+      return;
+    }
+    const normalized = normalizeQuestionnaireResponses(responses);
+    const isComplete = questionnaireIsComplete(normalized);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(responses));
-      setStatus({ type: "success", message: "Uw antwoorden zijn lokaal opgeslagen op dit apparaat." });
+      setSaving(true);
+      await saveCustomerQuestionnaireResponses(customerId, normalized, {
+        updatedBy: customerId,
+        lastEditedBy: customerId,
+      });
+      localStorage.setItem(storageKey, JSON.stringify(normalized));
+      const now = new Date();
+      setRemoteRecord((previous) => ({
+        ...(previous || {}),
+        responses: normalized,
+        completed: isComplete,
+        updatedAt: now,
+        completedAt: isComplete ? now : previous?.completedAt || null,
+        updatedBy: customerId,
+        lastEditedBy: customerId,
+      }));
+      setStatus({ type: "success", message: "Uw antwoorden zijn opgeslagen in het dossier." });
+      setIsDirty(false);
     } catch (error) {
-      setStatus({ type: "error", message: error?.message || "Kon antwoorden niet opslaan." });
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(normalized));
+      } catch (_) {
+        // ignore storage errors
+      }
+      setStatus({
+        type: "error",
+        message: error?.message || "Opslaan mislukt. Uw antwoorden zijn lokaal opgeslagen op dit apparaat.",
+      });
+    } finally {
+      setSaving(false);
     }
   };
+
+  const remoteUpdatedAt = remoteRecord?.updatedAt instanceof Date ? remoteRecord.updatedAt : remoteRecord?.updatedAt ? new Date(remoteRecord.updatedAt) : null;
+  const remoteSummary = (() => {
+    if (!remoteRecord) return null;
+    const completed = remoteRecord.completed || questionnaireIsComplete(remoteRecord.responses);
+    if (completed) return "Compleet ingevuld";
+    const filledCount = QUESTIONNAIRE_SECTION_IDS.filter((sectionId) => {
+      const value = remoteRecord.responses?.[sectionId];
+      return typeof value === "string" && value.trim().length > 0;
+    }).length;
+    return filledCount > 0 ? `${filledCount} van ${QUESTIONNAIRE_SECTION_IDS.length} onderwerpen ingevuld` : "Nog niet ingevuld";
+  })();
 
   return (
     <div className="space-y-8">
@@ -110,8 +176,21 @@ const CustomerVragenlijst = () => {
           Gebruik deze vragenlijst om uw ervaringen en inzichten te delen. Geef bij iedere vraag concrete voorbeelden uit uw dagelijks leven zodat uw begeleider uw situatie goed kan beoordelen. U kunt uw antwoorden tussentijds opslaan en later verder aanvullen.
         </p>
       </header>
+      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
+        <p className="font-semibold text-slate-700">Opslagstatus</p>
+        <p>
+          {remoteLoading
+            ? "Gegevens uit het dossier worden geladen..."
+            : remoteSummary || "Nog geen gegevens opgeslagen in het dossier."}
+        </p>
+        {remoteUpdatedAt ? (
+          <p className="mt-1 text-[11px] text-slate-400">
+            Laatst bijgewerkt op {remoteUpdatedAt.toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}
+          </p>
+        ) : null}
+      </div>
       <section className="space-y-6">
-        {QUESTION_SECTIONS.map((section) => (
+        {QUESTIONNAIRE_SECTIONS.map((section) => (
           <article key={section.id} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -141,13 +220,16 @@ const CustomerVragenlijst = () => {
         <button
           type="button"
           onClick={handleSave}
-          className="inline-flex items-center justify-center rounded-full bg-evc-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-evc-blue-500"
+          disabled={saving}
+          className="inline-flex items-center justify-center rounded-full bg-evc-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-evc-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Opslaan
+          {saving ? "Opslaan..." : "Opslaan"}
         </button>
         <StatusBanner state={status} className="w-full sm:w-auto" />
       </div>
-      <p className="text-xs text-slate-400">Opgeslagen antwoorden worden alleen lokaal bewaard en zijn zichtbaar op dit apparaat.</p>
+      <p className="text-xs text-slate-400">
+        Antwoorden worden opgeslagen in uw dossier en op dit apparaat voor snel hergebruik.
+      </p>
     </div>
   );
 };

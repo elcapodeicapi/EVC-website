@@ -20,13 +20,7 @@ onInit(() => {
 	// Intentionally keep cold-start work minimal; app is created lazily on first request
 });
 
-exports.app = onRequest({
-	region: "europe-west1",
-	maxInstances: 10,
-	memory: "512MiB",
-	// Run as the App Engine default service account so custom-token signing works without extra IAM bindings.
-	serviceAccount: "evcwebsite12345@appspot.gserviceaccount.com",
-}, (req, res) => {
+exports.app = onRequest({ region: "europe-west1", maxInstances: 10, memory: "512MiB" }, (req, res) => {
 	if (req.url.startsWith("/api/")) {
 		req.url = req.url.replace(/^\/api/, "");
 	} else if (req.url === "/api") {

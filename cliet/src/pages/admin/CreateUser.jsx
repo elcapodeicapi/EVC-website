@@ -5,6 +5,8 @@ import { get, post } from "../../lib/api";
 const ROLE_OPTIONS = [
   { value: "customer", label: "Kandidaat" },
   { value: "coach", label: "Begeleider" },
+  { value: "kwaliteitscoordinator", label: "Kwaliteitscoordinator" },
+  { value: "assessor", label: "Assessor" },
   { value: "admin", label: "Beheerder" },
 ];
 
@@ -12,6 +14,8 @@ const ROLE_LABELS = {
   customer: "Kandidaat",
   user: "Kandidaat",
   coach: "Begeleider",
+  kwaliteitscoordinator: "Kwaliteitscoordinator",
+  assessor: "Assessor",
   admin: "Beheerder",
 };
 
@@ -130,7 +134,7 @@ const AdminCreateUser = () => {
         <div>
           <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Admin</p>
           <h1 className="mt-1 text-2xl font-semibold text-slate-900">Beheer gebruikers</h1>
-          <p className="text-sm text-slate-500">Maak nieuwe accounts voor begeleiders en kandidaten.</p>
+          <p className="text-sm text-slate-500">Maak nieuwe accounts voor begeleiders, kwaliteitscoordinatoren, assessors en kandidaten.</p>
         </div>
         <div className="hidden items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600 sm:flex">
           <UsersIcon className="h-4 w-4" />

@@ -23,6 +23,12 @@ import {
   subscribeCoachCustomerProfile,
   subscribeCustomerProgress,
 } from "../../lib/firestoreCoach";
+import {
+  QUESTIONNAIRE_SECTIONS,
+  QUESTIONNAIRE_SECTION_IDS,
+  normalizeQuestionnaireResponses,
+  questionnaireIsComplete,
+} from "../../lib/questionnaire";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("nl-NL", {
   dateStyle: "medium",
@@ -87,13 +93,50 @@ const statusToIcon = {
   missing: "❌",
 };
 
+const summarizeWorkExperience = (entries = [], { maxItems = 2 } = {}) => {
+  if (!Array.isArray(entries)) {
+    return { summary: "", count: 0 };
+  }
+  const normalized = entries
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const role = typeof entry.role === "string" ? entry.role.trim() : "";
+      const organisation = typeof entry.organisation === "string" ? entry.organisation.trim() : typeof entry.organization === "string" ? entry.organization.trim() : "";
+      const note = typeof entry.note === "string" ? entry.note.trim() : "";
+      if (!role && !organisation && !note) return null;
+      return { role, organisation, note };
+    })
+    .filter(Boolean);
+
+  if (normalized.length === 0) {
+    return { summary: "", count: 0 };
+  }
+
+  const summaryParts = normalized.slice(0, maxItems).map((entry) => {
+    if (entry.role && entry.organisation) return `${entry.role} @ ${entry.organisation}`;
+    if (entry.role) return entry.role;
+    if (entry.organisation) return entry.organisation;
+    return entry.note;
+  });
+
+  return {
+    summary: summaryParts.join(", "),
+    count: normalized.length,
+  };
+};
+
 const buildInstrumentEntries = ({
   lastActivity,
   totalUploads,
   voluntary,
   currentRole,
   loopbaanUploads,
-  questionnaireName,
+  loopbaanCompleted,
+  questionnaireCompleted,
+  questionnaireUpdatedRelative,
+  questionnaireSummary,
+  hasWorkExperience,
+  workExperienceSummary,
 }) => {
   return [
     {
@@ -116,23 +159,32 @@ const buildInstrumentEntries = ({
     {
       key: "experience",
       label: "Relevante werkervaring",
-      status: currentRole ? "completed" : "attention",
-      message: currentRole ? `Functie geregistreerd (${currentRole})` : "Nog geen werkervaring opgegeven",
+      status: hasWorkExperience ? "completed" : currentRole ? "attention" : "missing",
+      message: hasWorkExperience
+        ? workExperienceSummary
+        : currentRole
+        ? `Functie geregistreerd (${currentRole})`
+        : totalUploads > 0
+        ? `${totalUploads} bewijsstuk${totalUploads === 1 ? "" : "ken"} geüpload`
+        : "Nog geen werkervaring opgegeven",
     },
     {
       key: "loopbaan",
       label: "Loopbaan en burgerschap",
-      status: loopbaanUploads > 0 ? "completed" : "attention",
-      message:
-        loopbaanUploads > 0
-          ? `${loopbaanUploads} bewijsstuk${loopbaanUploads === 1 ? "" : "ken"} toegevoegd`
-          : "Nog niet ingevuld",
+      status: loopbaanCompleted ? "completed" : loopbaanUploads > 0 ? "attention" : "missing",
+      message: loopbaanCompleted
+        ? "✅ Vastgelegd"
+        : loopbaanUploads > 0
+        ? `${loopbaanUploads} bewijsstuk${loopbaanUploads === 1 ? "" : "ken"} toegevoegd`
+        : "Nog niet ingevuld",
     },
     {
       key: "questionnaire",
       label: "Vragenlijst",
-      status: questionnaireName && questionnaireName !== "Nog niet ingevuld" ? "completed" : "attention",
-      message: questionnaireName || "Nog niet ingevuld",
+      status: questionnaireCompleted ? "completed" : "missing",
+      message: questionnaireCompleted
+        ? `✅ Ingevuld${questionnaireUpdatedRelative ? ` • ${questionnaireUpdatedRelative.toLowerCase()}` : ""}`
+        : questionnaireSummary || "Nog niet ingevuld",
     },
     {
       key: "voluntary",
@@ -158,7 +210,7 @@ const buildInstrumentEntries = ({
 const CustomerTrajectOverview = () => {
   const { customerId } = useParams();
   const navigate = useNavigate();
-  const { customers = [], coach } = useOutletContext() ?? {};
+  const { customers = [], coach, basePath = "/coach" } = useOutletContext() ?? {};
 
   const customer = useMemo(
     () => customers.find((item) => item.id === customerId) || null,
@@ -274,6 +326,7 @@ const CustomerTrajectOverview = () => {
   }, [progressState.data?.competencies]);
 
   const profileData = profileState.data?.profile || {};
+  const resumeData = profileState.data?.resume || profileData?.resume || {};
   const evc = profileState.data?.evcTrajectory || profileData.evcTrajectory || {};
   const profileCustomer = profileState.data?.customer || customer;
   const displayName = profileCustomer?.name || customer?.name || customer?.email || "Onbekende kandidaat";
@@ -295,6 +348,35 @@ const CustomerTrajectOverview = () => {
   const lastLoginRelative = lastLoggedIn ? formatRelative(lastLoggedIn) : null;
   const voluntary = Boolean(evc?.voluntaryParticipation);
   const qualification = evc?.qualification || {};
+  const placeOfBirth = profileData?.placeOfBirth || profileData?.birthplace || resumeData?.placeOfBirth || "";
+  const phoneNumber =
+    profileData?.phone ||
+    profileData?.phoneMobile ||
+    resumeData?.phoneMobile ||
+    resumeData?.phoneFixed ||
+    customer?.phone ||
+    "";
+  const careerGoalRecord = profileData?.careerGoal || profileState.data?.careerGoal || null;
+  const careerGoalUpdatedAt = careerGoalRecord?.updatedAt instanceof Date
+    ? careerGoalRecord.updatedAt
+    : careerGoalRecord?.updatedAt
+    ? new Date(careerGoalRecord.updatedAt)
+    : null;
+  const careerGoalUpdatedAbsolute = careerGoalUpdatedAt ? formatDateTime(careerGoalUpdatedAt) : null;
+  const careerGoalUpdatedRelative = careerGoalUpdatedAt ? formatRelative(careerGoalUpdatedAt) : null;
+  const workExperienceEntries = useMemo(() => {
+    const source = Array.isArray(profileData?.workExperience) && profileData.workExperience.length > 0
+      ? profileData.workExperience
+      : Array.isArray(resumeData?.workExperience)
+      ? resumeData.workExperience
+      : [];
+    return source.filter((entry) => entry && (entry.role || entry.organisation || entry.organization || entry.note));
+  }, [profileData?.workExperience, resumeData?.workExperience]);
+  const { summary: workExperienceSummary, count: workExperienceCount } = useMemo(
+    () => summarizeWorkExperience(workExperienceEntries),
+    [workExperienceEntries]
+  );
+  const hasWorkExperience = workExperienceCount > 0;
   const qualificationSummary = useMemo(() => {
     const parts = [];
     if (qualification.name) parts.push(qualification.name);
@@ -326,8 +408,80 @@ const CustomerTrajectOverview = () => {
   const loopbaanUploads = loopbaanCompetency
     ? progressData?.uploadsByCompetency?.[loopbaanCompetency.id] || []
     : [];
+  const loopbaanCompleted = useMemo(() => {
+    if (!careerGoalRecord || typeof careerGoalRecord !== "object") return false;
+    const fields = [
+      careerGoalRecord.summary,
+      careerGoalRecord.description,
+      careerGoalRecord.goal,
+      careerGoalRecord.title,
+      careerGoalRecord.content,
+    ];
+    return fields.some((value) => typeof value === "string" && value.trim().length > 0);
+  }, [careerGoalRecord]);
 
-  const questionnaireName = profileData?.questionnaires?.[0]?.name || profileData?.questionnaire?.name || "Nog niet ingevuld";
+  const questionnaireRecord = profileState.data?.questionnaire || profileData?.questionnaire || null;
+  const questionnaireResponses = useMemo(() => {
+    const source =
+      questionnaireRecord?.responses && typeof questionnaireRecord.responses === "object"
+        ? questionnaireRecord.responses
+        : profileData?.questionnaire?.responses && typeof profileData.questionnaire.responses === "object"
+        ? profileData.questionnaire.responses
+        : {};
+    return normalizeQuestionnaireResponses(source);
+  }, [questionnaireRecord?.responses, profileData?.questionnaire?.responses]);
+  const questionnaireCompleted = useMemo(
+    () =>
+      questionnaireRecord?.completed === true || questionnaireIsComplete(questionnaireResponses),
+    [questionnaireRecord?.completed, questionnaireResponses]
+  );
+  const questionnaireUpdatedAt = useMemo(() => {
+    const source =
+      questionnaireRecord?.updatedAt ||
+      questionnaireRecord?.completedAt ||
+      profileData?.questionnaire?.updatedAt ||
+      profileData?.questionnaire?.completedAt ||
+      null;
+    if (!source) return null;
+    const date = source instanceof Date ? source : new Date(source);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }, [
+    questionnaireRecord?.updatedAt,
+    questionnaireRecord?.completedAt,
+    profileData?.questionnaire?.updatedAt,
+    profileData?.questionnaire?.completedAt,
+  ]);
+  const questionnaireUpdatedRelative = questionnaireUpdatedAt ? formatRelative(questionnaireUpdatedAt) : null;
+  const questionnaireUpdatedAbsolute = questionnaireUpdatedAt ? formatDateTime(questionnaireUpdatedAt) : null;
+  const questionnaireSummary = useMemo(() => {
+    if (questionnaireCompleted) {
+      return questionnaireUpdatedRelative
+        ? `Compleet ingevuld • ${questionnaireUpdatedRelative.toLowerCase()}`
+        : "Compleet ingevuld";
+    }
+    const filledCount = QUESTIONNAIRE_SECTION_IDS.filter((sectionId) => {
+      const value = questionnaireResponses[sectionId];
+      return typeof value === "string" && value.trim().length > 0;
+    }).length;
+    if (filledCount === 0) return "Nog niet ingevuld";
+    return `${filledCount} van ${QUESTIONNAIRE_SECTION_IDS.length} onderdelen ingevuld`;
+  }, [questionnaireCompleted, questionnaireResponses, questionnaireUpdatedRelative]);
+  const questionnaireHasContent = useMemo(
+    () =>
+      QUESTIONNAIRE_SECTION_IDS.some((sectionId) => {
+        const value = questionnaireResponses[sectionId];
+        return typeof value === "string" && value.trim().length > 0;
+      }),
+    [questionnaireResponses]
+  );
+  const questionnaireSectionEntries = useMemo(
+    () =>
+      QUESTIONNAIRE_SECTIONS.map((section) => ({
+        ...section,
+        response: typeof questionnaireResponses[section.id] === "string" ? questionnaireResponses[section.id].trim() : "",
+      })),
+    [questionnaireResponses]
+  );
 
   const instrumentEntries = useMemo(
     () =>
@@ -337,9 +491,27 @@ const CustomerTrajectOverview = () => {
         voluntary,
         currentRole: evc?.currentRole || profileData?.currentRole || null,
         loopbaanUploads: loopbaanUploads.length,
-        questionnaireName,
+  loopbaanCompleted,
+        questionnaireCompleted,
+        questionnaireUpdatedRelative,
+        questionnaireSummary,
+        hasWorkExperience,
+        workExperienceSummary,
       }),
-    [lastActivity, totalUploads, voluntary, evc?.currentRole, profileData?.currentRole, loopbaanUploads.length, questionnaireName]
+    [
+      lastActivity,
+      totalUploads,
+      voluntary,
+      evc?.currentRole,
+      profileData?.currentRole,
+      loopbaanUploads.length,
+  loopbaanCompleted,
+      questionnaireCompleted,
+      questionnaireUpdatedRelative,
+      questionnaireSummary,
+      hasWorkExperience,
+      workExperienceSummary,
+    ]
   );
 
   const checklistItems = useMemo(
@@ -353,17 +525,36 @@ const CustomerTrajectOverview = () => {
       {
         key: "loopbaandoel",
         label: "Loopbaandoel vastgelegd",
-        completed: Boolean(profileData?.careerGoal?.title || profileData?.careerGoal?.summary),
+        completed: loopbaanCompleted,
         description: profileData?.careerGoal?.title || "Nog geen loopbaandoel opgegeven",
+      },
+      {
+        key: "questionnaire",
+        label: "Vragenlijst ingevuld",
+        completed: questionnaireCompleted,
+        description: questionnaireSummary,
       },
       {
         key: "experience",
         label: "Werkervaring vastgelegd",
-        completed: Boolean(evc?.currentRole || totalUploads > 0),
-        description: evc?.currentRole || (totalUploads > 0 ? "Er staat bewijs in het portfolio" : "Nog geen werkervaring ingevuld"),
+        completed: hasWorkExperience || Boolean(evc?.currentRole) || totalUploads > 0,
+        description: hasWorkExperience
+          ? workExperienceSummary
+          : evc?.currentRole || (totalUploads > 0 ? "Er staat bewijs in het portfolio" : "Nog geen werkervaring ingevuld"),
       },
     ],
-    [voluntary, profileData?.careerGoal?.title, profileData?.careerGoal?.summary, evc?.currentRole, totalUploads]
+    [
+      voluntary,
+      profileData?.careerGoal?.title,
+      profileData?.careerGoal?.summary,
+      loopbaanCompleted,
+      questionnaireCompleted,
+      questionnaireSummary,
+      evc?.currentRole,
+      totalUploads,
+      hasWorkExperience,
+      workExperienceSummary,
+    ]
   );
 
   const uploadsByCompetency = progressData?.uploadsByCompetency || {};
@@ -446,14 +637,14 @@ const CustomerTrajectOverview = () => {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               <p><span className="font-semibold text-slate-700">Naam:</span> {customer.name || "Onbekend"}</p>
               <p><span className="font-semibold text-slate-700">Geboortedatum:</span> {profileData?.dateOfBirth ? formatDate(profileData.dateOfBirth) : "Onbekend"}</p>
-              <p><span className="font-semibold text-slate-700">Geboorteplaats:</span> {profileData?.birthplace || "Onbekend"}</p>
+              <p><span className="font-semibold text-slate-700">Geboorteplaats:</span> {placeOfBirth || "Onbekend"}</p>
             </div>
           </div>
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Contact</p>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" /> {customer.email || "Geen e-mailadres"}</p>
-              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {profileData?.phone || customer.phone || "Geen telefoonnummer"}</p>
+              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {phoneNumber || "Geen telefoonnummer"}</p>
               <p className="flex items-center gap-2">
                 <CalendarClock className="h-4 w-4 text-slate-400" />
                 <span>
@@ -468,6 +659,7 @@ const CustomerTrajectOverview = () => {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               <p><span className="font-semibold text-slate-700">Vrijwillige deelname:</span> {voluntary ? "Ja" : "Nee"}</p>
               <p><span className="font-semibold text-slate-700">Huidige functie:</span> {evc?.currentRole || "Onbekend"}</p>
+              <p><span className="font-semibold text-slate-700">Werkervaring:</span> {hasWorkExperience ? workExperienceSummary : "Nog niet ingevuld"}</p>
               <p><span className="font-semibold text-slate-700">Kwalificatiedossier:</span> {qualificationSummary}</p>
             </div>
           </div>
@@ -511,7 +703,7 @@ const CustomerTrajectOverview = () => {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 <p><span className="font-semibold text-slate-700">Naam:</span> {customer.name || "Onbekend"}</p>
                 <p><span className="font-semibold text-slate-700">E-mail:</span> {customer.email || "Onbekend"}</p>
-                <p><span className="font-semibold text-slate-700">Telefoon:</span> {profileData?.phone || customer.phone || "Onbekend"}</p>
+                <p><span className="font-semibold text-slate-700">Telefoon:</span> {phoneNumber || "Onbekend"}</p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 <p><span className="font-semibold text-slate-700">Vrijwillige deelname:</span> {voluntary ? "Ja" : "Nee"}</p>
@@ -547,6 +739,12 @@ const CustomerTrajectOverview = () => {
               <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
                 <p className="font-semibold text-slate-700">{profileData.careerGoal.title || "Loopbaandoel"}</p>
                 <p className="mt-2 whitespace-pre-line text-sm">{profileData.careerGoal.summary || profileData.careerGoal.description || "Geen beschrijving"}</p>
+                {careerGoalUpdatedAbsolute ? (
+                  <p className="mt-2 text-xs text-slate-500">
+                    {`Bijgewerkt ${careerGoalUpdatedAbsolute}`}
+                    {careerGoalUpdatedRelative ? ` (${careerGoalUpdatedRelative.toLowerCase()})` : ""}
+                  </p>
+                ) : null}
               </article>
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-400">
@@ -560,14 +758,21 @@ const CustomerTrajectOverview = () => {
           <section className="space-y-4 rounded-3xl bg-white p-6 shadow-card">
             <header>
               <h3 className="text-lg font-semibold text-slate-900">Vragenlijsten</h3>
-              <p className="text-sm text-slate-500">Overzicht van ingezonden formulieren.</p>
+              <p className="text-sm text-slate-500">Ingevulde antwoorden uit het kandidatenportaal.</p>
             </header>
-            {profileData?.questionnaires?.length ? (
-              <div className="space-y-3">
-                {profileData.questionnaires.map((entry) => (
-                  <article key={entry.id || entry.name} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    <p className="font-semibold text-slate-700">{entry.name || "Vragenlijst"}</p>
-                    <p className="text-xs text-slate-500">{entry.updatedAt ? `Ingevuld op ${formatDateTime(entry.updatedAt)}` : "Datum onbekend"}</p>
+            {questionnaireHasContent ? (
+              <div className="space-y-4">
+                {questionnaireSectionEntries.map((section) => (
+                  <article
+                    key={section.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+                  >
+                    <p className="font-semibold text-slate-700">{section.title}</p>
+                    {section.response ? (
+                      <p className="mt-1 whitespace-pre-line text-sm text-slate-600">{section.response}</p>
+                    ) : (
+                      <p className="mt-1 text-sm text-slate-400">Nog geen antwoord.</p>
+                    )}
                   </article>
                 ))}
               </div>
@@ -576,6 +781,12 @@ const CustomerTrajectOverview = () => {
                 Nog geen vragenlijst ingevuld.
               </div>
             )}
+            {questionnaireUpdatedAbsolute ? (
+              <p className="text-xs text-slate-500">
+                {`Bijgewerkt ${questionnaireUpdatedAbsolute}`}
+                {questionnaireUpdatedRelative ? ` (${questionnaireUpdatedRelative.toLowerCase()})` : ""}
+              </p>
+            ) : null}
           </section>
         );
       case "candidate-contact":
@@ -587,7 +798,7 @@ const CustomerTrajectOverview = () => {
             </header>
             <div className="space-y-3 text-sm text-slate-600">
               <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" /> {customer.email || "Geen e-mailadres"}</p>
-              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {profileData?.phone || customer.phone || "Geen telefoonnummer"}</p>
+              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {phoneNumber || "Geen telefoonnummer"}</p>
               <p className="flex items-center gap-2"><UserRound className="h-4 w-4 text-slate-400" /> Contactpersoon: {evc?.contactPerson || "Onbekend"}</p>
             </div>
           </section>
@@ -974,7 +1185,10 @@ const CustomerTrajectOverview = () => {
         </span>
         <button
           type="button"
-          onClick={() => navigate("/coach/customers")}
+          onClick={() => {
+            const normalizedBase = basePath.startsWith("/") ? basePath.replace(/\/$/, "") : `/${basePath.replace(/\/$/, "")}`;
+            navigate(`${normalizedBase}/customers`);
+          }}
           className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-500"
         >
           Terug naar overzicht

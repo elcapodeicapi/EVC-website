@@ -309,7 +309,15 @@ const AdminDashboard = () => {
         } catch (_) {
           // Best-effort, geen blokkade
         }
-        const redirectPath = response.redirectPath || (role === "coach" ? "/coach" : "/customer");
+        const redirectPath =
+          response.redirectPath ||
+          (role === "coach"
+            ? "/coach"
+            : role === "kwaliteitscoordinator"
+            ? "/kwaliteitscoordinator"
+            : role === "assessor"
+            ? "/assessor"
+            : "/customer");
         navigate(redirectPath, { replace: true });
       } catch (error) {
         const message = error?.data?.error || error?.message || "Kon account niet openen";

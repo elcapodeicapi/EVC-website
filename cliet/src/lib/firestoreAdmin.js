@@ -1,5 +1,8 @@
 import {
+  addDoc,
+  arrayUnion,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -7,11 +10,16 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
+  updateDoc,
   where,
   writeBatch,
+  Timestamp,
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
+
+const STATUS_HISTORY_LIMIT = 50;
 
 function normalizeTimestamp(value) {
   if (!value) return null;
@@ -20,8 +28,8 @@ function normalizeTimestamp(value) {
   }
   if (typeof value.toDate === "function") {
     try {
-      const date = value.toDate();
-      return Number.isNaN(date.getTime()) ? null : date;
+      const result = value.toDate();
+      return Number.isNaN(result.getTime()) ? null : result;
     } catch (_) {
       return null;
     }
@@ -31,20 +39,114 @@ function normalizeTimestamp(value) {
     const date = new Date(millis);
     return Number.isNaN(date.getTime()) ? null : date;
   }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
+  const converted = new Date(value);
+  return Number.isNaN(converted.getTime()) ? null : converted;
+}
+
+function normalizeStatusHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const status = normalizeTrajectStatus(entry.status);
+      if (!status) return null;
+      const changedAt = normalizeTimestamp(entry.changedAt);
+      const note = typeof entry.note === "string" && entry.note.trim() ? entry.note.trim() : null;
+      return {
+        status,
+        changedAt,
+        changedAtMillis: changedAt instanceof Date ? changedAt.getTime() : null,
+        changedBy: entry.changedBy || null,
+        changedByRole: entry.changedByRole || null,
+        note,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const timeA = a.changedAtMillis || 0;
+      const timeB = b.changedAtMillis || 0;
+      return timeA - timeB;
+    });
+}
+
+function coerceTimestampForStorage(value) {
+  if (!value) return null;
+  if (value instanceof Timestamp) return value;
+  if (typeof value.toDate === "function") {
+    try {
+      const date = value.toDate();
+      return Number.isNaN(date.getTime()) ? null : Timestamp.fromDate(date);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : Timestamp.fromDate(value);
+  }
+  if (typeof value.seconds === "number") {
+    return new Timestamp(value.seconds, value.nanoseconds ?? 0);
+  }
+  if (typeof value._seconds === "number") {
+    return new Timestamp(value._seconds, value._nanoseconds ? Math.floor(value._nanoseconds) : 0);
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : Timestamp.fromDate(parsed);
+}
+
+function sanitizeHistoryForStorage(history) {
+  if (!Array.isArray(history)) return [];
+  return history
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const status = normalizeTrajectStatus(entry.status);
+      if (!status) return null;
+      const changedAt = coerceTimestampForStorage(entry.changedAt);
+      const note = typeof entry.note === "string" && entry.note.trim() ? entry.note.trim() : null;
+      return {
+        status,
+        changedAt: changedAt || null,
+        changedBy: entry.changedBy || null,
+        changedByRole: entry.changedByRole || null,
+        note,
+      };
+    })
+    .filter(Boolean);
 }
 
 function mapDoc(snapshot) {
-  if (!snapshot?.exists()) return null;
-  const data = snapshot.data();
-  return {
-    id: snapshot.id,
-    ...data,
-    createdAt: normalizeTimestamp(data.createdAt),
-    updatedAt: normalizeTimestamp(data.updatedAt),
-    lastLoggedIn: normalizeTimestamp(data.lastLoggedIn),
-  };
+  if (!snapshot) return null;
+  const exists = typeof snapshot.exists === "boolean" ? snapshot.exists : true;
+  if (!exists) return null;
+
+  const rawData = typeof snapshot.data === "function" ? snapshot.data() : snapshot;
+  if (!rawData || typeof rawData !== "object") return null;
+
+  const id = snapshot.id ?? rawData.id ?? null;
+  if (!id) return null;
+
+  const normalized = { ...rawData, id };
+  if (!normalized.uid) normalized.uid = id;
+  if (!normalized.firebaseUid) normalized.firebaseUid = id;
+
+  if (Array.isArray(normalized.statusHistory)) {
+    normalized.statusHistory = normalizeStatusHistory(normalized.statusHistory);
+  }
+
+  Object.entries(normalized).forEach(([key, value]) => {
+    if (key === "statusHistory") return;
+    if (!value) return;
+    if (value instanceof Timestamp || typeof value.toDate === "function" || value instanceof Date) {
+      normalized[key] = normalizeTimestamp(value);
+      return;
+    }
+    if (value && typeof value === "object") {
+      if (typeof value.seconds === "number" || typeof value._seconds === "number") {
+        normalized[key] = normalizeTimestamp(value);
+      }
+    }
+  });
+
+  return normalized;
 }
 
 function makeQueryConstraints(roles) {
@@ -109,8 +211,13 @@ export function subscribeAssignments(observer) {
           customerId: data.customerId || null,
           coachId: data.coachId || null,
           status,
-          createdAt: data.createdAt ? data.createdAt.toDate?.() ?? data.createdAt : null,
+          createdAt: normalizeTimestamp(data.createdAt),
+          updatedAt: normalizeTimestamp(data.updatedAt),
           createdBy: data.createdBy || null,
+          statusUpdatedAt: normalizeTimestamp(data.statusUpdatedAt),
+          statusUpdatedBy: data.statusUpdatedBy || null,
+          statusUpdatedByRole: data.statusUpdatedByRole || null,
+          statusHistory: normalizeStatusHistory(data.statusHistory),
         };
       });
       observer({ data: entries, error: null });
@@ -163,18 +270,39 @@ export async function createAssignment({ customerId, coachId, status = DEFAULT_T
   const previousCoachId = previousData?.coachId || null;
   const existingCreatedAt = previousData?.createdAt || null;
   const existingCreatedBy = previousData?.createdBy || null;
+  const existingHistoryRaw = Array.isArray(previousData?.statusHistory) ? previousData.statusHistory : [];
+  const existingHistory = sanitizeHistoryForStorage(existingHistoryRaw);
 
   const batch = writeBatch(db);
+
+  const now = Timestamp.now();
+  const statusTimestamp = Timestamp.now();
+  const historyTimestamp = Timestamp.now();
+  const historyEntry = {
+    status: resolvedStatus,
+    changedAt: historyTimestamp,
+    changedBy: createdBy || existingCreatedBy || null,
+    changedByRole: createdBy ? "admin" : previousData?.statusUpdatedByRole || null,
+  };
+  const trimmedHistory =
+    existingHistory.length >= STATUS_HISTORY_LIMIT
+      ? existingHistory.slice(-(STATUS_HISTORY_LIMIT - 1))
+      : existingHistory;
+  const statusHistory = [...trimmedHistory, historyEntry];
 
   const assignmentPayload = {
     customerId,
     coachId,
     status: resolvedStatus,
     createdBy: existingCreatedBy || createdBy || null,
-    updatedAt: serverTimestamp(),
+    updatedAt: now,
+    statusUpdatedAt: statusTimestamp,
+    statusUpdatedBy: historyEntry.changedBy || null,
+    statusUpdatedByRole: historyEntry.changedByRole || null,
+    statusHistory,
   };
   if (!existingCreatedAt) {
-    assignmentPayload.createdAt = serverTimestamp();
+    assignmentPayload.createdAt = now;
   } else {
     assignmentPayload.createdAt = existingCreatedAt;
   }
@@ -196,10 +324,14 @@ export async function createAssignment({ customerId, coachId, status = DEFAULT_T
     coachId,
     status: resolvedStatus,
     createdBy: existingCreatedBy || createdBy || null,
-    updatedAt: serverTimestamp(),
+    updatedAt: now,
+    statusUpdatedAt: statusTimestamp,
+    statusUpdatedBy: historyEntry.changedBy || null,
+    statusUpdatedByRole: historyEntry.changedByRole || null,
+    statusHistory,
   };
   if (!existingCreatedAt) {
-    coachLinkPayload.createdAt = serverTimestamp();
+    coachLinkPayload.createdAt = now;
   } else {
     coachLinkPayload.createdAt = existingCreatedAt;
   }

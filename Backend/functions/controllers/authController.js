@@ -1,13 +1,17 @@
 const admin = require("firebase-admin");
 const { getDb, getAuth } = require("../firebase");
 
-const MANAGED_ROLES = new Set(["admin", "coach", "customer", "user"]);
+const MANAGED_ROLES = new Set(["admin", "coach", "customer", "user", "kwaliteitscoordinator", "assessor"]);
+
+const IMPERSONATION_ALLOWED_ROLES = new Set(["customer", "user", "coach", "kwaliteitscoordinator", "assessor"]);
 
 const roleRedirectMap = {
   admin: "/admin",
   coach: "/coach",
   customer: "/customer",
   user: "/customer",
+  kwaliteitscoordinator: "/kwaliteitscoordinator",
+  assessor: "/assessor",
 };
 
 function getRedirectPath(role) {
@@ -310,8 +314,8 @@ exports.adminImpersonate = async (req, res) => {
     const data = snap.data() || {};
     const normalizedRole = String(data.role || "").toLowerCase();
     if (!MANAGED_ROLES.has(normalizedRole)) return res.status(400).json({ error: "Target user has unsupported role" });
-    if (!["customer", "user", "coach"].includes(normalizedRole)) {
-      return res.status(403).json({ error: "Only customer or coach accounts can be impersonated" });
+    if (!IMPERSONATION_ALLOWED_ROLES.has(normalizedRole)) {
+      return res.status(403).json({ error: "Impersonatie voor deze rol is niet toegestaan" });
     }
 
     const adminUid = req.user?.uid || req.user?.firebaseUid;

@@ -3,7 +3,8 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, Sparkles } from "lucide-react";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { get } from "../../lib/api";
-import { subscribeCustomerProfileDetails, updateCustomerAssignmentStatus } from "../../lib/firestoreCustomer";
+import { subscribeCustomerProfileDetails, subscribeCustomerQuestionnaire } from "../../lib/firestoreCustomer";
+import { updateAssignmentStatus } from "../../lib/assignmentWorkflow";
 import {
   getNextTrajectStatus,
   getTrajectStatusLabel,
@@ -11,11 +12,11 @@ import {
   normalizeTrajectStatus,
   TRAJECT_STATUS,
 } from "../../lib/trajectStatus";
+import { QUESTIONNAIRE_SECTION_IDS, questionnaireIsComplete } from "../../lib/questionnaire";
 
 const VRAGENLIJST_STORAGE_NAMESPACE = "evc-vragenlijst-responses";
-const VRAGENLIJST_SECTION_IDS = ["werknemer", "politiek", "consument", "sociaal", "vitaal", "loopbaan"];
 
-const questionnaireIsComplete = (entry) => {
+const questionnaireEntryIsComplete = (entry) => {
   if (!entry) return false;
   if (entry.completed === true || entry.isComplete === true) return true;
   const status = typeof entry.status === "string" ? entry.status.toLowerCase() : "";
@@ -51,6 +52,9 @@ const CustomerReady = () => {
   const [careerGoal, setCareerGoal] = useState(null);
   const [careerGoalLoading, setCareerGoalLoading] = useState(true);
   const [careerGoalError, setCareerGoalError] = useState(null);
+  const [questionnaireRecord, setQuestionnaireRecord] = useState(null);
+  const [questionnaireLoading, setQuestionnaireLoading] = useState(true);
+  const [questionnaireError, setQuestionnaireError] = useState(null);
   const [vragenlijstDraft, setVragenlijstDraft] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -181,6 +185,37 @@ const CustomerReady = () => {
     };
   }, [vragenlijstStorageKey]);
 
+  useEffect(() => {
+    if (!customerId) {
+      if (!loadingUser) {
+        setQuestionnaireRecord(null);
+        setQuestionnaireLoading(false);
+        setQuestionnaireError(null);
+      }
+      return () => {};
+    }
+
+    let active = true;
+    setQuestionnaireLoading(true);
+    setQuestionnaireError(null);
+
+    const unsubscribe = subscribeCustomerQuestionnaire(customerId, ({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        setQuestionnaireError(error?.message || "Kon vragenlijst niet laden.");
+        setQuestionnaireLoading(false);
+        return;
+      }
+      setQuestionnaireRecord(data || null);
+      setQuestionnaireLoading(false);
+    });
+
+    return () => {
+      active = false;
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [customerId, loadingUser]);
+
   const voluntaryParticipation = Boolean(profileDetails?.evcTrajectory?.voluntaryParticipation);
 
   const workExperienceCount = useMemo(() => {
@@ -196,6 +231,8 @@ const CustomerReady = () => {
   const careerGoalContent = typeof careerGoal?.content === "string" ? careerGoal.content.trim() : "";
   const hasCareerGoal = careerGoalContent.length > 0;
 
+  const questionnaireResponses = questionnaireRecord?.responses || {};
+
   const questionnaireEntries = useMemo(() => {
     const items = [];
     if (Array.isArray(profileDetails?.questionnaires)) {
@@ -207,17 +244,39 @@ const CustomerReady = () => {
     if (profileDetails?.questionnaire) {
       items.push(profileDetails.questionnaire);
     }
+    if (questionnaireRecord) {
+      items.push({
+        id: "coach-questionnaire",
+        name: "Vragenlijst Loopbaan en Burgerschap",
+        responses: questionnaireResponses,
+        updatedAt: questionnaireRecord.updatedAt,
+        completed: questionnaireRecord.completed || questionnaireIsComplete(questionnaireResponses),
+      });
+    }
     return items;
-  }, [profileDetails?.questionnaires, profileDetails?.questionnaireHistory, profileDetails?.questionnaire]);
+  }, [
+    profileDetails?.questionnaires,
+    profileDetails?.questionnaireHistory,
+    profileDetails?.questionnaire,
+    questionnaireRecord,
+    questionnaireResponses,
+  ]);
 
   const hasQuestionnaireFromProfile = useMemo(() => {
     if (profileDetails?.questionnaireCompleted === true) return true;
-    return questionnaireEntries.some((entry) => questionnaireIsComplete(entry));
-  }, [profileDetails?.questionnaireCompleted, questionnaireEntries]);
+    if (questionnaireRecord?.completed) return true;
+    if (questionnaireIsComplete(questionnaireResponses)) return true;
+    return questionnaireEntries.some((entry) => questionnaireEntryIsComplete(entry));
+  }, [
+    profileDetails?.questionnaireCompleted,
+    questionnaireEntries,
+    questionnaireRecord?.completed,
+    questionnaireResponses,
+  ]);
 
   const hasQuestionnaireDraft = useMemo(() => {
     if (!vragenlijstDraft || typeof vragenlijstDraft !== "object") return false;
-    return VRAGENLIJST_SECTION_IDS.every((sectionId) => {
+    return QUESTIONNAIRE_SECTION_IDS.every((sectionId) => {
       const value = vragenlijstDraft[sectionId];
       if (typeof value !== "string") return false;
       return value.trim().length > 0;
@@ -226,7 +285,12 @@ const CustomerReady = () => {
 
   const hasQuestionnaire = hasQuestionnaireFromProfile || hasQuestionnaireDraft;
 
-  const isLoading = loadingUser || profileLoading || resumeLoading || careerGoalLoading;
+  const isLoading =
+    loadingUser ||
+    profileLoading ||
+    resumeLoading ||
+    careerGoalLoading ||
+    questionnaireLoading;
 
   const requirementItems = useMemo(
     () => [
@@ -278,14 +342,14 @@ const CustomerReady = () => {
     setSubmissionMessage(null);
 
     try {
-      await updateCustomerAssignmentStatus({
+      await updateAssignmentStatus({
         customerId,
         coachId: coachId || undefined,
         status: TRAJECT_STATUS.REVIEW,
       });
       setSubmissionMessage("Je portfolio is verstuurd naar je begeleider voor beoordeling.");
     } catch (error) {
-      const message = error?.message || "Kon de status niet bijwerken.";
+      const message = error?.data?.error || error?.message || "Kon de status niet bijwerken.";
       setSubmissionError(message);
     } finally {
       setSubmitting(false);

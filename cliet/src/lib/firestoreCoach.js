@@ -15,6 +15,8 @@ import { db } from "../firebase";
 import { getUsersIndex } from "./firestoreAdmin";
 import { subscribeCustomerUploads, subscribeTrajectCompetencies } from "./firestoreCustomer";
 import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
+import { normalizeQuestionnaireResponses, questionnaireIsComplete } from "./questionnaire";
+import { Timestamp } from "@google-cloud/firestore";
 
 const normalizeTimestamp = (value) => {
   if (!value) return null;
@@ -55,6 +57,10 @@ const mapAssignmentDoc = (snapshot) => {
     status,
     createdAt: normalizeTimestamp(data.createdAt),
     updatedAt: normalizeTimestamp(data.updatedAt),
+    statusUpdatedAt: normalizeTimestamp(data.statusUpdatedAt),
+    statusUpdatedBy: data.statusUpdatedBy || null,
+    statusUpdatedByRole: data.statusUpdatedByRole || null,
+    statusHistory: mapStatusHistory(data.statusHistory),
   };
 };
 
@@ -87,6 +93,32 @@ const mapFeedbackDoc = (snapshot) => {
     updatedAt,
     createdAt: normalizeTimestamp(data.createdAt),
   };
+};
+
+const mapStatusHistory = (history) => {
+  if (!Array.isArray(history)) return [];
+  return history
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const status = normalizeTrajectStatus(entry.status);
+      if (!status) return null;
+      const changedAt = normalizeTimestamp(entry.changedAt);
+      const note = typeof entry.note === "string" && entry.note.trim() ? entry.note.trim() : null;
+      return {
+        status,
+        changedAt,
+        changedAtMillis: changedAt instanceof Date ? changedAt.getTime() : null,
+        changedBy: entry.changedBy || null,
+        changedByRole: entry.changedByRole || null,
+        note,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const timeA = a.changedAtMillis || 0;
+      const timeB = b.changedAtMillis || 0;
+      return timeA - timeB;
+    });
 };
 
 const buildThreadEntry = (snapshot, coachId, userIndex) => {
@@ -162,6 +194,36 @@ const mapCoachEvcTrajectory = (raw = {}) => {
   };
 };
 
+const emptyCoachQuestionnaire = () => ({
+  id: "current",
+  name: "Vragenlijst Loopbaan en Burgerschap",
+  responses: normalizeQuestionnaireResponses(),
+  completed: false,
+  updatedAt: null,
+  completedAt: null,
+  updatedBy: null,
+  lastEditedBy: null,
+});
+
+const mapCoachQuestionnaireDoc = (snapshot) => {
+  if (!snapshot?.exists()) {
+    return emptyCoachQuestionnaire();
+  }
+  const data = snapshot.data() || {};
+  const responses = normalizeQuestionnaireResponses(data.responses || data.sections || {});
+  const completedFlag = data.completed === true || questionnaireIsComplete(responses);
+  return {
+    id: data.id || snapshot.id || "current",
+    name: data.name || "Vragenlijst Loopbaan en Burgerschap",
+    responses,
+    completed: completedFlag,
+    updatedAt: normalizeTimestamp(data.updatedAt || data.lastUpdated || null),
+    completedAt: normalizeTimestamp(data.completedAt || null),
+    updatedBy: data.updatedBy || null,
+    lastEditedBy: data.lastEditedBy || null,
+  };
+};
+
 const mapCoachProfileDetailsDoc = (snapshot) => {
   if (!snapshot?.exists()) {
     return {
@@ -178,6 +240,135 @@ const mapCoachProfileDetailsDoc = (snapshot) => {
     photoURL,
     evcTrajectory: mapCoachEvcTrajectory(evcTrajectory || {}),
     updatedAt: normalizeTimestamp(data.updatedAt || data.lastUpdated || null),
+  };
+};
+
+const asArray = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter((entry) => entry !== undefined && entry !== null);
+  return [];
+};
+
+const cloneEntry = (entry) => {
+  if (!entry || typeof entry !== "object") return null;
+  return { ...entry };
+};
+
+const mergeUniqueByKey = (primary = [], secondary = []) => {
+  const result = [];
+  const seen = new Set();
+  [...primary, ...secondary].forEach((entry) => {
+    if (!entry) return;
+    const key = entry.id || entry.name || entry.title || null;
+    const dedupeKey = key ? `${typeof key}-${key}` : JSON.stringify(entry);
+    if (seen.has(dedupeKey)) return;
+    seen.add(dedupeKey);
+    result.push(entry);
+  });
+  return result;
+};
+
+const emptyCoachResume = () => ({
+  dateOfBirth: "",
+  placeOfBirth: "",
+  nationality: "",
+  phoneFixed: "",
+  phoneMobile: "",
+  street: "",
+  houseNumber: "",
+  addition: "",
+  postalCode: "",
+  city: "",
+  educations: [],
+  certificates: [],
+  workExperience: [],
+  questionnaires: [],
+  questionnaireHistory: [],
+  questionnaire: null,
+  questionnaireCompleted: false,
+  photoURL: null,
+});
+
+const mapCoachProfileResumeDoc = (snapshot) => {
+  if (!snapshot?.exists()) {
+    return emptyCoachResume();
+  }
+  const data = snapshot.data() || {};
+  const toStringSafe = (value) => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value.trim();
+    return String(value).trim();
+  };
+  const normalizeEntries = (entries) => asArray(entries).map((entry) => {
+    const candidate = cloneEntry(entry);
+    if (!candidate) return null;
+    const mapped = { ...candidate };
+    if (mapped.startDate) mapped.startDate = toStringSafe(mapped.startDate);
+    if (mapped.endDate) mapped.endDate = toStringSafe(mapped.endDate);
+    if (mapped.updatedAt) mapped.updatedAt = normalizeTimestamp(mapped.updatedAt);
+    if (mapped.submittedAt) mapped.submittedAt = normalizeTimestamp(mapped.submittedAt);
+    if (mapped.completedAt) mapped.completedAt = normalizeTimestamp(mapped.completedAt);
+    return mapped;
+  }).filter(Boolean);
+
+  return {
+    dateOfBirth: toStringSafe(data.dateOfBirth),
+    placeOfBirth: toStringSafe(data.placeOfBirth || data.birthplace),
+    nationality: toStringSafe(data.nationality),
+    phoneFixed: toStringSafe(data.phoneFixed),
+    phoneMobile: toStringSafe(data.phoneMobile),
+    street: toStringSafe(data.street),
+    houseNumber: toStringSafe(data.houseNumber),
+    addition: toStringSafe(data.addition),
+    postalCode: toStringSafe(data.postalCode),
+    city: toStringSafe(data.city),
+    educations: normalizeEntries(data.educations),
+    certificates: normalizeEntries(data.certificates),
+    workExperience: normalizeEntries(data.workExperience),
+    questionnaires: normalizeEntries(data.questionnaires),
+    questionnaireHistory: normalizeEntries(data.questionnaireHistory),
+    questionnaire: data.questionnaire || null,
+    questionnaireCompleted: Boolean(data.questionnaireCompleted),
+    photoURL: data.photoURL || data.photoUrl || null,
+  };
+};
+
+const emptyCareerGoalRecord = () => ({
+  content: "",
+  updatedAt: null,
+  updatedBy: null,
+  updatedByRole: null,
+  impersonatedBy: null,
+});
+
+const mapCoachCareerGoalDoc = (snapshot) => {
+  if (!snapshot?.exists()) {
+    return emptyCareerGoalRecord();
+  }
+  const data = snapshot.data() || {};
+  return {
+    content: typeof data.content === "string" ? data.content : "",
+    updatedAt: normalizeTimestamp(data.updatedAt || data.lastUpdated || null),
+    updatedBy: data.updatedBy || null,
+    updatedByRole: data.updatedByRole || null,
+    impersonatedBy: data.impersonatedBy || null,
+  };
+};
+
+const mapCareerGoalToProfile = (record) => {
+  const content = typeof record?.content === "string" ? record.content.trim() : "";
+  if (!content) return null;
+  const firstLine = content.split(/\r?\n/).find((line) => line.trim().length > 0) || "";
+  const trimmedSummary = content.length > 280 ? `${content.slice(0, 277).trim()}…` : content;
+  return {
+    title: firstLine || "Loopbaandoel",
+    summary: trimmedSummary,
+    description: content,
+    content,
+    updatedAt: record?.updatedAt || null,
+    updatedBy: record?.updatedBy || null,
+    updatedByRole: record?.updatedByRole || null,
+    impersonatedBy: record?.impersonatedBy || null,
   };
 };
 
@@ -336,8 +527,8 @@ export async function addCoachFeedback({ coachId, coachName, customerId, custome
     competencyId,
     content: trimmed,
     summary: trimmed.slice(0, 90),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
   });
 }
 
@@ -468,23 +659,103 @@ export function subscribeCoachCustomerProfile(customerId, observer) {
 
   const customerRef = doc(db, "users", customerId);
   const profileRef = doc(db, "users", customerId, "profile", "details");
+  const resumeRef = doc(db, "profiles", customerId);
+  const careerGoalRef = doc(db, "careerGoals", customerId);
+  const questionnaireRef = doc(db, "users", customerId, "profile", "questionnaire");
 
   let customerData = null;
   let profileData = { evcTrajectory: emptyCoachEvcTrajectory(), updatedAt: null };
+  let resumeData = emptyCoachResume();
+  let careerGoalData = emptyCareerGoalRecord();
+  let questionnaireData = emptyCoachQuestionnaire();
   let customerError = null;
   let profileError = null;
+  let resumeError = null;
+  let careerGoalError = null;
+  let questionnaireError = null;
+
+  const buildComposedProfile = () => {
+    const questionnaireEntry = questionnaireData
+      ? {
+          id: "current-questionnaire",
+          name: "Vragenlijst Loopbaan en Burgerschap",
+          responses: questionnaireData.responses,
+          updatedAt: questionnaireData.updatedAt,
+          completed: questionnaireData.completed,
+        }
+      : null;
+    const questionnaires = mergeUniqueByKey(
+      asArray(profileData?.questionnaires).map(cloneEntry),
+      asArray(resumeData?.questionnaires).map(cloneEntry).concat(questionnaireEntry ? [questionnaireEntry] : [])
+    );
+    const questionnaireHistory = mergeUniqueByKey(
+      mergeUniqueByKey(
+        asArray(profileData?.questionnaireHistory).map(cloneEntry),
+        asArray(resumeData?.questionnaireHistory).map(cloneEntry)
+      ),
+      asArray(questionnaireData?.history).map(cloneEntry)
+    );
+    const questionnaire = questionnaireData || profileData?.questionnaire || resumeData?.questionnaire || null;
+    const questionnaireCompleted =
+      questionnaireData?.completed === true ||
+      profileData?.questionnaireCompleted === true ||
+      resumeData?.questionnaireCompleted === true ||
+      questionnaireIsComplete(questionnaireData?.responses || {});
+
+    const resume = resumeData || emptyCoachResume();
+    const workExperienceFromProfile = asArray(profileData?.workExperience);
+    const workExperience = workExperienceFromProfile.length > 0 ? workExperienceFromProfile : asArray(resume.workExperience);
+
+    const mergedProfile = {
+      ...resume,
+      ...profileData,
+      resume,
+      questionnaires,
+      questionnaireHistory,
+      questionnaire,
+      questionnaireCompleted,
+  questionnaireRecord: questionnaireData,
+      workExperience,
+      placeOfBirth: profileData?.placeOfBirth || profileData?.birthplace || resume.placeOfBirth || "",
+      birthplace: profileData?.birthplace || profileData?.placeOfBirth || resume.placeOfBirth || "",
+      phone: profileData?.phone || profileData?.phoneMobile || resume.phoneMobile || resume.phoneFixed || "",
+      photoURL: profileData?.photoURL || resume.photoURL || customerData?.photoURL || null,
+      careerGoal: mapCareerGoalToProfile(careerGoalData),
+    };
+
+    if (!mergedProfile.dateOfBirth && resume.dateOfBirth) {
+      mergedProfile.dateOfBirth = resume.dateOfBirth;
+    }
+
+    if (!mergedProfile.educations || mergedProfile.educations.length === 0) {
+      mergedProfile.educations = asArray(resume.educations);
+    }
+
+    if (!mergedProfile.certificates || mergedProfile.certificates.length === 0) {
+      mergedProfile.certificates = asArray(resume.certificates);
+    }
+
+    return mergedProfile;
+  };
 
   const emit = () => {
-    if (customerError || profileError) {
-      observer({ data: null, error: customerError || profileError });
+    const firstError = customerError || profileError || resumeError || careerGoalError || questionnaireError;
+    if (firstError) {
+      observer({ data: null, error: firstError });
       return;
     }
+
+    const composedProfile = buildComposedProfile();
+    const resolvedCareerGoal = composedProfile?.careerGoal || mapCareerGoalToProfile(careerGoalData);
 
     observer({
       data: {
         customer: customerData,
-        profile: profileData,
-        evcTrajectory: profileData?.evcTrajectory || emptyCoachEvcTrajectory(),
+        profile: composedProfile,
+        resume: resumeData,
+        careerGoal: resolvedCareerGoal,
+        questionnaire: questionnaireData,
+        evcTrajectory: composedProfile?.evcTrajectory || emptyCoachEvcTrajectory(),
       },
       error: null,
     });
@@ -518,11 +789,56 @@ export function subscribeCoachCustomerProfile(customerId, observer) {
     }
   );
 
+  const unsubscribeResume = onSnapshot(
+    resumeRef,
+    (snapshot) => {
+      resumeData = mapCoachProfileResumeDoc(snapshot);
+      resumeError = null;
+      emit();
+    },
+    (error) => {
+      resumeData = emptyCoachResume();
+      resumeError = error;
+      emit();
+    }
+  );
+
+  const unsubscribeCareerGoal = onSnapshot(
+    careerGoalRef,
+    (snapshot) => {
+      careerGoalData = mapCoachCareerGoalDoc(snapshot);
+      careerGoalError = null;
+      emit();
+    },
+    (error) => {
+      careerGoalData = emptyCareerGoalRecord();
+      careerGoalError = error;
+      emit();
+    }
+  );
+
+  const unsubscribeQuestionnaire = onSnapshot(
+    questionnaireRef,
+    (snapshot) => {
+      questionnaireData = mapCoachQuestionnaireDoc(snapshot);
+      questionnaireError = null;
+      emit();
+    },
+    (error) => {
+      questionnaireData = emptyCoachQuestionnaire();
+      questionnaireError = error;
+      emit();
+    }
+  );
+
   emit();
 
   return () => {
     if (typeof unsubscribeCustomer === "function") unsubscribeCustomer();
     if (typeof unsubscribeProfile === "function") unsubscribeProfile();
+    if (typeof unsubscribeResume === "function") unsubscribeResume();
+    if (typeof unsubscribeCareerGoal === "function") unsubscribeCareerGoal();
+    if (typeof unsubscribeQuestionnaire === "function") unsubscribeQuestionnaire();
   };
 }
 

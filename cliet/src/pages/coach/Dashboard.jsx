@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Users as UsersIcon, ClipboardList, Clock, MessageCircle } from "lucide-react";
 import StatsCard from "../../components/StatsCard";
 import { normalizeTrajectStatus, TRAJECT_STATUS } from "../../lib/trajectStatus";
+import StatusWorkflowPanel from "../../components/StatusWorkflowPanel";
 
 const CoachDashboard = () => {
   const {
@@ -11,6 +12,12 @@ const CoachDashboard = () => {
     assignments = [],
     feedback = [],
     unreadMessageSummary,
+    selectedAssignment,
+    selectedCustomer,
+    role: resolvedRole,
+    statusWorkflow,
+    statusUpdating,
+    statusUpdateError,
   } = useOutletContext() ?? {};
 
   const displayName = useMemo(() => {
@@ -29,7 +36,8 @@ const CoachDashboard = () => {
     const collectingCount = statusSummary[TRAJECT_STATUS.COLLECTING] || 0;
     const reviewPipelineCount =
       (statusSummary[TRAJECT_STATUS.REVIEW] || 0) +
-      (statusSummary[TRAJECT_STATUS.APPROVAL] || 0);
+      (statusSummary[TRAJECT_STATUS.QUALITY] || 0) +
+      (statusSummary[TRAJECT_STATUS.ASSESSMENT] || 0);
     const unreadTotal = unreadMessageSummary?.total ?? 0;
     const unreadSenders = unreadMessageSummary?.uniqueSenders ?? 0;
 
@@ -80,19 +88,59 @@ const CoachDashboard = () => {
   }, [feedback]);
 
   const greetingName = useMemo(() => {
-  const firstName = displayName?.split(" ")[0] || "Begeleider";
+    const firstName = displayName?.split(" ")[0] || "Begeleider";
     return firstName;
   }, [displayName]);
+
+  const heroTitle = useMemo(() => {
+    switch ((resolvedRole || "coach").toLowerCase()) {
+      case "kwaliteitscoordinator":
+        return `Hoi ${greetingName}, klaar om kwaliteit te bewaken?`;
+      case "assessor":
+        return `Hoi ${greetingName}, klaar voor je beoordelingen?`;
+      default:
+        return `Hoi ${greetingName}, klaar om te begeleiden?`;
+    }
+  }, [greetingName, resolvedRole]);
+
+  const selectedCustomerName = useMemo(() => {
+    if (!selectedCustomer) return null;
+    return selectedCustomer.name || selectedCustomer.email || "Kandidaat";
+  }, [selectedCustomer]);
+
+  const handleAdvance = useCallback(() => statusWorkflow?.advance?.({}), [statusWorkflow]);
+  const handleRewind = useCallback(() => statusWorkflow?.rewind?.({}), [statusWorkflow]);
 
   return (
     <div className="space-y-8">
       <section className="rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-10 text-white shadow-card">
         <p className="text-sm uppercase tracking-[0.35em] text-white/70">Welkom terug</p>
-  <h2 className="mt-2 text-3xl font-semibold">{`Hoi ${greetingName}, klaar om te begeleiden?`}</h2>
+        <h2 className="mt-2 text-3xl font-semibold">{heroTitle}</h2>
         <p className="mt-3 max-w-2xl text-sm text-white/80">
           Bekijk de nieuwste uploads, geef gerichte feedback en houd je kandidaten in beweging tijdens hun EVC-traject.
         </p>
       </section>
+
+      {selectedAssignment ? (
+        <StatusWorkflowPanel
+          assignment={selectedAssignment}
+          role={resolvedRole}
+          loading={statusUpdating}
+          error={statusUpdateError}
+          onAdvance={handleAdvance}
+          onRewind={handleRewind}
+        />
+      ) : (
+        <section className="rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-card">
+          {selectedCustomerName ? (
+            <p>
+              Geen opdrachtinformatie beschikbaar voor {selectedCustomerName}. Kies een andere kandidaat of controleer of er een traject is gekoppeld.
+            </p>
+          ) : (
+            <p>Selecteer een kandidaat via de filter rechtsboven om de workflowstatus te beheren.</p>
+          )}
+        </section>
+      )}
 
       <section>
         <h3 className="text-lg font-semibold text-slate-900">Vandaag in één oogopslag</h3>

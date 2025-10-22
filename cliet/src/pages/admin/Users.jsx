@@ -19,6 +19,8 @@ const ROLE_FILTERS = [
   { value: "all", label: "Alle rollen" },
   { value: "customer", label: "Kandidaten" },
   { value: "coach", label: "Begeleiders" },
+  { value: "kwaliteitscoordinator", label: "Kwaliteitscoordinatoren" },
+  { value: "assessor", label: "Assessors" },
   { value: "admin", label: "Beheerders" },
 ];
 
@@ -26,6 +28,8 @@ const ROLE_LABELS = new Map([
   ["customer", "Kandidaat"],
   ["user", "Kandidaat"],
   ["coach", "Begeleider"],
+  ["kwaliteitscoordinator", "Kwaliteitscoordinator"],
+  ["assessor", "Assessor"],
   ["admin", "Beheerder"],
 ]);
 
@@ -128,6 +132,8 @@ const RoleBadge = ({ role }) => {
   const label = ROLE_LABELS.get(role) || role || "Onbekend";
   let tone = "bg-slate-100 text-slate-600 border-slate-200";
   if (role === "coach") tone = "bg-brand-50 text-brand-700 border-brand-200";
+  if (role === "kwaliteitscoordinator") tone = "bg-amber-50 text-amber-700 border-amber-200";
+  if (role === "assessor") tone = "bg-sky-50 text-sky-700 border-sky-200";
   if (role === "admin") tone = "bg-amber-50 text-amber-700 border-amber-200";
   return (
     <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${tone}`}>

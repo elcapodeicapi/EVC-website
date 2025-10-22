@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	BrowserRouter,
 	Routes,
@@ -70,8 +70,11 @@ import {
 	getTrajectStatusLabel,
 	isCollectingStatus,
 	normalizeTrajectStatus,
+	getNextTrajectStatus,
+	getPreviousTrajectStatus,
 	TRAJECT_STATUS,
 } from "../lib/trajectStatus";
+import { updateAssignmentStatus } from "../lib/assignmentWorkflow";
 
 const ADMIN_NAV_ITEMS = [
 	{ label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
@@ -81,13 +84,33 @@ const ADMIN_NAV_ITEMS = [
 	{ label: "Profiel", to: "/admin/profile", icon: IdCard },
 ];
 
-const COACH_NAV_ITEMS = [
-	{ label: "Dashboard", to: "/coach", icon: LayoutDashboard, end: true },
-	{ label: "Mijn kandidaten", to: "/coach/customers", icon: UsersIcon },
-	{ label: "Feedback", to: "/coach/feedback", icon: FileText },
-	{ label: "Aantekeningen", to: "/coach/aantekeningen", icon: NotebookPen },
-	{ label: "Berichten", to: "/coach/messages", icon: Mail },
+const COACH_NAV_BLUEPRINT = [
+	{ label: "Dashboard", path: "", icon: LayoutDashboard, end: true },
+	{ label: "Mijn kandidaten", path: "/customers", icon: UsersIcon },
+	{ label: "Feedback", path: "/feedback", icon: FileText },
+	{ label: "Aantekeningen", path: "/aantekeningen", icon: NotebookPen },
+	{ label: "Berichten", path: "/messages", icon: Mail },
 ];
+
+const buildCoachNavItems = (basePath) => {
+	const sanitizedBase = basePath === "/" ? "" : basePath.replace(/\/$/, "");
+	return COACH_NAV_BLUEPRINT.map((item) => ({
+		...item,
+		to: `${sanitizedBase}${item.path}` || "/",
+	}));
+};
+
+const COACH_ROLE_LABELS = {
+	coach: "Begeleider",
+	kwaliteitscoordinator: "Kwaliteitscoordinator",
+	assessor: "Assessor",
+};
+
+const COACH_ROLE_ROUTES = {
+	coach: "/coach",
+	kwaliteitscoordinator: "/kwaliteitscoordinator",
+	assessor: "/assessor",
+};
 
 const BASE_CUSTOMER_NAV_ITEMS = [
 	{ label: "Dashboard", to: "/customer/dashboard", icon: LayoutDashboard, end: true },
@@ -236,7 +259,7 @@ const AdminLayout = () => {
 	);
 };
 
-const CoachLayout = () => {
+const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 	const navigate = useNavigate();
 	const [sqlUser, setSqlUser] = useState(() => {
 		try {
@@ -418,6 +441,8 @@ const CoachLayout = () => {
 	}, [customersList]);
 
 	const [selectedCustomerId, setSelectedCustomerId] = useState("all");
+	const [statusUpdating, setStatusUpdating] = useState(false);
+	const [statusUpdateError, setStatusUpdateError] = useState(null);
 	const isImpersonating = Boolean(impersonationBackup);
 	const impersonatingAdminLabel = useMemo(() => {
 		if (!impersonationBackup?.userData) return null;
@@ -431,12 +456,24 @@ const CoachLayout = () => {
 		}
 	}, [customerOptions, selectedCustomerId]);
 
+	useEffect(() => {
+		setStatusUpdateError(null);
+	}, [selectedCustomerId]);
+
 	const selectedCustomer = useMemo(
 		() =>
 			selectedCustomerId === "all"
 				? null
 				: customersList.find((customer) => customer.id === selectedCustomerId) || null,
 		[selectedCustomerId, customersList]
+	);
+
+	const selectedAssignment = useMemo(
+		() =>
+			selectedCustomerId === "all"
+				? null
+				: assignments.find((assignment) => assignment.customerId === selectedCustomerId) || null,
+		[assignments, selectedCustomerId]
 	);
 
 	const subtitle = useMemo(() => {
@@ -476,6 +513,99 @@ const CoachLayout = () => {
 		};
 	}, [unreadMessages, unreadMessagesError]);
 
+	const resolvedRole = useMemo(
+		() => (roleOverride || coachDoc?.role || sqlUser?.role || "coach").toLowerCase(),
+		[roleOverride, coachDoc, sqlUser]
+	);
+	const roleLabel = COACH_ROLE_LABELS[resolvedRole] || "Begeleider";
+	const explicitBasePath = basePathProp || COACH_ROLE_ROUTES[resolvedRole] || "/coach";
+	const normalizedBasePath = explicitBasePath.startsWith("/")
+		? explicitBasePath.replace(/\/$/, "") || "/"
+		: `/${explicitBasePath.replace(/\/$/, "")}`;
+	const coachNavItems = useMemo(() => buildCoachNavItems(normalizedBasePath || "/"), [normalizedBasePath]);
+
+	const performStatusUpdate = useCallback(
+		async ({ customerId, status, note } = {}) => {
+			if (statusUpdating) return false;
+			const targetCustomerId = customerId || selectedCustomerId;
+			if (!targetCustomerId || targetCustomerId === "all") {
+				setStatusUpdateError("Selecteer een kandidaat om de status te wijzigen.");
+				return false;
+			}
+			const normalizedStatus = normalizeTrajectStatus(status);
+			if (!normalizedStatus) {
+				setStatusUpdateError("Ongeldige statusstap.");
+				return false;
+			}
+			setStatusUpdating(true);
+			setStatusUpdateError(null);
+			try {
+				await updateAssignmentStatus({
+					customerId: targetCustomerId,
+					status: normalizedStatus,
+					note,
+					coachId: coachUid,
+				});
+				return true;
+			} catch (error) {
+				const details =
+					error?.data?.error ||
+					error?.data?.message ||
+					error?.message ||
+					"Het bijwerken van de status is mislukt.";
+				setStatusUpdateError(details);
+				return false;
+			} finally {
+				setStatusUpdating(false);
+			}
+		},
+		[coachUid, selectedCustomerId, statusUpdating]
+	);
+
+	const handleAdvanceStatus = useCallback(
+		async ({ note } = {}) => {
+			const assignment = selectedAssignment;
+			if (!assignment) {
+				setStatusUpdateError("Selecteer een kandidaat om de status te wijzigen.");
+				return false;
+			}
+			const currentStatus = normalizeTrajectStatus(assignment.status);
+			const nextStatus = getNextTrajectStatus(currentStatus);
+			if (!nextStatus) {
+				setStatusUpdateError("Geen vervolgstap beschikbaar.");
+				return false;
+			}
+			return performStatusUpdate({
+				customerId: assignment.customerId || assignment.id,
+				status: nextStatus,
+				note,
+			});
+		},
+		[performStatusUpdate, selectedAssignment]
+	);
+
+	const handleRewindStatus = useCallback(
+		async ({ note } = {}) => {
+			const assignment = selectedAssignment;
+			if (!assignment) {
+				setStatusUpdateError("Selecteer een kandidaat om de status te wijzigen.");
+				return false;
+			}
+			const currentStatus = normalizeTrajectStatus(assignment.status);
+			const previousStatus = getPreviousTrajectStatus(currentStatus);
+			if (!previousStatus) {
+				setStatusUpdateError("Geen vorige stap beschikbaar.");
+				return false;
+			}
+			return performStatusUpdate({
+				customerId: assignment.customerId || assignment.id,
+				status: previousStatus,
+				note,
+			});
+		},
+		[performStatusUpdate, selectedAssignment]
+	);
+
 	const topbarUser = {
 		name:
 			coachDoc?.name ||
@@ -484,7 +614,7 @@ const CoachLayout = () => {
 			sqlUser?.email ||
 			"Begeleider",
 		subtitle,
-		role: "Begeleider",
+		role: roleLabel,
 		email: coachDoc?.email || sqlUser?.email || "",
 		photoURL: coachDoc?.photoURL || sqlUser?.photoURL || sqlUser?.photoUrl || null,
 	};
@@ -593,9 +723,26 @@ const CoachLayout = () => {
 			assignments,
 			feedback: feedbackItems,
 			selectedCustomer,
+			selectedCustomerId,
+			setSelectedCustomerId,
+			selectedAssignment,
 			unreadMessages,
 			unreadMessagesByThread,
 			unreadMessageSummary,
+			role: resolvedRole,
+			roleLabel,
+			basePath: normalizedBasePath,
+			navigation: {
+				items: coachNavItems,
+				basePath: normalizedBasePath,
+			},
+			statusUpdating,
+			statusUpdateError,
+			statusWorkflow: {
+				update: performStatusUpdate,
+				advance: handleAdvanceStatus,
+				rewind: handleRewindStatus,
+			},
 			errors: {
 				user: userError,
 				profile: coachProfileError,
@@ -613,18 +760,29 @@ const CoachLayout = () => {
 			assignmentsError,
 			coachDoc,
 			coachProfileError,
+			coachNavItems,
 			customersError,
 			customersList,
 			feedbackError,
 			feedbackItems,
+			handleAdvanceStatus,
+			handleRewindStatus,
+			loadingUser,
+			normalizedBasePath,
+			performStatusUpdate,
+			resolvedRole,
+			roleLabel,
+			selectedAssignment,
+			selectedCustomer,
+			selectedCustomerId,
+			sqlUser,
+			statusUpdateError,
+			statusUpdating,
 			unreadMessageSummary,
 			unreadMessages,
 			unreadMessagesByThread,
-			loadingUser,
-			selectedCustomer,
-			sqlUser,
-			userError,
 			unreadMessagesError,
+			userError,
 		]
 	);
 
@@ -639,20 +797,20 @@ const CoachLayout = () => {
 						<div className="space-y-4 text-white">
 							<BrandLogo className="w-fit" tone="dark" />
 							<div className="space-y-1">
-								<p className="text-xs uppercase tracking-[0.35em] text-white/60">Begeleider</p>
+								<p className="text-xs uppercase tracking-[0.35em] text-white/60">{roleLabel}</p>
 								<h1 className="text-xl font-semibold text-white">EVC Werkruimte</h1>
 							</div>
 						</div>
 					}
-					navItems={COACH_NAV_ITEMS}
+					navItems={coachNavItems}
 				/>
 			}
 			topbar={
 				<Topbar
-					title="Begeleidersdashboard"
+					title={`${roleLabel} dashboard`}
 					tone="brand"
 					user={topbarUser}
-					logoTo="/coach"
+					logoTo={normalizedBasePath}
 					rightSlot={
 						<div className="flex items-center gap-3">
 							{isImpersonating ? (
@@ -661,7 +819,7 @@ const CoachLayout = () => {
 									onClick={handleExitImpersonation}
 									className="rounded-full border border-white/40 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
 								>
-									Stop meespelen als begeleider
+									Stop meespelen
 								</button>
 							) : null}
 							<select
@@ -1037,6 +1195,30 @@ const App = () => {
 				</Route>
 
 				<Route path="/coach" element={<CoachLayout />}>
+					<Route index element={<CoachDashboard />} />
+					<Route path="customers" element={<CoachCustomers />} />
+					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
+					<Route path="feedback" element={<CoachFeedback />} />
+					<Route path="aantekeningen" element={<CoachNotes />} />
+					<Route path="messages" element={<CoachMessages />} />
+				</Route>
+
+				<Route
+					path="/kwaliteitscoordinator"
+					element={<CoachLayout roleOverride="kwaliteitscoordinator" basePath="/kwaliteitscoordinator" />}
+				>
+					<Route index element={<CoachDashboard />} />
+					<Route path="customers" element={<CoachCustomers />} />
+					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
+					<Route path="feedback" element={<CoachFeedback />} />
+					<Route path="aantekeningen" element={<CoachNotes />} />
+					<Route path="messages" element={<CoachMessages />} />
+				</Route>
+
+				<Route
+					path="/assessor"
+					element={<CoachLayout roleOverride="assessor" basePath="/assessor" />}
+				>
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />

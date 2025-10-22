@@ -34,6 +34,7 @@ function createApp() {
   const authRoutes = require("./routes/auth");
   const customerRoutes = require("./routes/customer");
   const trajectRoutes = require("./routes/trajects");
+  const assignmentsRoutes = require("./routes/assignments");
 
   const allowedOrigins = [
     "http://localhost:5173",
@@ -123,6 +124,7 @@ function createApp() {
   app.use("/auth", authRoutes);
   app.use("/customer", customerRoutes);
   app.use("/trajects", trajectRoutes);
+  app.use("/assignments", assignmentsRoutes);
 
   const apiPrefixes = [
     "/auth",
@@ -131,6 +133,7 @@ function createApp() {
     "/trajects",
     "/uploads",
     "/customer",
+    "/assignments",
   ];
   const isNonApiRoute = matchAll("/*");
 

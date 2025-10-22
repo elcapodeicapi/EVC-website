@@ -9,6 +9,8 @@ const ROLE_LABELS = new Map([
   ["customer", "Kandidaat"],
   ["user", "Kandidaat"],
   ["coach", "Begeleider"],
+  ["kwaliteitscoordinator", "Kwaliteitscoordinator"],
+  ["assessor", "Assessor"],
   ["admin", "Beheerder"],
 ]);
 
@@ -50,6 +52,10 @@ const Overview = () => {
     switch (role) {
       case "coach":
         return "/coach";
+      case "kwaliteitscoordinator":
+        return "/kwaliteitscoordinator";
+      case "assessor":
+        return "/assessor";
       case "customer":
       case "user":
         return "/customer";
@@ -61,7 +67,7 @@ const Overview = () => {
   const handleImpersonate = async (user) => {
     if (!user) return;
     const role = (user.role || "").toLowerCase();
-    if (!role || !["customer", "coach", "user"].includes(role)) return;
+  if (!role || !["customer", "coach", "user", "kwaliteitscoordinator", "assessor"].includes(role)) return;
     setImpersonationError(null);
     setImpersonationTarget(user.id);
     try {
@@ -170,8 +176,18 @@ const Overview = () => {
                 const normalizedRole = (user.role || "").toLowerCase();
                 const isCustomer = normalizedRole === "customer" || normalizedRole === "user";
                 const isCoach = normalizedRole === "coach";
-                const canImpersonate = isCustomer || isCoach;
-                const buttonLabel = isCoach ? "Log in als begeleider" : isCustomer ? "Open als kandidaat" : "Niet beschikbaar";
+                const isQuality = normalizedRole === "kwaliteitscoordinator";
+                const isAssessor = normalizedRole === "assessor";
+                const canImpersonate = isCustomer || isCoach || isQuality || isAssessor;
+                const buttonLabel = isCoach
+                  ? "Log in als begeleider"
+                  : isQuality
+                  ? "Open als kwaliteitscoordinator"
+                  : isAssessor
+                  ? "Open als assessor"
+                  : isCustomer
+                  ? "Open als kandidaat"
+                  : "Niet beschikbaar";
                 return (
                   <tr key={user.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">{user.name || "Naam onbekend"}</td>

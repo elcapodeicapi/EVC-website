@@ -1,8 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { ArrowRight, Clock, LogIn, Search, UserRound } from "lucide-react";
+import { ArrowRight, Clock, Loader2, LogIn, Search, UserRound } from "lucide-react";
 import clsx from "clsx";
 import { subscribeCoachCustomerProfile, subscribeCustomerProgress } from "../../lib/firestoreCoach";
+import {
+  getNextTrajectStatus,
+  getPreviousTrajectStatus,
+  getStatusOwnerRoles,
+  getTrajectStatusBadgeClass,
+  getTrajectStatusLabel,
+  normalizeTrajectStatus,
+} from "../../lib/trajectStatus";
+import { updateAssignmentStatus } from "../../lib/assignmentWorkflow";
+import { questionnaireIsComplete } from "../../lib/questionnaire";
 
 const buildDefaultProgress = (customer) => ({
   trajectId: customer?.trajectId || null,
@@ -23,6 +33,47 @@ const dateTimeFormatter = new Intl.DateTimeFormat("nl-NL", {
 const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
   dateStyle: "medium",
 });
+
+const ROLE_LABELS = {
+  admin: "Beheerder",
+  coach: "Begeleider",
+  kwaliteitscoordinator: "Kwaliteitscoordinator",
+  assessor: "Assessor",
+  customer: "Kandidaat",
+  user: "Kandidaat",
+};
+
+const summarizeWorkExperience = (entries = [], { maxItems = 2 } = {}) => {
+  if (!Array.isArray(entries)) {
+    return { summary: "", count: 0 };
+  }
+  const normalized = entries
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const role = typeof entry.role === "string" ? entry.role.trim() : "";
+      const organisation = typeof entry.organisation === "string" ? entry.organisation.trim() : typeof entry.organization === "string" ? entry.organization.trim() : "";
+      const note = typeof entry.note === "string" ? entry.note.trim() : "";
+      if (!role && !organisation && !note) return null;
+      return { role, organisation, note };
+    })
+    .filter(Boolean);
+
+  if (normalized.length === 0) {
+    return { summary: "", count: 0 };
+  }
+
+  const summaryParts = normalized.slice(0, maxItems).map((entry) => {
+    if (entry.role && entry.organisation) return `${entry.role} @ ${entry.organisation}`;
+    if (entry.role) return entry.role;
+    if (entry.organisation) return entry.organisation;
+    return entry.note;
+  });
+
+  return {
+    summary: summaryParts.join(", "),
+    count: normalized.length,
+  };
+};
 
 const formatDateTime = (value) => {
   if (!value) return null;
@@ -73,13 +124,21 @@ const formatRelative = (value) => {
 };
 
 const Customers = () => {
-  const { customers: customersFromContext = [] } = useOutletContext() ?? {};
+  const {
+    customers: customersFromContext = [],
+    assignments: assignmentsFromContext = [],
+    coach,
+    role: contextRole = "coach",
+    basePath = "/coach",
+  } = useOutletContext() ?? {};
   const navigate = useNavigate();
 
   const [query, setQuery] = useState("");
   const [progressMap, setProgressMap] = useState({});
   const [profileMap, setProfileMap] = useState({});
   const [statusExpanded, setStatusExpanded] = useState({});
+  const [pendingStatusCustomerId, setPendingStatusCustomerId] = useState(null);
+  const [statusErrors, setStatusErrors] = useState({});
 
   const sortedCustomers = useMemo(() => {
     return [...customersFromContext].sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
@@ -94,6 +153,65 @@ const Customers = () => {
       return name.includes(needle) || traject.includes(needle);
     });
   }, [sortedCustomers, query]);
+
+  const coachId = coach?.id || coach?.firebaseUid || coach?.uid || null;
+  const normalizedRole = (contextRole || "coach").toLowerCase();
+
+  const assignmentsByCustomer = useMemo(() => {
+    const map = new Map();
+    assignmentsFromContext.forEach((assignment) => {
+      if (assignment?.customerId) {
+        map.set(assignment.customerId, assignment);
+      }
+    });
+    return map;
+  }, [assignmentsFromContext]);
+
+  const handleStatusUpdate = useCallback(
+    async (customerId, targetStatus) => {
+      if (!customerId || !targetStatus) return;
+      const normalizedStatus = normalizeTrajectStatus(targetStatus);
+      if (!normalizedStatus) return;
+      setPendingStatusCustomerId(customerId);
+      setStatusErrors((prev) => {
+        if (!prev[customerId]) return prev;
+        const next = { ...prev };
+        delete next[customerId];
+        return next;
+      });
+      try {
+        const payload = { customerId, status: normalizedStatus };
+        if (coachId) {
+          payload.coachId = coachId;
+        }
+        await updateAssignmentStatus(payload);
+      } catch (error) {
+        const message = error?.data?.error || error?.message || "Het bijwerken van de status is mislukt.";
+        setStatusErrors((prev) => ({ ...prev, [customerId]: message }));
+      } finally {
+        setPendingStatusCustomerId((prev) => (prev === customerId ? null : prev));
+      }
+    },
+    [coachId]
+  );
+
+  const handleAdvanceStatus = useCallback(
+    (customerId, currentStatus) => {
+      const nextStatus = getNextTrajectStatus(currentStatus);
+      if (!nextStatus) return;
+      handleStatusUpdate(customerId, nextStatus);
+    },
+    [handleStatusUpdate]
+  );
+
+  const handleRewindStatus = useCallback(
+    (customerId, currentStatus) => {
+      const previousStatus = getPreviousTrajectStatus(currentStatus);
+      if (!previousStatus) return;
+      handleStatusUpdate(customerId, previousStatus);
+    },
+    [handleStatusUpdate]
+  );
 
   useEffect(() => {
     setProgressMap((prev) => {
@@ -181,7 +299,8 @@ const Customers = () => {
 
   const handleOpenDossier = (customerId) => {
     if (customerId) {
-      navigate(`/coach/customers/${customerId}`);
+      const normalizedBase = basePath.startsWith("/") ? basePath.replace(/\/$/, "") : `/${basePath.replace(/\/$/, "")}`;
+      navigate(`${normalizedBase}/customers/${customerId}`);
     }
   };
 
@@ -227,8 +346,21 @@ const Customers = () => {
             const progressData = progress?.data || buildDefaultProgress(customer);
             const percent = Math.round(Math.min(100, Math.max(0, progressData?.completionPercentage ?? 0)));
             const profileEntry = profileMap[customer.id];
-            const profile = profileEntry?.data || null;
-            const evc = profile?.evcTrajectory || {};
+            const profilePayload = profileEntry?.data || null;
+            const profileDetails = profilePayload?.profile || {};
+            const resume = profilePayload?.resume || profileDetails?.resume || {};
+            const evc = profilePayload?.evcTrajectory || profileDetails?.evcTrajectory || {};
+            const careerGoal = profilePayload?.careerGoal || profileDetails?.careerGoal || null;
+            const workExperienceSource = Array.isArray(profileDetails?.workExperience) && profileDetails.workExperience.length > 0
+              ? profileDetails.workExperience
+              : resume?.workExperience;
+            const { summary: workExperienceSummary, count: workExperienceCount } = summarizeWorkExperience(workExperienceSource);
+            const hasWorkExperience = workExperienceCount > 0;
+            const careerGoalSummarySource = careerGoal?.summary || careerGoal?.description || careerGoal?.content || "";
+            const hasCareerGoal = Boolean(careerGoalSummarySource && careerGoalSummarySource.trim().length > 0);
+            const careerGoalUpdatedAt = careerGoal?.updatedAt instanceof Date ? careerGoal.updatedAt : careerGoal?.updatedAt ? new Date(careerGoal.updatedAt) : null;
+            const careerGoalUpdatedLabel = careerGoalUpdatedAt ? formatRelative(careerGoalUpdatedAt) : null;
+            const careerGoalUpdatedAbsolute = careerGoalUpdatedAt ? formatDateTime(careerGoalUpdatedAt) : null;
             const voluntary = Boolean(evc?.voluntaryParticipation);
             const lastActivityLabel = formatRelative(customer?.lastActivity);
             const lastLoginRelative = customer?.lastLoggedIn ? formatRelative(customer.lastLoggedIn) : "Nog niet ingelogd";
@@ -259,82 +391,91 @@ const Customers = () => {
               .map((item) => item.trim())
               .filter(Boolean)
               .slice(0, 3);
-            const questionnaireName = profile?.questionnaires?.[0]?.name || profile?.questionnaire?.name || "Nog niet ingevuld";
-            const totalUploads = Object.values(progressData?.uploadsByCompetency || {}).reduce(
-              (acc, list) => acc + (Array.isArray(list) ? list.length : 0),
-              0
-            );
-            const loopbaanCompetency = (progressData?.competencies || []).find((competency) => {
-              const haystack = `${competency?.title || ""} ${competency?.code || ""}`.toLowerCase();
-              return haystack.includes("loopbaan") || haystack.includes("burgerschap");
+            const questionnaireEntries = [
+              ...(Array.isArray(profileDetails?.questionnaires) ? profileDetails.questionnaires : []),
+              ...(Array.isArray(profileDetails?.questionnaireHistory) ? profileDetails.questionnaireHistory : []),
+              ...(Array.isArray(resume?.questionnaires) ? resume.questionnaires : []),
+            ];
+            const questionnaireUpdatedAt = (() => {
+              const candidates = questionnaireEntries
+                .map((entry) => entry?.updatedAt || entry?.submittedAt || entry?.completedAt || null)
+                .filter(Boolean)
+                .map((value) => (value instanceof Date ? value : new Date(value)))
+                .filter((date) => !Number.isNaN(date.getTime()));
+              if (candidates.length === 0) return null;
+              return candidates.sort((a, b) => b.getTime() - a.getTime())[0];
+            })();
+            const questionnaireUpdatedRelative = questionnaireUpdatedAt ? formatRelative(questionnaireUpdatedAt) : null;
+            const questionnaireUpdatedAbsolute = questionnaireUpdatedAt ? formatDateTime(questionnaireUpdatedAt) : null;
+            const questionnaireRecord =
+              profilePayload?.questionnaireRecord ||
+              profileDetails?.questionnaire ||
+              profilePayload?.questionnaire ||
+              null;
+            const questionnaireCompleted =
+              Boolean(
+                profileDetails?.questionnaireCompleted ||
+                  profilePayload?.questionnaire?.completed ||
+                  profilePayload?.questionnaireRecord?.completed
+              ) ||
+              (questionnaireRecord?.responses ? questionnaireIsComplete(questionnaireRecord.responses) : false);
+            const loopbaanCompleted = hasCareerGoal;
+            const uploadsByCompetency = progressData?.uploadsByCompetency || {};
+            let lastUploadDate = null;
+            Object.values(uploadsByCompetency).forEach((list) => {
+              if (!Array.isArray(list)) return;
+              list.forEach((upload) => {
+                const candidate =
+                  upload?.uploadedAt instanceof Date
+                    ? upload.uploadedAt
+                    : upload?.uploadedAt
+                    ? new Date(upload.uploadedAt)
+                    : null;
+                if (!candidate || Number.isNaN(candidate.getTime())) return;
+                if (!lastUploadDate || candidate > lastUploadDate) {
+                  lastUploadDate = candidate;
+                }
+              });
             });
-            const loopbaanUploads = loopbaanCompetency
-              ? progressData?.uploadsByCompetency?.[loopbaanCompetency.id] || []
-              : [];
+            const lastUploadRelative = lastUploadDate ? formatRelative(lastUploadDate) : "Nog geen uploads";
+            const lastUploadAbsolute = lastUploadDate ? formatDateTime(lastUploadDate) : null;
             const isStatusOpen = Boolean(statusExpanded[customer.id]);
             const displayName = customer.name || customer.email || "Onbekende kandidaat";
-            const photoURL = profile?.photoURL || customer?.photoURL || customer?.avatarUrl || null;
-            const initials = displayName
-              .split(/\s+/)
-              .filter(Boolean)
-              .slice(0, 2)
-              .map((part) => part[0].toUpperCase())
-              .join("") || "??";
-            const instrumentEntries = [
-              {
-                key: "intake",
-                label: "Intake",
-                icon: customer?.lastActivity ? "✅" : "❌",
-                text: customer?.lastActivity ? `Laatst actief ${lastActivityLabel.toLowerCase()}` : "Nog niet ingevuld",
-              },
-              {
-                key: "diplomas",
-                label: "Opleidingen, diploma's en certificaten",
-                icon: totalUploads > 0 ? "✅" : "❌",
-                text:
-                  totalUploads > 0
-                    ? `${totalUploads} bewijsstuk${totalUploads === 1 ? "" : "ken"} toegevoegd`
-                    : "Nog niet ingevuld",
-              },
-              {
-                key: "experience",
-                label: "Relevante werkervaring",
-                icon: evc?.currentRole ? "✅" : "⚠️",
-                text: evc?.currentRole ? `Functie geregistreerd (${evc.currentRole})` : "Nog geen werkervaring opgegeven",
-              },
-              {
-                key: "otherDocs",
-                label: "Overige informatie en documenten",
-                icon: totalUploads > 2 ? "✅" : totalUploads > 0 ? "⚠️" : "❌",
-                text:
-                  totalUploads > 2
-                    ? `${totalUploads} documenten beschikbaar`
-                    : totalUploads > 0
-                    ? "Beperkt aantal documenten"
-                    : "Nog niet ingevuld",
-              },
-              {
-                key: "loopbaan",
-                label: "Loopbaan en burgerschap",
-                icon: loopbaanUploads.length > 0 ? "✅" : "⚠️",
-                text:
-                  loopbaanUploads.length > 0
-                    ? `${loopbaanUploads.length} bewijsstuk${loopbaanUploads.length === 1 ? "" : "ken"} toegevoegd`
-                    : "Nog niet ingevuld",
-              },
-              {
-                key: "cbi",
-                label: "Criteriumgericht interview",
-                icon: "⚠️",
-                text: "Nog niet gepland",
-              },
-              {
-                key: "werkplek",
-                label: "Werkplekbezoek",
-                icon: "⚠️",
-                text: "Nog niet gepland",
-              },
-            ];
+            const photoURL =
+              profileDetails?.photoURL ||
+              profilePayload?.customer?.photoURL ||
+              resume?.photoURL ||
+              customer?.photoURL ||
+              customer?.avatarUrl ||
+              null;
+            const initials =
+              displayName
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0].toUpperCase())
+                .join("") || "??";
+            const assignment = assignmentsByCustomer.get(customer.id) || null;
+            const currentStatus = normalizeTrajectStatus(assignment?.status);
+            const statusBadgeClass = getTrajectStatusBadgeClass(currentStatus);
+            const statusLabel = currentStatus ? getTrajectStatusLabel(currentStatus) : "Nog geen status";
+            const statusHistory = Array.isArray(assignment?.statusHistory) ? assignment.statusHistory : [];
+            const lastStatusChange =
+              statusHistory.length > 0
+                ? statusHistory[statusHistory.length - 1]?.changedAt
+                : assignment?.statusUpdatedAt || assignment?.updatedAt || null;
+            const lastStatusRelative = lastStatusChange ? formatRelative(lastStatusChange) : "Nog geen statusupdate";
+            const lastStatusAbsolute = lastStatusChange ? formatDateTime(lastStatusChange) : null;
+            const nextStatus = getNextTrajectStatus(currentStatus);
+            const previousStatus = getPreviousTrajectStatus(currentStatus);
+            const ownerRoles = getStatusOwnerRoles(currentStatus);
+            const isStageOwner = normalizedRole === "admin" || ownerRoles.includes(normalizedRole);
+            const canAdvance = Boolean(nextStatus) && isStageOwner;
+            const canRewind = Boolean(previousStatus) && isStageOwner;
+            const isStatusPending = pendingStatusCustomerId === customer.id;
+            const statusErrorMessage = statusErrors[customer.id] || null;
+            const roleDisplayLabel = ROLE_LABELS[normalizedRole] || contextRole || "Begeleider";
+            const recentStatusHistory = statusHistory.slice(-6).reverse();
 
             return (
               <article
@@ -356,7 +497,12 @@ const Customers = () => {
                         <p className="text-xs text-slate-500">{customer.email || "Geen e-mailadres"}</p>
                       </div>
                     </div>
-                    <div className={clsx("rounded-full px-3 py-1 text-[11px] font-semibold", voluntary ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600")}>
+                    <div
+                      className={clsx(
+                        "rounded-full px-3 py-1 text-[11px] font-semibold",
+                        voluntary ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
+                      )}
+                    >
                       {voluntary ? "Vrijwillig" : "Verplicht"}
                     </div>
                   </header>
@@ -364,7 +510,11 @@ const Customers = () => {
                   <div className="space-y-2 text-xs text-slate-500">
                     <div className="flex items-center gap-2 text-slate-600">
                       <UserRound className="h-4 w-4 text-slate-400" />
-                      <span>{evc?.contactPerson ? `Contactpersoon: ${evc.contactPerson}` : "Geen contactpersoon bekend"}</span>
+                      <span>
+                        {evc?.contactPerson
+                          ? `Contactpersoon: ${evc.contactPerson}`
+                          : "Geen contactpersoon bekend"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-600">
                       <LogIn className="h-4 w-4 text-slate-400" />
@@ -375,9 +525,7 @@ const Customers = () => {
                       <span>Laatste activiteit: {lastActivityLabel}</span>
                     </div>
                     <div>{evc?.currentRole ? `Huidige functie: ${evc.currentRole}` : "Geen functie geregistreerd"}</div>
-                    <div>
-                      Domeinen: {domainsDisplay || "Nog geen domeinen ingevuld"}
-                    </div>
+                    <div>Domeinen: {domainsDisplay || "Nog geen domeinen ingevuld"}</div>
                     <div className="text-slate-400">
                       {evc?.updatedAt ? `EVC-details bijgewerkt ${evcUpdatedLabel}` : "EVC-details nog niet ingevuld"}
                     </div>
@@ -386,7 +534,10 @@ const Customers = () => {
                   <div className="space-y-2">
                     <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">Traject</p>
                     <div className="text-sm font-semibold text-slate-900">
-                      {progressData?.trajectName || customer?.trajectName || customer?.trajectTitle || "Traject onbekend"}
+                      {progressData?.trajectName ||
+                        customer?.trajectName ||
+                        customer?.trajectTitle ||
+                        "Traject onbekend"}
                     </div>
                     {progressData?.trajectCode ? (
                       <div className="text-xs text-slate-500">Code: {progressData.trajectCode}</div>
@@ -400,9 +551,34 @@ const Customers = () => {
                     <div className="text-xs text-slate-500">{progressLabel}</div>
                   </div>
 
+                  {assignment ? (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={clsx(
+                            "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+                            statusBadgeClass
+                          )}
+                        >
+                          {statusLabel}
+                        </span>
+                        <span>{lastStatusRelative}</span>
+                      </div>
+                      {lastStatusAbsolute ? (
+                        <p className="mt-1 text-slate-400">{lastStatusAbsolute}</p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-200 px-3 py-2 text-[11px] text-slate-400">
+                      Nog geen trajectstatus gekoppeld
+                    </div>
+                  )}
+
                   {profileEntry?.error || progress?.error ? (
                     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-                      {profileEntry?.error?.message || progress?.error?.message || "Kon alle gegevens niet laden."}
+                      {profileEntry?.error?.message ||
+                        progress?.error?.message ||
+                        "Kon alle gegevens niet laden."}
                     </div>
                   ) : null}
                 </div>
@@ -421,13 +597,15 @@ const Customers = () => {
                     onClick={() => toggleStatusPanel(customer.id)}
                     className={clsx(
                       "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold transition",
-                      isStatusOpen ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300" : "border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:text-brand-700"
+                      isStatusOpen
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:text-brand-700"
                     )}
                   >
                     {isStatusOpen ? "Sluit status" : "Bekijk status"}
                   </button>
                   <span className="text-[11px] text-slate-400">
-                    Laatste update: {formatDateTime(customer?.updatedAt) || formatDateTime(customer?.createdAt) || "Onbekend"}
+                    {lastStatusAbsolute ? `Status gewijzigd op ${lastStatusAbsolute}` : "Nog geen statuswijziging"}
                   </span>
                 </footer>
 
@@ -460,8 +638,53 @@ const Customers = () => {
                         )}
                       </div>
                       <div>
+                        <p className="font-semibold text-slate-700">Werkervaring</p>
+                        <p>{hasWorkExperience ? workExperienceSummary : "Nog niet ingevuld"}</p>
+                        {hasWorkExperience && workExperienceCount > 1 ? (
+                          <p className="text-[11px] text-slate-400">{`${workExperienceCount} ervaringen geregistreerd`}</p>
+                        ) : null}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-700">Loopbaandoel</p>
+                        <div className="mt-1 inline-flex items-center gap-2">
+                          <span
+                            className={clsx("text-lg leading-none", loopbaanCompleted ? "text-emerald-600" : "text-slate-300")}
+                            role="img"
+                            aria-label={loopbaanCompleted ? "Loopbaandoel vastgelegd" : "Loopbaandoel ontbreekt"}
+                          >
+                            {loopbaanCompleted ? "✅" : "❌"}
+                          </span>
+                          <span className={loopbaanCompleted ? "text-sm font-semibold text-emerald-700" : "text-sm text-slate-500"}>
+                            {loopbaanCompleted ? "Vastgelegd" : "Nog niet ingevuld"}
+                          </span>
+                        </div>
+                        {careerGoalUpdatedAbsolute ? (
+                          <p className="text-[11px] text-slate-400">
+                            {`Bijgewerkt ${careerGoalUpdatedAbsolute}`}
+                            {careerGoalUpdatedLabel ? ` (${careerGoalUpdatedLabel.toLowerCase()})` : ""}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div>
                         <p className="font-semibold text-slate-700">Vragenlijst</p>
-                        <p>{questionnaireName}</p>
+                        <div className="mt-1 inline-flex items-center gap-2">
+                          <span
+                            className={clsx("text-lg leading-none", questionnaireCompleted ? "text-emerald-600" : "text-slate-300")}
+                            role="img"
+                            aria-label={questionnaireCompleted ? "Vragenlijst ingevuld" : "Vragenlijst nog niet ingevuld"}
+                          >
+                            {questionnaireCompleted ? "✅" : "❌"}
+                          </span>
+                          <span className={questionnaireCompleted ? "text-sm font-semibold text-emerald-700" : "text-sm text-slate-500"}>
+                            {questionnaireCompleted ? "Ingevuld" : "Nog niet ingevuld"}
+                          </span>
+                        </div>
+                        {questionnaireUpdatedAbsolute ? (
+                          <p className="text-[11px] text-slate-400">
+                            {`Laatst bijgewerkt ${questionnaireUpdatedAbsolute}`}
+                            {questionnaireUpdatedRelative ? ` (${questionnaireUpdatedRelative.toLowerCase()})` : ""}
+                          </p>
+                        ) : null}
                       </div>
                       <div>
                         <p className="font-semibold text-slate-700">Vrijwillige deelname</p>
@@ -469,25 +692,137 @@ const Customers = () => {
                       </div>
                     </div>
 
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Instrumenten</p>
-                      <div className="mt-2 space-y-2">
-                        {instrumentEntries.map((entry) => (
-                          <div
-                            key={entry.key}
-                            className="grid grid-cols-[auto,1fr] items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                    <div className="space-y-3 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            Trajectstatus
+                          </p>
+                          <span
+                            className={clsx(
+                              "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+                              statusBadgeClass
+                            )}
                           >
-                            <span className="text-base" role="img" aria-label={entry.icon === "✅" ? "voltooid" : entry.icon === "❌" ? "niet ingevuld" : "in bewerking"}>
-                              {entry.icon}
-                            </span>
-                            <div>
-                              <p className="text-xs font-semibold text-slate-700">{entry.label}</p>
-                              <p className="text-[11px] text-slate-500">{entry.text}</p>
-                            </div>
+                            {statusLabel}
+                          </span>
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            {lastStatusAbsolute
+                              ? `Laatst bijgewerkt ${lastStatusAbsolute}`
+                              : "Nog geen wijzigingen vastgelegd"}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {isStageOwner
+                              ? `${roleDisplayLabel} kan deze stap beheren.`
+                              : `${roleDisplayLabel} kan deze stap alleen inzien.`}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleRewindStatus(customer.id, currentStatus)}
+                            disabled={!canRewind || isStatusPending}
+                            className={clsx(
+                              "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold transition",
+                              !canRewind || isStatusPending
+                                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                                : "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100"
+                            )}
+                          >
+                            Stuur terug
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAdvanceStatus(customer.id, currentStatus)}
+                            disabled={!canAdvance || isStatusPending}
+                            className={clsx(
+                              "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold transition",
+                              !canAdvance || isStatusPending
+                                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                                : "border-brand-200 bg-brand-50 text-brand-700 hover:border-brand-300 hover:bg-brand-100"
+                            )}
+                          >
+                            Stuur door
+                          </button>
+                        </div>
+                      </div>
+
+                      {isStatusPending ? (
+                        <div className="inline-flex items-center gap-2 text-[11px] text-slate-500">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Status wordt bijgewerkt...
+                        </div>
+                      ) : null}
+
+                      {statusErrorMessage ? (
+                        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-600">
+                          {statusErrorMessage}
+                        </div>
+                      ) : null}
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            Portfolio-voortgang
+                          </p>
+                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className="h-full rounded-full bg-brand-500 transition-all"
+                              style={{ width: percent > 0 ? `${percent}%` : "4px" }}
+                            />
                           </div>
-                        ))}
+                          <p className="mt-1 text-[11px] text-slate-500">{progressLabel}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            Laatste upload
+                          </p>
+                          <p className="text-xs text-slate-600">{lastUploadAbsolute || "Nog geen uploads"}</p>
+                          <p className="text-[11px] text-slate-400">
+                            {lastUploadDate ? lastUploadRelative : "Voeg bewijs toe om voortgang te tonen."}
+                          </p>
+                        </div>
                       </div>
                     </div>
+
+                    {assignment ? (
+                      recentStatusHistory.length > 0 ? (
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            Statusgeschiedenis
+                          </p>
+                          <ol className="mt-2 space-y-2">
+                            {recentStatusHistory.map((entry, index) => {
+                              const actorRole = (entry.changedByRole || "").toLowerCase();
+                              const actorLabel = ROLE_LABELS[actorRole] || entry.changedByRole || "Onbekend";
+                              return (
+                                <li
+                                  key={`${entry.status}-${entry.changedAtMillis || index}`}
+                                  className="rounded-xl border border-slate-200 bg-white px-3 py-2"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-slate-700">
+                                      {getTrajectStatusLabel(entry.status)}
+                                    </span>
+                                    <span className="text-[11px] text-slate-400">
+                                      {formatDateTime(entry.changedAt) || "Onbekend"}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-[11px] text-slate-500">
+                                    {actorLabel}
+                                    {entry.note ? ` • ${entry.note}` : ""}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400">Nog geen statusgeschiedenis beschikbaar.</p>
+                      )
+                    ) : (
+                      <p className="text-[11px] text-slate-400">Nog geen trajectstatus gekoppeld.</p>
+                    )}
                   </div>
                 ) : null}
               </article>
