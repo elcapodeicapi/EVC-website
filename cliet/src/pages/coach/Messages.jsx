@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useLocation, useOutletContext } from "react-router-dom";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   sendThreadMessage,
@@ -107,6 +107,15 @@ const CoachMessages = () => {
       return firstUnread?.id || sortedThreads[0]?.id || null;
     });
   }, [sortedThreads]);
+
+  // Support deep-linking: /messages?thread=<threadId>
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || "");
+    const requested = params.get("thread") || params.get("threadId");
+    if (!requested) return;
+    setActiveThreadId((prev) => (prev && prev === requested ? prev : requested));
+  }, [location.search]);
 
   useEffect(() => {
     if (!activeThreadId) {

@@ -511,6 +511,75 @@ export async function resolveUploadDownloadUrl(upload) {
   return getDownloadURL(fileRef);
 }
 
+// Subscribe to the resume/profile document (profiles/{userId}) for educations, certificates, workExperience and other basic fields.
+export function subscribeCustomerResume(userId, observer) {
+  if (!userId) {
+    observer({ data: null, error: new Error("Missing user id") });
+    return () => {};
+  }
+  const resumeRef = doc(db, "profiles", userId);
+  return onSnapshot(
+    resumeRef,
+    (snapshot) => {
+      const data = snapshot?.exists() ? snapshot.data() || {} : {};
+      observer({ data, error: null });
+    },
+    (error) => observer({ data: null, error })
+  );
+}
+
+// Link a profile entry (education/certificate/workExperience) to a competency by id.
+// sectionKey must be one of: "educations", "certificates", "workExperience".
+export async function linkProfileItemToCompetency({ userId, sectionKey, itemId, competencyId }) {
+  if (!userId) throw new Error("userId is verplicht");
+  if (!sectionKey || !["educations", "certificates", "workExperience"].includes(sectionKey)) {
+    throw new Error("sectionKey ongeldig");
+  }
+  if (!itemId) throw new Error("itemId is verplicht");
+  if (!competencyId) throw new Error("competencyId is verplicht");
+
+  const resumeRef = doc(db, "profiles", userId);
+  const snap = await getDoc(resumeRef).catch(() => null);
+  const docData = snap?.exists() ? snap.data() || {} : {};
+  const current = Array.isArray(docData[sectionKey]) ? [...docData[sectionKey]] : [];
+
+  const index = current.findIndex((entry) => entry && (entry.id === itemId));
+  if (index === -1) throw new Error("Item niet gevonden in profiel");
+
+  const entry = { ...current[index] };
+  const linked = Array.isArray(entry.linkedCompetencies) ? [...entry.linkedCompetencies] : [];
+  if (!linked.includes(competencyId)) linked.push(competencyId);
+  entry.linkedCompetencies = linked;
+  current[index] = entry;
+
+  await setDoc(resumeRef, { [sectionKey]: current }, { merge: true });
+}
+
+// Unlink a competency from a profile entry
+export async function unlinkProfileItemFromCompetency({ userId, sectionKey, itemId, competencyId }) {
+  if (!userId) throw new Error("userId is verplicht");
+  if (!sectionKey || !["educations", "certificates", "workExperience"].includes(sectionKey)) {
+    throw new Error("sectionKey ongeldig");
+  }
+  if (!itemId) throw new Error("itemId is verplicht");
+  if (!competencyId) throw new Error("competencyId is verplicht");
+
+  const resumeRef = doc(db, "profiles", userId);
+  const snap = await getDoc(resumeRef).catch(() => null);
+  const docData = snap?.exists() ? snap.data() || {} : {};
+  const current = Array.isArray(docData[sectionKey]) ? [...docData[sectionKey]] : [];
+  const index = current.findIndex((entry) => entry && (entry.id === itemId));
+  if (index === -1) return; // nothing to do
+
+  const entry = { ...current[index] };
+  const linked = Array.isArray(entry.linkedCompetencies) ? [...entry.linkedCompetencies] : [];
+  const nextLinked = linked.filter((id) => id !== competencyId);
+  entry.linkedCompetencies = nextLinked;
+  current[index] = entry;
+
+  await setDoc(resumeRef, { [sectionKey]: current }, { merge: true });
+}
+
 export function subscribeCustomerContext(customerUid, observer) {
   if (!customerUid) {
     observer({ customer: null, coach: null, assignment: null, error: new Error("Missing user id") });

@@ -24,6 +24,12 @@ import {
   subscribeCoachCustomerProfile,
   subscribeCustomerProgress,
 } from "../../lib/firestoreCoach";
+import {
+  ensureThread,
+  subscribeThreadMessages,
+  sendThreadMessage,
+  markMessagesAsRead,
+} from "../../lib/firestoreMessages";
 import { resolveUploadDownloadUrl } from "../../lib/firestoreCustomer";
 import {
   QUESTIONNAIRE_SECTIONS,
@@ -212,7 +218,7 @@ const buildInstrumentEntries = ({
 const CustomerTrajectOverview = () => {
   const { customerId } = useParams();
   const navigate = useNavigate();
-  const { customers = [], coach, basePath = "/coach" } = useOutletContext() ?? {};
+  const { customers = [], coach, basePath = "/coach", assignments = [] } = useOutletContext() ?? {};
 
   const customer = useMemo(
     () => customers.find((item) => item.id === customerId) || null,
@@ -220,6 +226,12 @@ const CustomerTrajectOverview = () => {
   );
 
   const coachId = coach?.id || coach?.firebaseUid || coach?.uid || null;
+
+  // Resolve assignment for this customer to get potential fallback fields like trajectId
+  const relatedAssignment = useMemo(
+    () => assignments.find((a) => a?.customerId === customerId) || null,
+    [assignments, customerId]
+  );
 
   const [activeSection, setActiveSection] = useState("overzicht");
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -256,6 +268,15 @@ const CustomerTrajectOverview = () => {
   const [noteStatus, setNoteStatus] = useState(null);
 
   const [expandedCompetencies, setExpandedCompetencies] = useState({});
+  // Chat state for inline contact (shown under Kandidaat -> Contact)
+  const [chatThreadId, setChatThreadId] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState(null);
+  const [chatTitle, setChatTitle] = useState("");
+  const [chatBody, setChatBody] = useState("");
+  const [chatFile, setChatFile] = useState(null);
+  const [chatSending, setChatSending] = useState(false);
 
   useEffect(() => {
     if (!customerId) {
@@ -275,19 +296,132 @@ const CustomerTrajectOverview = () => {
     };
   }, [customerId]);
 
+  const effectiveTrajectId = customer?.trajectId || relatedAssignment?.trajectId || null;
+
   useEffect(() => {
-    if (!customer?.id || !customer?.trajectId) {
+    if (!customer?.id || !effectiveTrajectId) {
       setProgressState({ data: null, loading: false, error: null });
       return () => {};
     }
     setProgressState({ data: null, loading: true, error: null });
-    const unsubscribe = subscribeCustomerProgress(customer.id, customer.trajectId, ({ data, error }) => {
+    const unsubscribe = subscribeCustomerProgress(customer.id, effectiveTrajectId, ({ data, error }) => {
       setProgressState({ data: data || null, loading: false, error: error || null });
     });
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
-  }, [customer?.id, customer?.trajectId]);
+  }, [customer?.id, effectiveTrajectId]);
+
+  // Ensure a 1:1 thread for this coach-customer pair once both IDs are known
+  useEffect(() => {
+    let cancelled = false;
+    if (!coachId || !customerId) {
+      setChatThreadId(null);
+      return () => {};
+    }
+    setChatLoading(true);
+    ensureThread({
+      customerId,
+      coachId,
+      customerProfile: { name: customer?.name || customer?.email || "Kandidaat", email: customer?.email || "" },
+      coachProfile: { name: coach?.name || coach?.email || "Begeleider", email: coach?.email || "" },
+    })
+      .then((id) => {
+        if (!cancelled) {
+          setChatThreadId(id);
+          setChatError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setChatThreadId(null);
+          setChatError(err);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setChatLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [coachId, customerId, customer?.name, customer?.email, coach?.name, coach?.email]);
+
+  // Subscribe to messages for this thread
+  useEffect(() => {
+    if (!chatThreadId) {
+      setChatMessages([]);
+      return () => {};
+    }
+    const unsubscribe = subscribeThreadMessages(chatThreadId, ({ data, error }) => {
+      if (error) {
+        setChatError(error);
+        setChatMessages([]);
+        return;
+      }
+      const records = Array.isArray(data) ? data : [];
+      // Mark unread for coach as read
+      const unreadForCoach = records.filter((m) => m.receiverId === coachId && !m.isReadByCoach);
+      if (unreadForCoach.length > 0) {
+        const ids = unreadForCoach.map((m) => m.id).filter(Boolean);
+        if (ids.length > 0) {
+          markMessagesAsRead({ threadId: chatThreadId, messageIds: ids, readerRole: "coach" }).catch(() => {});
+          setChatMessages(records.map((m) => (ids.includes(m.id) ? { ...m, isReadByCoach: true } : m)));
+          setChatError(null);
+          return;
+        }
+      }
+      setChatMessages(records);
+      setChatError(null);
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [chatThreadId, coachId]);
+
+  const formattedChatMessages = useMemo(() => {
+    return chatMessages.map((m) => ({
+      ...m,
+      isOwn: m.senderId === coachId,
+      senderInitial: (m.senderName || "?").charAt(0).toUpperCase(),
+      timestampLabel: m.timestamp instanceof Date ? new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeStyle: "short" }).format(m.timestamp) : "",
+      isUnreadForCoach: m.receiverId === coachId && !m.isReadByCoach,
+    }));
+  }, [chatMessages, coachId]);
+
+  const handleSendChat = async (event) => {
+    event?.preventDefault?.();
+    if (!chatThreadId || !coachId || !customerId) return;
+    const trimmedTitle = chatTitle.trim();
+    const trimmedBody = chatBody.trim();
+    if (!trimmedTitle && !trimmedBody) return;
+    setChatSending(true);
+    setChatError(null);
+    try {
+      await sendThreadMessage({
+        threadId: chatThreadId,
+        senderId: coachId,
+        receiverId: customerId,
+        senderRole: "coach",
+        senderName: coach?.name || coach?.email || "Begeleider",
+        receiverName: customer?.name || customer?.email || "Kandidaat",
+        messageTitle: trimmedTitle,
+        messageText: trimmedBody,
+        file: chatFile,
+      });
+      setChatTitle("");
+      setChatBody("");
+      setChatFile(null);
+    } catch (err) {
+      setChatError(err);
+    } finally {
+      setChatSending(false);
+    }
+  };
+
+  const handleChatFileChange = (event) => {
+    const selected = event.target.files?.[0] || null;
+    setChatFile(selected);
+  };
 
   useEffect(() => {
     if (!coachId || !customerId) {
@@ -562,6 +696,40 @@ const CustomerTrajectOverview = () => {
   const uploadsByCompetency = progressData?.uploadsByCompetency || {};
   const competencies = progressData?.competencies || [];
 
+  // Build linked items by competency from profile/resume arrays
+  const profileEducations = useMemo(() => {
+    const primary = Array.isArray(profileData?.educations) && profileData.educations.length > 0 ? profileData.educations : [];
+    const secondary = Array.isArray(resumeData?.educations) ? resumeData.educations : [];
+    return primary.length > 0 ? primary : secondary;
+  }, [profileData?.educations, resumeData?.educations]);
+  const profileCertificates = useMemo(() => {
+    const primary = Array.isArray(profileData?.certificates) && profileData.certificates.length > 0 ? profileData.certificates : [];
+    const secondary = Array.isArray(resumeData?.certificates) ? resumeData.certificates : [];
+    return primary.length > 0 ? primary : secondary;
+  }, [profileData?.certificates, resumeData?.certificates]);
+  const profileWork = useMemo(() => {
+    const primary = Array.isArray(profileData?.workExperience) && profileData.workExperience.length > 0 ? profileData.workExperience : [];
+    const secondary = Array.isArray(resumeData?.workExperience) ? resumeData.workExperience : [];
+    return primary.length > 0 ? primary : secondary;
+  }, [profileData?.workExperience, resumeData?.workExperience]);
+
+  const linkedByCompetency = useMemo(() => {
+    const map = {};
+    const add = (section, items) => {
+      (items || []).forEach((entry) => {
+        const links = Array.isArray(entry.linkedCompetencies) ? entry.linkedCompetencies : [];
+        links.forEach((compId) => {
+          if (!map[compId]) map[compId] = [];
+          map[compId].push({ ...entry, __section: section });
+        });
+      });
+    };
+    add("education", profileEducations);
+    add("certificate", profileCertificates);
+    add("work", profileWork);
+    return map;
+  }, [profileEducations, profileCertificates, profileWork]);
+
   const renderInstrumentEntries = () => (
     <div className="space-y-2">
       {instrumentEntries.map((entry) => (
@@ -630,7 +798,7 @@ const CustomerTrajectOverview = () => {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{displayName}</h2>
-            <p className="text-sm text-slate-500">{customer.trajectName || customer.trajectTitle || "Traject onbekend"}</p>
+            <p className="text-sm text-slate-500">{progressData?.trajectName || customer.trajectName || customer.trajectTitle || "Traject onbekend"}</p>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -673,6 +841,8 @@ const CustomerTrajectOverview = () => {
           </div>
         </div>
       </section>
+
+      {/* Chat UI now lives under Kandidaat -> Contact view */}
 
       <section className="rounded-3xl bg-white p-6 shadow-card">
         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Checklist</p>
@@ -793,15 +963,126 @@ const CustomerTrajectOverview = () => {
         );
       case "candidate-contact":
         return (
-          <section className="space-y-4 rounded-3xl bg-white p-6 shadow-card">
-            <header>
-              <h3 className="text-lg font-semibold text-slate-900">Contactgegevens</h3>
-              <p className="text-sm text-slate-500">Contactinformatie zoals zichtbaar voor de kandidaat.</p>
+          <section className="space-y-6 rounded-3xl bg-white p-6 shadow-card">
+            <header className="space-y-1">
+              <h3 className="text-lg font-semibold text-slate-900">Contact</h3>
+              <p className="text-sm text-slate-500">Contactgegevens en direct chatten met de kandidaat.</p>
             </header>
-            <div className="space-y-3 text-sm text-slate-600">
-              <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" /> {customer.email || "Geen e-mailadres"}</p>
-              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {phoneNumber || "Geen telefoonnummer"}</p>
-              <p className="flex items-center gap-2"><UserRound className="h-4 w-4 text-slate-400" /> Contactpersoon: {evc?.contactPerson || "Onbekend"}</p>
+            <div className="grid gap-6 lg:grid-cols-[280px,1fr]">
+              <aside className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Gegevens</p>
+                <ul className="space-y-2 text-sm text-slate-700">
+                  <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" /> {customer.email || "Geen e-mailadres"}</li>
+                  <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {phoneNumber || "Geen telefoonnummer"}</li>
+                  <li className="flex items-center gap-2"><UserRound className="h-4 w-4 text-slate-400" /> Contactpersoon: {evc?.contactPerson || "Onbekend"}</li>
+                </ul>
+              </aside>
+              <div className="space-y-4">
+                {chatError ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                    {chatError.message || "Kon chat niet laden."}
+                  </div>
+                ) : null}
+                {chatLoading ? (
+                  <LoadingSpinner label="Chat laden" />
+                ) : (
+                  <>
+                    <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+                      {formattedChatMessages.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-10 text-center text-sm text-slate-400">
+                          Nog geen berichten. Start hieronder het gesprek.
+                        </div>
+                      ) : (
+                        formattedChatMessages.map((message) => (
+                          <article
+                            key={message.id}
+                            className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-sm ${
+                              message.isOwn
+                                ? "border-evc-blue-100 bg-evc-blue-50/60"
+                                : message.isUnreadForCoach
+                                ? "border-amber-200 bg-amber-50"
+                                : "border-slate-100 bg-slate-50"
+                            }`}
+                          >
+                            <div className={`${
+                              message.isOwn ? "bg-evc-blue-600 text-white" : "bg-slate-200 text-slate-700"
+                            } flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold`}>
+                              {message.senderInitial}
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <header className="flex flex-wrap items-baseline justify-between gap-2">
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-900">{message.senderName}</p>
+                                  {message.messageTitle ? (
+                                    <p className="text-base font-semibold text-slate-900">{message.messageTitle}</p>
+                                  ) : null}
+                                </div>
+                                <time className="text-xs uppercase tracking-[0.2em] text-slate-400">{message.timestampLabel}</time>
+                              </header>
+                              {message.messageText ? (
+                                <p className="whitespace-pre-line text-sm text-slate-700">{message.messageText}</p>
+                              ) : null}
+                              {message.fileUrl ? (
+                                <a
+                                  href={message.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 text-sm font-medium text-evc-blue-700 hover:text-evc-blue-600"
+                                >
+                                  <span aria-hidden>📎</span>
+                                  Download {message.fileName || "bijlage"}
+                                </a>
+                              ) : null}
+                            </div>
+                          </article>
+                        ))
+                      )}
+                    </div>
+                    <form onSubmit={handleSendChat} className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/50 px-5 py-4">
+                      <div className="grid gap-2">
+                        <label htmlFor="coach-contact-chat-title" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Onderwerp</label>
+                        <input
+                          id="coach-contact-chat-title"
+                          type="text"
+                          value={chatTitle}
+                          onChange={(e) => setChatTitle(e.target.value)}
+                          placeholder="Bijvoorbeeld: Update beoordeling"
+                          className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <label htmlFor="coach-contact-chat-body" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Bericht</label>
+                        <textarea
+                          id="coach-contact-chat-body"
+                          rows={4}
+                          value={chatBody}
+                          onChange={(e) => setChatBody(e.target.value)}
+                          placeholder="Schrijf je bericht"
+                          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-evc-blue-300 hover:text-evc-blue-600">
+                          <span aria-hidden>📎</span>
+                          <span>Voeg bijlage toe</span>
+                          <input type="file" className="hidden" onChange={handleChatFileChange} />
+                        </label>
+                        {chatFile ? (
+                          <span className="text-sm text-slate-500">Geselecteerd: {chatFile.name}</span>
+                        ) : null}
+                        <div className="flex-1" />
+                        <button
+                          type="submit"
+                          disabled={chatSending}
+                          className="inline-flex items-center gap-2 rounded-full bg-evc-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-evc-blue-500 disabled:cursor-not-allowed disabled:bg-evc-blue-300"
+                        >
+                          {chatSending ? "Versturen…" : "Verstuur bericht"}
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                )}
+              </div>
             </div>
           </section>
         );
@@ -818,12 +1099,49 @@ const CustomerTrajectOverview = () => {
             <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Portfolio</h3>
-                <p className="text-sm text-slate-500">Uploads en bewijsstukken per competentie.</p>
+                <p className="text-sm text-slate-500">Uploads en bewijsstukken per competentie, inclusief gekoppelde items uit het profiel.</p>
               </div>
               <div className="rounded-full bg-slate-100 px-4 py-1 text-xs font-semibold text-slate-600">
                 Totaal {totalUploads} bestand{totalUploads === 1 ? "" : "en"}
               </div>
             </header>
+            {/* Overige documenten (onbekoppeld) */}
+            {uploadsByCompetency["__unassigned__"] && uploadsByCompetency["__unassigned__"].length > 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Overige documenten</p>
+                <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                  {uploadsByCompetency["__unassigned__"].map((upload) => {
+                    const key = upload.id || upload.storagePath || upload.fileName || upload.name;
+                    return (
+                      <li key={key} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                        <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-slate-900">{upload.displayName || upload.name || upload.fileName || "Bestand"}</p>
+                        </div>
+                        <div className="ml-auto">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const key = upload.id || upload.storagePath || upload.fileName || upload.name;
+                              if (key) setDownloadInProgress(key);
+                              try {
+                                const url = await resolveUploadDownloadUrl(upload);
+                                if (url) window.open(url, "_blank", "noopener");
+                              } finally {
+                                setDownloadInProgress(null);
+                              }
+                            }}
+                            className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50"
+                          >
+                            Download
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
             {competencies.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-400">
                 Nog geen competenties beschikbaar.
@@ -845,6 +1163,23 @@ const CustomerTrajectOverview = () => {
                           {uploads.length} bewijsstuk{uploads.length === 1 ? "" : "ken"}
                         </span>
                       </header>
+                      {(linkedByCompetency[competency.id] || []).length > 0 ? (
+                        <div className="mt-3">
+                          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-slate-500">Gekoppeld uit profiel</p>
+                          <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                            {linkedByCompetency[competency.id].map((entry) => (
+                              <li key={`${entry.__section}-${entry.id}`} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate font-medium text-slate-900">{entry.title || entry.role || entry.organisation || "Profielitem"}</p>
+                                  {entry.__section === "certificate" && entry.filePath ? (
+                                    <a href={entry.filePath} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:text-brand-500">Bekijk</a>
+                                  ) : null}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
                       {uploads.length === 0 ? (
                         <p className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm text-slate-400">
                           Nog geen bewijsstukken geüpload.
@@ -1099,7 +1434,7 @@ const CustomerTrajectOverview = () => {
         <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">{customer.name || "Onbekende kandidaat"}</h1>
-            <p className="text-sm text-slate-500">{customer.trajectName || customer.trajectTitle || "Traject onbekend"}</p>
+            <p className="text-sm text-slate-500">{progressData?.trajectName || customer.trajectName || customer.trajectTitle || "Traject onbekend"}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">

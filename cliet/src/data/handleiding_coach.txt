@@ -1,0 +1,221 @@
+Handleiding
+1. Inloggen
+
+U kunt uw eigen inloggegevens aanpassen naar iets dat u zelf prettig vindt en goed kunt onthouden. Let er wel op dat uw gebruikersnaam en wachtwoord voldoende veilig zijn. Met deze gegevens zou een ander toegang kunnen krijgen tot uw account, dus houd ze geheim en deel ze niet met anderen!
+
+Mocht u uw wachtwoord kwijt zijn, dan kunt u dit zelf opnieuw instellen via de link "Wachtwoord vergeten?" op de inlogpagina. U ontvangt dan een e-mail om een nieuw wachtwoord aan te maken. (Als u via een andere website inlogt op het EVC-portaal en die link niet ziet, neem dan contact op met de contactpersoon van uw organisatie zodat hij/zij uw wachtwoord kan resetten met een tijdelijk wachtwoord.)
+
+1.1 Inloggen onder meerdere rollen tegelijk
+
+Wanneer u meerdere rollen vervult binnen uw organisatie (bijvoorbeeld begeleider en assessor), is het niet mogelijk om in één browser tegelijk onder meerdere rollen ingelogd te zijn. Dit komt door de strenge beveiliging die per rol geldt. U bent altijd ingelogd onder de rol waarmee u als laatste bent ingelogd.
+
+Tip: U kunt wel met een tweede browser inloggen onder een andere rol. Zo kunt u in bijvoorbeeld Chrome als begeleider werken en tegelijk in Firefox als assessor.
+
+1.2 Pas op met een tweede venster openen als andere rol
+
+Open niet in dezelfde browser een tweede venster om met een andere rol in te loggen terwijl u nog bent ingelogd. Als u dat toch doet, zorg dan dat u in het tweede venster uitlogt zodra u klaar bent en vervolgens in dat tweede venster opnieuw inlogt onder dezelfde rol als in het eerste venster. U bent dan in beide vensters onder dezelfde rol ingelogd, waardoor u in het eerste venster verder kunt werken waarmee u bezig was.
+
+2. Mijn profiel
+2.1 Hoe vul ik mijn profiel aan?
+
+Klik in het menu op "Mijn profiel". U ziet nu uw profielgegevens.
+
+Klik rechtsboven op de knop "Wijzigen" om uw gegevens te bewerken.
+
+Pas uw gegevens aan. U kunt bijvoorbeeld ontbrekende contactgegevens invullen of wijzigen.
+
+Klik op "Opslaan" om uw gewijzigde profielgegevens op te slaan.
+
+2.2 Wachtwoord wijzigen
+
+U kunt uw wachtwoord opnieuw instellen via de "Wachtwoord vergeten?" functie op de inlogpagina. Het EVC-portaal stuurt u dan een e-mail met instructies om een nieuw wachtwoord in te stellen. (Mocht deze optie niet beschikbaar zijn of niet lukken, neem dan contact op met de beheerder van uw organisatie.)
+
+2.3 Voeg een pasfoto toe aan uw profiel
+
+Met een pasfoto op uw profiel maakt u zichzelf zichtbaar voor de mensen met wie u in de online omgeving te maken krijgt. Dit maakt uw profiel persoonlijker. Uw profielfoto is zichtbaar voor iedereen die bij een traject betrokken is (begeleiders, assessoren, etc.), en u kunt uiteraard ook de profielfoto's van anderen zien.
+
+Zo voegt u een foto toe:
+
+Ga naar "Mijn profiel" via het menu.
+
+Zoek de optie om een profielfoto te uploaden (meestal aan de rechterzijde van de profielpagina). Klik op "Bladeren..." (of "Browse...") om een fotobestand te selecteren.
+
+Kies het fotobestand van uw computer en klik op "Openen". De foto wordt geüpload en meteen toegevoegd aan uw profiel.
+
+Wilt u later een andere foto gebruiken? Verwijder dan eerst de huidige afbeelding (er is een knop "Verwijder afbeelding"), en upload vervolgens een nieuwe foto op dezelfde manier.
+
+2.4 Welke fotobestanden zijn toegestaan?
+
+Het EVC-portaal accepteert de meeste gangbare fotobestanden, zoals JPG, PNG of GIF. Bij voorkeur gebruikt u een JPG- of PNG-bestand. Zeer grote bitmap-bestanden (BMP) zijn minder geschikt voor web-gebruik en kunt u beter vermijden. Let erop dat de foto niet te groot is; een paar MB is doorgaans ruim voldoende (het systeem hanteert meestal een maximum van enkele MB's per foto, bijvoorbeeld 5MB).
+
+2.5 Dagoverzicht instellen
+
+Om u niet te overspoelen met e-mails bij elke kleine actie van een kandidaat, werkt het EVC-portaal met een dagoverzicht. Dit is een e-mail die u op gezette tijden ontvangt met een samenvatting van de activiteiten van al uw kandidaten (bijvoorbeeld dat een kandidaat het portfolio ter beoordeling heeft aangeboden, nieuwe berichten, etc.).
+
+Let op: In de huidige versie van het EVC-portaal ontvangt u standaard dit dagoverzicht op vaste momenten. In sommige gevallen kan het zijn dat u (nog) niet zelf de dagen en tijdstippen kunt instellen. Informeer bij uw organisatie als u wilt weten hoe vaak het dagoverzicht wordt gemaild of als u voorkeuren hiervoor wilt doorgeven.
+
+3. Lopende trajecten
+3.1 Overzicht van alle EVC-trajecten (Mijn kandidaten)
+
+Via "Mijn kandidaten" in het menu krijgt u een overzicht van alle kandidaten (trajecten) die aan u zijn toegewezen. U ziet in dit overzicht per kandidaat de belangrijkste gegevens en de status van hun EVC-traject. Vaak wordt ook de profielfoto van de kandidaat getoond voor een snelle herkenning.
+
+Om een volledig EVC-traject van een kandidaat te bekijken, klikt u bij de desbetreffende kandidaat op "Trajectoverzicht openen". U gaat dan naar de trajectpagina van die kandidaat.
+
+Op de trajectpagina ziet u in één oogopslag alle informatie over de kandidaat en de stand van zaken in het EVC-traject. Vanaf deze pagina kunt u doorklikken of scrollen naar de verschillende onderdelen van het traject, zoals het portfolio en het kwalificatiedossier.
+
+3.2 Instrumenten
+
+De standaard instrumenten die (afhankelijk van het type traject) in een EVC-traject voorkomen zijn onder andere:
+
+Portfolio: het digitaal verzamelen van bewijsmateriaal door de kandidaat.
+
+Criteriumgericht interview: een gesprek waarin de kandidaat toelichting geeft op ervaringen aan de hand van criteria.
+
+Werkplekbezoek: een assessor bezoekt de kandidaat in de werkomgeving.
+
+Deze instrumenten maken deel uit van het EVC-traject. Als begeleider kunt u via het trajectoverzicht van de kandidaat de voortgang op deze instrumenten volgen. (Voor kandidaten zijn deze instrumenten zichtbaar in hun menu, bijvoorbeeld onder "Mijn portfolio", "Werkplekbezoek", etc.)
+
+3.3 Kwalificatiedossier inzien en als PDF downloaden
+
+Op de trajectpagina van de kandidaat kunt u het kwalificatiedossier bekijken. Dit is de complete set van competenties, beoordelingscriteria en resultaten die bij het traject horen. Vaak is er een knop of tab "Kwalificatiedossier" zichtbaar waarmee u deze informatie toont.
+
+U kunt het volledige kwalificatiedossier desgewenst als PDF-document downloaden (bijvoorbeeld om het Ervaringscertificaat te genereren of te printen). Als er een "Download PDF" of "Rapport genereren" optie beschikbaar is, kunt u daarop klikken om het kwalificatiedossier in PDF-formaat te verkrijgen.
+
+4. Communiceren met de kandidaat
+4.1 Berichten van kandidaten lezen
+
+Als begeleider kunt u via het EVC-portaal berichten uitwisselen met uw kandidaten. Bent u assessor, dan is deze optie meestal uitgeschakeld voor uw rol.
+
+Alle berichten worden gebundeld onder "Berichten" in het menu. Klik op "Berichten" om naar het berichtenoverzicht te gaan. In dit overzicht ziet u per kandidaat de gespreksthreads met uw kandidaten. Berichten zijn hier per kandidaat gegroepeerd, zodat u snel kunt zien welke kandidaten nieuwe berichten hebben gestuurd.
+
+Wilt u de berichten van één specifieke kandidaat lezen? In het berichtenoverzicht kunt u doorgaans op de naam van de kandidaat (of de betreffende conversatie) klikken om alle berichten uit dat gesprek te bekijken. U ziet dan de volledige conversatie met die kandidaat en kunt direct reageren.
+
+4.2 Bericht versturen aan een kandidaat
+
+U kunt zowel vanuit het berichtenoverzicht als binnen een specifieke conversatie een bericht naar de kandidaat sturen.
+
+Zo verstuurt u een bericht:
+
+Ga naar "Berichten" in het menu en open de conversatie met de gewenste kandidaat (door op de kandidaat of het gesprek te klikken).
+
+U ziet de eerdere berichten en een invoerveld om een nieuw bericht te typen.
+
+Typ uw bericht in het tekstvak.
+
+Klik op de knop "Verzenden" (of het verzend-icoon) om uw bericht te versturen.
+
+De kandidaat ontvangt automatisch een e-mailnotificatie dat er een nieuw bericht voor hem/haar is geplaatst in het EVC-portaal.
+
+4.3 Een bericht aan meerdere kandidaten tegelijk sturen
+
+Het is mogelijk om één bericht in één keer naar meerdere van uw kandidaten te sturen (bijvoorbeeld om hen allemaal te informeren over een algemene zaak).
+
+Ga naar "Berichten" en zoek daar naar de optie "Stuur bericht aan meerdere kandidaten" (meestal rechtsboven in het berichtenoverzicht). Wanneer u deze aanklikt:
+
+Kunt u een onderwerp voor uw bericht invullen en een aanhef (deze wordt gepersonaliseerd per kandidaat, bijvoorbeeld automatisch de naam).
+
+Typ uw berichtinhoud in het daarvoor bestemde veld.
+
+U krijgt een lijst te zien van uw kandidaten. Selecteer (vink) de kandidaten aan naar wie u het bericht wilt versturen.
+
+Klik op "Verzenden" om het bericht naar alle geselecteerde kandidaten te sturen.
+
+Elke geselecteerde kandidaat ontvangt hiervan afzonderlijk een e-mailnotificatie, alsof u hen individueel een bericht heeft gestuurd.
+
+5. Aantekeningen over kandidaten
+
+In het menu vindt u de optie "Aantekeningen". Hier kunt u interne notities vastleggen per kandidaat die gekoppeld is aan uw trajecten. U kunt bijvoorbeeld bijzondere voorvallen tijdens het traject noteren, afspraken die u met de kandidaat maakt, of andere belangrijke observaties.
+
+Alle notities die u hier vastlegt zijn alleen zichtbaar voor u en andere betrokken stafleden (zoals mede-begeleiders, kwaliteitscoördinatoren of assessoren). De kandidaat zelf heeft geen inzage in deze aantekeningen.
+
+U kunt in het Aantekeningenoverzicht doorgaans een kandidaat selecteren en vervolgens een tekstvak invullen met uw notitie. De notitie wordt automatisch opgeslagen of kan met een opslaan-knop worden bewaard. Eventueel kunt u later uw notitie bijwerken; vaak ziet u ook wanneer u de notitie voor het laatst heeft bewerkt.
+
+Tip: Ook op de trajectpagina van een specifieke kandidaat is er meestal een sectie "Aantekeningen" waar u direct voor die kandidaat een notitie kunt lezen of toevoegen. Dit werkt hetzelfde als via het algemene aantekeningenoverzicht, maar dan gefilterd op de betreffende kandidaat.
+
+6. Portfolio van de kandidaat
+6.1 Het portfolio van de kandidaat bekijken
+
+Het portfolio is het hart van het EVC-traject waarin de kandidaat zijn/haar bewijsmateriaal verzamelt. Als begeleider kunt u dit als volgt inzien:
+
+Ga naar "Mijn kandidaten" en open het trajectoverzicht van de betreffende kandidaat (via "Trajectoverzicht openen").
+
+Op de trajectpagina van de kandidaat ziet u een overzicht van alle ingediende bewijsmaterialen. Deze kunnen gegroepeerd zijn op categorieën, bijvoorbeeld Opleidingen, diploma’s en certificaten, Relevante werkervaring, Loopbaan en burgerschap, enzovoort.
+
+U kunt door de portfolio-secties scrollen. Per onderdeel ziet u welke informatie de kandidaat heeft ingevuld en welke bestanden (bewijsstukken) zijn geüpload. U krijgt zo een compleet beeld van wat de kandidaat heeft aangeleverd.
+
+6.2 Bijlagen uit het portfolio downloaden
+
+Als u een bewijsstuk of bijlage uit het portfolio wilt bekijken of bewaren, kunt u deze individueel downloaden:
+
+Klik simpelweg op het bestand of op de "Download" knop/icon naast het betreffende bewijsstuk. Het bestand wordt dan geopend of gedownload naar uw computer (afhankelijk van uw browserinstellingen).
+
+Herhaal dit voor elk bewijsstuk dat u wilt binnenhalen. Alle ingediende documenten, afbeeldingen, video’s of andere bestanden zijn afzonderlijk beschikbaar om te downloaden.
+
+(In de huidige versie van het portaal is het nog niet mogelijk om alle portfolio-bestanden in één keer als pakket te downloaden. U downloadt de bestanden één voor één.)
+
+6.3 Een ingepakt ZIP-bestand openen
+
+Mocht u toch een verzameling bestanden in één keer hebben gedownload (bijvoorbeeld als u in de toekomst een ZIP-archief met alle bewijsstukken krijgt of via een andere route een pakket ontvangt), dan kunt u deze openen door het ZIP-bestand op uw computer te "uitpakken".
+
+In de meeste moderne besturingssystemen kunt u een ZIP-bestand openen door er dubbel op te klikken. Er verschijnt dan een map of venster waarin de inhoud van het bestand zichtbaar is en vanwaar u de bestanden kunt kopiëren naar een reguliere map. Lukt dit niet automatisch, dan kunt u gebruikmaken van een hulpprogramma als WinZip, 7-Zip of WinRAR om het bestand te openen. (WinZip kunt u eventueel gratis downloaden en installeren.)
+
+6.4 Video- en geluidsbestanden in het portfolio
+
+Wanneer een kandidaat mediabestanden uploadt (filmpjes, audio of foto's), probeert het EVC-portaal ervoor te zorgen dat deze bestanden bekeken of beluisterd kunnen worden via de browser. Of een bestand direct afspeelbaar is, hangt af van het bestandsformaat en uw browserondersteuning:
+
+Afbeeldingen (zoals .jpg, .jpeg, .png, .gif) worden meestal direct in de pagina getoond of als miniatuur weergegeven. U kunt erop klikken om de afbeelding groter te bekijken, of u kunt de afbeelding downloaden.
+
+Video’s (bijvoorbeeld .mp4, .mov, .avi, .wmv, .flv, .mpeg, .3gp) en audio-bestanden (.wav, .mp3) kunnen vaak direct in de browser worden afgespeeld via een ingebouwde media-player. Er zal dan een afspeelknop verschijnen. Mocht een video niet afspeelbaar zijn in de browser, dan kunt u het bestand alsnog downloaden en met een geschikte mediaspeler op uw computer bekijken.
+
+Zorg dat videobestanden niet te groot zijn. Een richtlijn is maximaal 500 MB per video. Is een bestand groter dan 500 MB, dan is het verstandig dat de kandidaat deze vooraf comprimeert of in kleinere stukken splitst voordat het wordt geüpload. Dit voorkomt problemen bij uploaden en afspelen.
+
+Aanbeveling: Speel video’s en audio zoveel mogelijk direct in het portfolio af als de optie er is. Dit is sneller en u weet zeker dat u de juiste versie bekijkt. Voor elk multimedia-bestand is er tevens altijd de mogelijkheid om het origineel te downloaden, mocht direct afspelen niet goed werken.
+
+6.5 Vaststellen van de authenticiteit van bewijsstukken
+
+Binnen het EVC-traject is het belangrijk om de authenticiteit van de ingediende bewijsstukken vast te stellen. Dit betekent dat er gecontroleerd moet worden of de bewijzen echt en door de kandidaat zelf behaald of gemaakt zijn. Afhankelijk van de afspraken in uw organisatie wordt deze controle op echtheid gedaan door de kandidaat zelf (bijvoorbeeld via een ondertekende authenticiteitsverklaring), door u als begeleider en/of door de assessor.
+
+Hoe dit precies in het portaal is geregeld, kan verschillen per instelling. In sommige gevallen kan er in het systeem bij ieder bewijsstuk een markering worden gezet (bijvoorbeeld een vinkje of stempel-icoon) om aan te geven dat het als authentiek beoordeeld is. In andere gevallen gebeurt dit buiten het systeem om.
+
+Volg de werkwijze die binnen uw organisatie is afgesproken om authenticiteit vast te stellen. Als u als begeleider een bewijsstuk verifieert, kunt u dat intern noteren (bijvoorbeeld in een aantekening of via de beschikbare optie in het portaal). Vaak zal de assessor uiteindelijk controleren of alle bewijsstukken voldoende betrouwbaar en echt zijn.
+
+6.6 Portfolio ingeleverd door kandidaat
+
+Wanneer een kandidaat van mening is dat hij/zij voldoende bewijs heeft toegevoegd en klaar is voor de beoordeling, dient de kandidaat het portfolio officieel in te leveren. In het portaal doet de kandidaat dit door op de knop "Klaar?" te klikken in zijn/haar menu en de actie te bevestigen.
+
+Voor de kandidaat verandert de status van het portfolio dan naar ingediend. U als begeleider wordt hierover geïnformeerd (meestal via het dagoverzicht per e-mail) en in uw Mijn kandidaten-overzicht zult u zien dat bij de betreffende kandidaat de status is gewijzigd. Vaak staat er bij die kandidaat een statusindicator zoals "Ter goedkeuring" om aan te geven dat het portfolio wacht op uw goedkeuring.
+
+U kunt nu actie ondernemen: het portfolio beoordelen op compleetheid, of eventueel terugsturen als er nog iets ontbreekt.
+
+6.7 Portfolio gereedmaken voor assessor (goedkeuren of terugsturen)
+
+Nadat de kandidaat het portfolio heeft ingeleverd (status: Ter goedkeuring), is het aan u als begeleider om te bepalen of het portfolio door kan naar de assessor voor eindbeoordeling, of dat het nog niet volledig is.
+
+Open de trajectpagina van de kandidaat die het portfolio heeft ingeleverd (via Mijn kandidaten > betreffende kandidaat > Trajectoverzicht openen). Bovenaan de pagina of in het statusgedeelte ziet u nu de mogelijkheid om het portfolio goed te keuren of terug te sturen:
+
+Portfolio compleet → doorsturen naar assessor: Klik op "Stuur door" (de knop kan bijvoorbeeld Stuur door heten) als u vindt dat het portfolio volledig en beoordelingsgereed is. Het systeem zal de status van het traject verhogen en het portfolio beschikbaar maken voor de assessor. De assessor krijgt automatisch een bericht dat er een portfolio ter beoordeling klaarstaat. Vanaf dat moment verdwijnt de kandidaat doorgaans uit uw actieve kandidatenoverzicht (u kunt de voortgang niet meer volgen, omdat de beoordeling nu bij de assessor ligt).
+
+Portfolio niet compleet → terug naar kandidaat: Vindt u dat het portfolio nog niet compleet is, dan klikt u op "Stuur terug". Hiermee zet u het traject terug naar de vorige fase (meestal terug naar Bewijs verzamelen of een vergelijkbare status). De kandidaat kan dan verder werken aan het portfolio. Zorg ervoor dat u de kandidaat informeert waarom u het portfolio hebt teruggezet. Het systeem vraagt u mogelijk om een korte toelichting of u kunt de kandidaat zelf een bericht sturen via de contactfunctie met uitleg over welke onderdelen nog ontbreken of verbetering nodig hebben. Na het terugsturen kan de kandidaat weer aanvullingen doen en het opnieuw indienen wanneer gereed.
+
+Blijf bij het terugsturen altijd duidelijk en constructief in uw feedback, zodat de kandidaat weet wat er verwacht wordt. Zodra u het portfolio heeft goedgekeurd en doorgestuurd, ligt de verdere afhandeling bij de assessor en heeft u uw rol in dit deel van het traject afgerond.
+
+7. Loopbaandoel
+7.1 Aanpassen van het loopbaandoel
+
+Vooraf aan het EVC-traject heeft de kandidaat nagedacht over zijn/haar ambitie en motivatie. In het portaal wordt dit vastgelegd als het loopbaandoel van de kandidaat. Een goed geformuleerd loopbaandoel is belangrijk voor een zinvol traject.
+
+Een loopbaandoel van de kandidaat beschrijft in het kort:
+
+Waar hij/zij naartoe wil in de verdere loopbaan;
+
+Waarom hij/zij dit EVC-traject doorloopt (met welk doel);
+
+Het is kort en bondig geformuleerd (enkele regels).
+
+Tip voor de kandidaat (en ter info voor u): Moedig de kandidaat aan om vooral het "waarom" duidelijk te maken. Bijvoorbeeld: als het doel is om een diploma te behalen, waarom is dat diploma belangrijk voor de verdere loopbaanontwikkeling? Deze informatie komt tijdens het assessmentgesprek terug en wordt opgenomen in het uiteindelijke Ervaringscertificaat.
+
+Let op: Het loopbaandoel van de kandidaat wordt letterlijk opgenomen in het formele Ervaringscertificaat. Het is dus van belang dat dit doel goed geformuleerd is en geen typ- of stijlfouten bevat.
+
+Als de kandidaat het loopbaandoel wil invullen of wijzigen: Dit gebeurt meestal door in het kandidatenportaal naar "Mijn loopbaandoel" te gaan (dit staat in het menu van de kandidaat). Daar kan de tekst worden ingevoerd of aangepast. Vaak is er, net als bij het profiel, een wijzig-knop of potloodicoontje om het tekstveld bewerkbaar te maken. De kandidaat voert de gewenste tekst in en slaat het op met "Opslaan" of "Verzenden".
+
+Zodra opgeslagen, is het loopbaandoel zichtbaar voor de begeleider en zal dit uiteindelijk ook in het Ervaringscertificaat terechtkomen. Als begeleider kunt u het loopbaandoel van de kandidaat terugvinden op de trajectpagina (vaak bij de algemene gegevens of in het kwalificatiedossier) en zo nodig de kandidaat aanspreken als dit onduidelijk of onbeantwoord is gebleven.

@@ -9,6 +9,9 @@ import {
   resolveUploadDownloadUrl,
   subscribeCustomerUploads,
   subscribeTrajectCompetencies,
+  subscribeCustomerResume,
+  linkProfileItemToCompetency,
+  unlinkProfileItemFromCompetency,
   uploadCustomerEvidence,
 } from "../../lib/firestoreCustomer";
 
@@ -28,6 +31,8 @@ const CustomerPlanning = () => {
   const [deletingUploadId, setDeletingUploadId] = useState(null);
   const [uploadNames, setUploadNames] = useState({});
   const [uploadNameErrors, setUploadNameErrors] = useState({});
+  const [resume, setResume] = useState({ educations: [], certificates: [], workExperience: [] });
+  const [resumeError, setResumeError] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const fileInputsRef = useRef({});
   const [storedUser] = useState(() => {
@@ -120,6 +125,8 @@ const CustomerPlanning = () => {
     if (!customerId) {
       setCustomerUploads([]);
       setUploadsError(null);
+      setResume({ educations: [], certificates: [], workExperience: [] });
+      setResumeError(null);
       return undefined;
     }
 
@@ -132,9 +139,26 @@ const CustomerPlanning = () => {
       setCustomerUploads(Array.isArray(uploads) ? uploads : []);
     });
 
+    const unsubscribeResume = subscribeCustomerResume(customerId, ({ data, error }) => {
+      if (error) {
+        setResumeError(error);
+        return;
+      }
+      setResumeError(null);
+      const safe = data || {};
+      setResume({
+        educations: Array.isArray(safe.educations) ? safe.educations : [],
+        certificates: Array.isArray(safe.certificates) ? safe.certificates : [],
+        workExperience: Array.isArray(safe.workExperience) ? safe.workExperience : [],
+      });
+    });
+
     return () => {
       if (typeof unsubscribe === "function") {
         unsubscribe();
+      }
+      if (typeof unsubscribeResume === "function") {
+        unsubscribeResume();
       }
     };
   }, [customerId]);
@@ -299,6 +323,59 @@ const CustomerPlanning = () => {
     return [];
   };
 
+  // Build a map of competencyId -> linked profile entries
+  const linkedByCompetency = useMemo(() => {
+    const map = {};
+    const add = (section, items) => {
+      (items || []).forEach((entry) => {
+        const links = Array.isArray(entry.linkedCompetencies) ? entry.linkedCompetencies : [];
+        links.forEach((compId) => {
+          if (!map[compId]) map[compId] = [];
+          map[compId].push({ ...entry, __section: section });
+        });
+      });
+    };
+    add("education", resume.educations);
+    add("certificate", resume.certificates);
+    add("work", resume.workExperience);
+    return map;
+  }, [resume.educations, resume.certificates, resume.workExperience]);
+
+  const [linkSelections, setLinkSelections] = useState({});
+  const handleLinkSelect = async (competencyKey, value) => {
+    // value format: section|itemId
+    if (!value) return;
+    const [section, itemId] = value.split("|");
+    const sectionKey = section === "education" ? "educations" : section === "certificate" ? "certificates" : "workExperience";
+    try {
+      setLinkSelections((prev) => ({ ...prev, [competencyKey]: "linking" }));
+      await linkProfileItemToCompetency({
+        userId: customerId,
+        sectionKey,
+        itemId,
+        competencyId: competencyKey,
+      });
+      setLinkSelections((prev) => ({ ...prev, [competencyKey]: "" }));
+    } catch (err) {
+      setLinkSelections((prev) => ({ ...prev, [competencyKey]: "" }));
+      setError(err?.message || "Koppelen mislukt");
+    }
+  };
+
+  const handleUnlink = async (competencyKey, entry) => {
+    const sectionKey = entry.__section === "education" ? "educations" : entry.__section === "certificate" ? "certificates" : "workExperience";
+    try {
+      await unlinkProfileItemFromCompetency({
+        userId: customerId,
+        sectionKey,
+        itemId: entry.id,
+        competencyId: competencyKey,
+      });
+    } catch (err) {
+      setError(err?.message || "Ontkoppelen mislukt");
+    }
+  };
+
   const handleDownload = async (upload) => {
     if (!upload) return;
     const canDownload = Boolean(upload.downloadURL || upload.storagePath);
@@ -377,6 +454,125 @@ const CustomerPlanning = () => {
             Traject: {traject.name}
           </p>
         ) : null}
+      </section>
+
+      {/* Section 1: Opleidingen, diploma's en certificaten */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <header className="mb-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">Portfolio</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">Opleidingen, diploma's en certificaten</h2>
+          <p className="text-sm text-slate-500">Overzicht van je opleidingen en officiële documenten.</p>
+        </header>
+        {resumeError ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Kon profiel niet laden: {resumeError.message}</div>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Opleidingen</h3>
+              {(resume.educations || []).length === 0 ? (
+                <p className="mt-2 text-sm text-slate-400">Nog geen opleidingen geregistreerd.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {resume.educations.map((ed) => (
+                    <li key={ed.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      <p className="font-semibold text-slate-900">{ed.title}</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-400">{ed.institution || ""}</p>
+                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
+                        {ed.startDate ? <span>Start: {ed.startDate}</span> : null}
+                        {ed.endDate ? <span>Einde: {ed.endDate}</span> : null}
+                      </div>
+                      {ed.note ? <p className="mt-2 text-sm text-slate-600">{ed.note}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Certificaten & diploma's</h3>
+              {(resume.certificates || []).length === 0 ? (
+                <p className="mt-2 text-sm text-slate-400">Nog geen certificaten geüpload.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {resume.certificates.map((cert) => (
+                    <li key={cert.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">{cert.title}</p>
+                          {cert.fileName ? (
+                            <p className="text-xs uppercase tracking-wide text-slate-400">{cert.fileName}</p>
+                          ) : null}
+                        </div>
+                        {cert.filePath ? (
+                          <a href={cert.filePath} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-600 hover:text-brand-500">Bekijk</a>
+                        ) : null}
+                      </div>
+                      {cert.note ? <p className="mt-2 text-sm text-slate-600">{cert.note}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Section 2: Relevante werkervaring */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <header className="mb-2">
+          <h2 className="text-xl font-semibold text-slate-900">Relevante werkervaring</h2>
+          <p className="text-sm text-slate-500">Belangrijke werkervaringen met toelichting.</p>
+        </header>
+        {(resume.workExperience || []).length === 0 ? (
+          <p className="text-sm text-slate-400">Nog geen werkervaring toegevoegd.</p>
+        ) : (
+          <ul className="space-y-2">
+            {resume.workExperience.map((we) => (
+              <li key={we.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <p className="font-semibold text-slate-900">{we.role || "Functie onbekend"}</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400">{we.organisation || ""}</p>
+                <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
+                  {we.startDate ? <span>Start: {we.startDate}</span> : null}
+                  {we.endDate ? <span>Einde: {we.endDate}</span> : null}
+                </div>
+                {we.note ? <p className="mt-2 text-sm text-slate-600">{we.note}</p> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Section 3: Overige info / documenten (incl. STARR) */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <header className="mb-2">
+          <h2 className="text-xl font-semibold text-slate-900">Overige informatie en documenten</h2>
+          <p className="text-sm text-slate-500">Algemene documenten die niet aan een specifieke competentie zijn gekoppeld.</p>
+        </header>
+        {uploadsByCompetency["__unassigned__"] && uploadsByCompetency["__unassigned__"].length > 0 ? (
+          <ul className="space-y-2 text-sm text-slate-700">
+            {uploadsByCompetency["__unassigned__"].map((upload) => {
+              const key = upload.id || upload.storagePath || upload.fileName || upload.name;
+              const canDownload = Boolean(upload.downloadURL || upload.storagePath);
+              return (
+                <li key={key} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 shadow-sm">
+                  <Paperclip className="h-4 w-4 text-slate-400" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-slate-700">{upload.displayName || upload.name || upload.fileName}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-[0.65rem] font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                    onClick={() => handleDownload(upload)}
+                    disabled={!canDownload || downloadInProgress === key}
+                  >
+                    {downloadInProgress === key ? "Bezig..." : canDownload ? "Download" : "Niet beschikbaar"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-slate-400">Geen algemene documenten.</p>
+        )}
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -585,9 +781,9 @@ const CustomerPlanning = () => {
 
       <section className="space-y-6">
         <header className="space-y-2">
-          <h2 className="text-xl font-semibold text-slate-900">Trajectportfolio</h2>
+          <h2 className="text-xl font-semibold text-slate-900">Afdekking competenties</h2>
           <p className="max-w-2xl text-sm text-slate-500">
-            Orden je opleiding, werkervaring en documenten per competentie. Voeg nieuwe bewijsstukken toe en houd overzicht in je voortgang.
+            Per competentie: korte omschrijving, indicatoren en gewenst resultaat. Upload bewijs of koppel items uit je profiel.
             {coach ? ` Je begeleider ${coach.name} kijkt mee en geeft feedback.` : ""}
           </p>
         </header>
@@ -685,6 +881,31 @@ const CustomerPlanning = () => {
                         <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-slate-400">
                           Bewijsstukken
                         </h4>
+                        {/* Gekoppeld uit profiel */}
+                        {(linkedByCompetency[key] || []).length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-slate-500">Gekoppeld uit profiel</p>
+                            <ul className="space-y-2 text-xs text-slate-600">
+                              {linkedByCompetency[key].map((entry) => (
+                                <li key={`${entry.__section}-${entry.id}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-xs font-semibold text-slate-700">{entry.title || entry.role || entry.organisation || "Profielitem"}</p>
+                                    {entry.__section === "certificate" && entry.filePath ? (
+                                      <a href={entry.filePath} target="_blank" rel="noreferrer" className="text-[0.65rem] text-brand-600 hover:text-brand-500">Bekijk</a>
+                                    ) : null}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUnlink(key, entry)}
+                                    className="rounded-full border border-slate-200 px-3 py-1 text-[0.65rem] font-semibold text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                                  >
+                                    Ontkoppel
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
                         {uploads.length === 0 ? (
                           <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-400">
                             Nog geen bestanden. Klik op "Voeg upload toe" om te starten.
@@ -775,15 +996,34 @@ const CustomerPlanning = () => {
                             className="hidden"
                             onChange={(event) => handleUpload(item.id || item.code || key, event)}
                           />
-                          <button
-                            type="button"
-                            onClick={() => handleTriggerUpload(key)}
-                            disabled={uploading === (item.id || item.code || key)}
-                            className="inline-flex items-center gap-2 rounded-full border border-dashed border-brand-300 px-3 py-2 text-[0.7rem] font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-                          >
-                            <Paperclip className="h-4 w-4" />
-                            {uploading === (item.id || item.code || key) ? "Bezig..." : "Voeg upload toe"}
-                          </button>
+                          {/* Koppelen uit profiel */}
+                          <div className="grid gap-2 sm:grid-cols-[1fr,auto] sm:items-center">
+                            <select
+                              className="w-full rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700 focus:border-brand-400 focus:outline-none"
+                              value={linkSelections[key] || ""}
+                              onChange={(e) => handleLinkSelect(key, e.target.value)}
+                            >
+                              <option value="">Koppel item uit profiel…</option>
+                              {(resume.educations || []).map((ed) => (
+                                <option key={`ed-${ed.id}`} value={`education|${ed.id}`}>Opleiding: {ed.title}</option>
+                              ))}
+                              {(resume.certificates || []).map((ct) => (
+                                <option key={`ct-${ct.id}`} value={`certificate|${ct.id}`}>Certificaat: {ct.title}</option>
+                              ))}
+                              {(resume.workExperience || []).map((we) => (
+                                <option key={`we-${we.id}`} value={`work|${we.id}`}>Werkervaring: {we.role || we.organisation || we.id}</option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerUpload(key)}
+                              disabled={uploading === (item.id || item.code || key)}
+                              className="inline-flex items-center gap-2 rounded-full border border-dashed border-brand-300 px-3 py-2 text-[0.7rem] font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                            >
+                              <Paperclip className="h-4 w-4" />
+                              {uploading === (item.id || item.code || key) ? "Bezig..." : "Voeg upload toe"}
+                            </button>
+                          </div>
                         </div>
                       </div>
 

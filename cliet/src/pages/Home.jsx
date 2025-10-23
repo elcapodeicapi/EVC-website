@@ -31,7 +31,7 @@ const Home = () => {
   };
 
   return (
-    <LegacyPageLayout showHeader={false}>
+    <LegacyPageLayout showHeader={false} showNavbar={false}>
       <section className="flex min-h-[70vh] items-center justify-center">
         <div className="grid w-full max-w-5xl gap-10 rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-2xl sm:p-10 lg:grid-cols-2">
           <div className="flex flex-col justify-between rounded-3xl bg-brand-50/60 p-8 shadow-inner">

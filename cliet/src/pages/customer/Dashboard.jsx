@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { BellDot, Sparkles } from "lucide-react";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   subscribeCustomerProfileDetails,
@@ -10,6 +10,7 @@ import { subscribeCustomerProgress } from "../../lib/firestoreCoach";
 import { get } from "../../lib/api";
 import { getTrajectStatusLabel, getStatusOwnerRoles } from "../../lib/trajectStatus";
 import { QUESTIONNAIRE_SECTION_IDS } from "../../lib/questionnaire";
+import { subscribeUnreadMessagesForCustomer } from "../../lib/firestoreMessages";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("nl-NL", {
   dateStyle: "medium",
@@ -95,6 +96,29 @@ const CustomerDashboard = () => {
   const [careerGoal, setCareerGoal] = useState({ content: "", updatedAt: null });
   const [careerGoalLoading, setCareerGoalLoading] = useState(Boolean(customerId));
   const [careerGoalError, setCareerGoalError] = useState(null);
+
+  const [unreadMessages, setUnreadMessages] = useState([]);
+  const [unreadError, setUnreadError] = useState(null);
+
+  useEffect(() => {
+    if (!customerId) {
+      setUnreadMessages([]);
+      setUnreadError(null);
+      return () => {};
+    }
+    const unsubscribe = subscribeUnreadMessagesForCustomer(customerId, ({ data, error }) => {
+      if (error) {
+        setUnreadError(error);
+        setUnreadMessages([]);
+        return;
+      }
+      setUnreadError(null);
+      setUnreadMessages(Array.isArray(data) ? data : []);
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [customerId]);
 
   useEffect(() => {
     if (!customerId) {
@@ -372,6 +396,17 @@ const CustomerDashboard = () => {
 
   return (
     <div className="space-y-10">
+      {Array.isArray(unreadMessages) && unreadMessages.length > 0 ? (
+        <div className="rounded-3xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="flex items-start gap-3">
+            <BellDot className="mt-0.5 h-5 w-5 text-amber-600" />
+            <div className="space-y-1">
+              <p className="font-semibold">Je hebt {unreadMessages.length} ongelezen {unreadMessages.length === 1 ? "bericht" : "berichten"}</p>
+              <p className="text-amber-800/80">Ga naar Contact om je nieuwe {unreadMessages.length === 1 ? "bericht" : "berichten"} te bekijken. Deze melding verdwijnt zodra je de berichten hebt geopend.</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <section className="relative overflow-hidden rounded-3xl border border-evc-blue-200/40 bg-white shadow-sm">
         <div className="absolute -top-12 right-0 h-40 w-40 rounded-full bg-evc-blue-200/40 blur-3xl" aria-hidden="true" />
         <div className="absolute -bottom-10 left-6 h-32 w-32 rounded-full bg-evc-blue-100/50 blur-3xl" aria-hidden="true" />

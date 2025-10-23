@@ -1,0 +1,431 @@
+Handleiding Admin
+1. Inloggen
+
+U kunt uw eigen inloggegevens zelf onder "Mijn profiel" aanpassen naar iets wat u prettig vindt en goed kunt onthouden. Zorg ervoor dat uw gebruikersnaam en wachtwoord voldoende veilig zijn. Met deze gegevens zou een ander toegang kunnen krijgen tot uw account, dus houd ze geheim en deel ze niet met anderen.
+
+Mocht u uw wachtwoord kwijt zijn, dan kunt u zelf een nieuw wachtwoord aanvragen via de link "Wachtwoord vergeten?" op de inlogpagina. (Let op: deze link kan anders gepositioneerd zijn als u via een andere website inlogt op het EVC-systeem. Ziet u de link niet, neem dan contact op met de contactpersoon van uw organisatie zodat hij/zij uw wachtwoord kan resetten met een tijdelijk wachtwoord.)
+
+1.1. Inloggen onder meerdere rollen tegelijk
+
+Wanneer u meerdere rollen vervult binnen uw organisatie, is het niet mogelijk om in één browser (bijvoorbeeld Internet Explorer, Firefox of Safari) tegelijkertijd onder meerdere rollen ingelogd te zijn. Elke rol heeft strikte beveiliging; u bent altijd ingelogd onder de rol waarmee u als laatst bent ingelogd.
+
+Tip: Er is één workaround. U kunt in een tweede browser (bijvoorbeeld Chrome naast Firefox) inloggen onder een andere rol. Zo kunt u in browser A met rol X werken en in browser B met rol Y.
+
+1.2. Pas op met in een tweede venster als een andere rol inloggen
+
+Open niet in dezelfde browser een tweede venster om onder een andere rol in te loggen terwijl u in het eerste venster nog bezig bent. Als u dat wel doet en in venster 2 onder een andere rol inlogt, wordt uw sessie in venster 1 automatisch omgezet naar die laatste rol. Oplossing: log na gebruik in het tweede venster uit en sluit dit, of gebruik twee verschillende browsers zoals hierboven genoemd. Zo blijft u in het eerste venster ingelogd met de oorspronkelijke rol en kunt u verder werken waar u mee bezig was.
+
+2. Mijn profiel
+2.1. Hoe vul ik mijn profiel aan?
+
+U kunt uw persoonlijke gegevens beheren via "Mijn profiel". Ga als volgt te werk om uw profielinformatie aan te vullen of te wijzigen:
+
+Klik links in het menu op "Mijn profiel".
+
+Klik rechtsboven op het bewerk-icoon (✏️).
+
+Pas uw gegevens aan in de beschikbare velden.
+
+Klik op "Verzenden" om uw gegevens op te slaan.
+
+2.2. Wachtwoord wijzigen
+
+Uw wachtwoord kunt u als volgt wijzigen:
+
+Klik links in het menu op "Mijn profiel".
+
+Klik rechtsboven op het bewerk-icoon (✏️).
+
+Scroll naar beneden naar het gedeelte Wachtwoord wijzigen. Voer uw nieuwe wachtwoord in en bevestig dit door het twee keer in te typen.
+
+Klik op "Verzenden". Uw nieuwe wachtwoord wordt direct actief. U blijft ingelogd; bij een volgende login dient u het nieuwe wachtwoord te gebruiken.
+
+2.3. Voeg een pasfoto toe aan uw profiel!
+
+Een pasfoto maakt uw profiel persoonlijker en zichtbaar voor mensen die bij uw traject betrokken zijn (en u kunt hun profielfoto’s ook zien).
+
+Volg deze stappen om een foto toe te voegen of te wijzigen:
+
+Klik links in het menu op "Mijn profiel". Aan de rechterzijde van uw profielpagina ziet u de optie "Voeg Profielafbeelding toe".
+
+Klik op de knop "Bladeren..." (of "Browse...") en zoek op uw computer de foto die u wilt gebruiken.
+
+Selecteer het fotobestand en klik op "Openen". De foto wordt nu direct geüpload en toegevoegd aan uw profiel.
+
+Wilt u later een andere foto gebruiken? Klik op "verwijder afbeelding" (onder de huidige foto). Daarna kunt u op dezelfde manier een nieuwe foto uploaden.
+
+2.4. Welke fotobestanden zijn toegestaan?
+
+RemindoEVC accepteert vrijwel alle foto-bestandsformaten behalve het BMP-formaat. BMP (Bitmap) bestanden zijn niet geschikt voor gebruik op internet vanwege hun grootte. U kunt alle gangbare formaten zoals JPG, JPEG, PNG, GIF, etc. zonder problemen uploaden.
+
+3. Trajectbeheer
+3.1. Handmatig aanmaken van nieuwe gebruikers
+
+U kunt zelf gebruikers aanmaken in RemindoEVC. Dit kan handmatig per stuk. (Heeft u een groot aantal kandidaten toe te voegen? Zie Importeren van gebruikers hieronder voor bulk-import.)
+
+Volg deze stappen voor het handmatig toevoegen van een gebruiker:
+
+Ga in het linkermenu naar "Gebruikers".
+
+Klik rechtsboven op "Nieuwe gebruiker invoeren".
+
+Kies de rol waarin u de nieuwe gebruiker wilt aanmaken (bijv. kandidaat, begeleider, assessor, etc.).
+
+Vul alle benodigde gegevens in. Velden met een * zijn verplicht; overige velden zijn optioneel.
+
+Houd rekening met de volgende beperkingen per rol:
+
+Alleen een Hoofdbeheerder kan gebruikers van alle rollen aanmaken (inclusief andere Hoofdbeheerders en Inhoudbeheerders).
+
+Een Trajectbeheerder kan alle rollen behalve Hoofdbeheerders en Inhoudbeheerders aanmaken.
+
+Als één persoon twee rollen heeft (bijvoorbeeld zowel Begeleider als Assessor), maak dan twee aparte accounts aan – één voor elke rol. De rollen zijn strikt gescheiden in RemindoEVC.
+
+Let op: Het e-mailadres is belangrijk omdat hiernaar inloggegevens en notificaties worden gestuurd. Controleer op typfouten en zorg dat er geen spaties voor of na het adres staan.
+
+3.2. Importeren van gebruikers (bulk-import)
+
+Moet u veel kandidaten tegelijk toevoegen? Gebruik dan de importeerfunctie met een Excel-bestand:
+
+Voorbereiding: Stel een Excel-bestand op met de kandidaatgegevens. U kunt in RemindoEVC op de importeerpagina een voorbeeldbestand downloaden. Vul dit aan met de gegevens per kandidaat. Minimale vereiste kolommen per kandidaat (verplicht):
+
+Voornaam
+
+Voorletters (of volledige voornamen)
+
+Tussenvoegsel
+
+Achternaam (werd niet expliciet genoemd in tekst maar lijkt logisch, mogelijk al aanwezig in voorbeeld)
+
+E-mailadres
+
+Geslacht/Aanhef (bijv. M/V of Mr/Mrs)
+
+Geboortedatum
+
+BSN-nummer (Tip: als het BSN onbekend is, vul tijdelijk een standaardwaarde in, bijvoorbeeld 0123456789)
+
+Zorg dat alle kandidaten in één Excel-sheet staan. Andere bestandstypen worden niet geaccepteerd.
+
+Gebruikers importeren via Excel:
+
+Klik links in het menu op "Gebruikers".
+
+Klik rechtsboven op het importeer-icoon (📥 Importeren).
+
+Klik op "Bladeren..." en selecteer het voorbereide Excel-bestand op uw computer.
+
+Als uw Excel-bestand een koprij (header) heeft, vink dan "Negeer eerste rij" aan.
+
+Klik op "Verzenden".
+
+U krijgt een voorbeeld te zien van de ingelezen kolommen. Koppel in deze stap elke kolom aan het juiste veld van RemindoEVC (via dropdowns naast de kolomnamen).
+
+Klik wederom op "Verzenden".
+
+Mogelijk verschijnt er een vraag om de notatie van Geslacht/Aanhef te bevestigen of te verduidelijken (bijvoorbeeld als in uw Excel m/v of m/f is gebruikt). Kies indien gevraagd de juiste waarden (bijv. M/V voor Man/Vrouw).
+
+Klik nogmaals op "Verzenden" na het bevestigen van eventueel aangevulde gegevens.
+
+U krijgt de optie om een bevestigingsbestand te ontvangen. Vul desgewenst een e-mailadres in. RemindoEVC stuurt dan een bevestigingsmail met een Excel-overzicht van de geïmporteerde gegevens.
+
+Klik op "Importeer" om de gebruikers daadwerkelijk toe te voegen.
+
+Als de import succesvol is, verschijnen alle nieuwe gebruikers onder "kandidaten (ongekoppeld)" in het Gebruikers-overzicht.
+
+3.3. Starten van een nieuw EVP-traject
+
+Nadat u een kandidaat heeft aangemaakt, kunt u voor deze persoon een EVP-traject starten (EVP = Ervaringsprofiel, vaak een voorloper of light-versie van EVC). Ga als volgt te werk:
+
+Klik links in het menu op "EVP-trajecten".
+
+Klik rechtsboven op "Nieuw EVP-traject invoeren" (➕).
+
+Selecteer de betreffende kandidaat uit de lijst. Ziet u de kandidaat niet? Ga dan naar "Gebruikers" en controleer of de kandidaat bij "kandidaten (ongekoppeld)" staat. Zo niet, voeg de kandidaat eerst toe (zie 3.1).
+
+Kies de kwalificatie waarvoor het EVP-traject wordt uitgevoerd.
+
+Let op: Als u geen kwalificatie selecteert, krijgt de kandidaat geen vragenlijst Kennis en Ervaring om in te vullen.
+
+Als aan een kwalificatie geen %LABEL_FEEDBACK% gekoppeld is, wordt de optie voor %LABEL_FEEDBACK% automatisch uitgezet en kan de kandidaat alleen de Competentiescan invullen.
+
+Kies de startdatum van het traject.
+
+Klik op "Aanmaken". Het traject wordt aangemaakt.
+
+Wijs nu een begeleider toe die deze kandidaat tijdens het EVP-traject gaat begeleiden.
+
+Laat het vinkje "Actief" aan staan en laat de status staan op "Bewijs verzamelen" (de startstatus van een nieuw EVP-traject).
+
+3.4. Let op: wel of geen fysieke EVP-begeleiding?
+
+Bij het aanmaken van een EVP-traject ziet u de optie "Fysieke EVP-begeleiding". Deze instelling bepaalt hoe de inloggegevens naar de kandidaat gaan:
+
+Wel aanvinken (fysieke begeleiding): Inloggegevens voor het portfolio worden niet automatisch naar de kandidaat gemaild. U dient de inloggegevens dan persoonlijk aan de kandidaat te overhandigen tijdens een fysieke bijeenkomst waar de EVP-begeleider en kandidaat samen aan de slag gaan. Omdat de kandidaat in dit scenario niet zelf op "Klaar?" kan klikken totdat er een conceptrapportage is, verschijnt er onder de "Klaar?"-knop een optie voor de kandidaat om de begeleider om een conceptrapportage te vragen.
+
+Niet aanvinken (geen fysieke begeleiding): De inloggegevens voor het online portfolio worden automatisch per e-mail naar de kandidaat verstuurd zodra u het traject aanmaakt.
+
+3.5. Alles goed ingevuld?
+
+Controleer of alle gegevens voor het nieuwe EVP-traject correct zijn ingevoerd. Is alles gereed? Sla dan de instellingen op:
+
+Klik onderaan op "Wijzigen" om alle ingevoerde trajectgegevens definitief op te slaan.
+
+Het EVP-traject is nu gestart (of start op de door u ingevoerde startdatum). De kandidaat (en de begeleider) ontvangen indien van toepassing meteen een e-mail met de trajectinformatie en inloggegevens.
+
+3.6. Starten van een nieuw EVC-traject
+
+Wilt u een nieuw EVC-traject voor een kandidaat starten? Dat kan op twee manieren:
+
+Via EVC-trajecten pagina: Ga naar "EVC-trajecten" en klik rechtsboven op "Nieuw EVC-traject invoeren" (➕).
+
+Via ongekoppelde gebruiker: Ga naar "Gebruikers" > tab "kandidaten (ongekoppeld)". Zoek de kandidaat en klik op het EVC-icoon (📄 of vergelijkbaar) naast zijn/haar naam om direct een EVC-traject aan te maken.
+
+Nadat u een van deze twee heeft gedaan, vult u de trajectgegevens in op de weergegeven pagina:
+
+Kwalificatie: Selecteer de kwalificatie waarop dit EVC-traject gebaseerd is. (Als kwalificaties in cohorts zijn opgedeeld, let dan op dat u het juiste cohort selecteert.)
+
+Startdatum: Pas de startdatum eventueel aan.
+
+Als u een datum in de toekomst kiest, wordt het traject pas op die datum actief en ontvangen de kandidaat en begeleider op die dag hun notificatie en inloggegevens.
+
+Bij een startdatum van vandaag of een datum in het verleden wordt het traject direct geactiveerd.
+
+Identificatiecode: Voer een identificatiecode in voor dit EVC-traject. Gebruik bij voorkeur niet het BSN van de kandidaat (privacy); kies een interne code of kenmerk dat binnen uw organisatie aan deze kandidaat of dit traject gekoppeld is.
+
+Klik op "Aanmaken". Het EVC-traject wordt nu toegevoegd.
+
+E-mail notificatie: Heeft u de startdatum op vandaag gezet? Dan ontvangen de kandidaat en begeleider direct een e-mail dat het EVC-traject gestart is (inclusief inloggegevens voor de kandidaat).
+
+Demo traject (indien van toepassing): U kunt bij het starten aangeven of het een Demo-traject betreft. Als u dit aanvinkt, wordt het traject als demo gemarkeerd en onder een aparte tab in het EVC-trajecten overzicht geplaatst.
+
+3.7. De betekenis van iconen bij elk EVC-traject
+
+In het "EVC-trajecten" overzicht ziet u achter elk traject een reeks icoontjes. Dit zijn actie-knoppen voor beheer. Hieronder vindt u de betekenis van deze iconen:
+
+🔒 (Tijdelijk inactief/actief zetten): Hiermee kunt u het EVC-traject (tijdelijk) inactief maken. De kandidaat kan dan niet meer inloggen. (Het pictogram kan er bijvoorbeeld uitzien als een slotje of pauze-knop.)
+
+✏️ (EVC-traject bewerken): Hiermee kunt u trajectgegevens aanpassen. U kunt:
+
+De startdatum wijzigen.
+
+De identificatiecode aanpassen.
+
+De begeleider en/of assessor wisselen.
+
+Een tweede assessor toevoegen (deze kan dan meekijken tijdens het beoordelen).
+
+De status van het traject aanpassen (alleen in noodgevallen; normaal verloopt de status automatisch volgens de procedure).
+
+🔄 (Kwalificatie wisselen): Hiermee kunt u de kwalificatie van het traject wijzigen. Let op: Dit is een ingrijpende actie, vooral als de assessor al beoordelingen heeft ingevoerd of als er al feedback-instrumenten (%LABEL_FEEDBACK%) zijn ingevuld. Volg de instructies op het scherm nauwkeurig om gegevensverlies te voorkomen.
+
+👤 (Gebruikersgegevens aanpassen): Hiermee kunt u de gegevens van de kandidaat wijzigen. U kunt onder andere het wachtwoord resetten, een foutief e-mailadres corrigeren, of de organisatienaam en andere NAW-gegevens aanpassen.
+
+📁 (E-portfolio downloaden): Hiermee downloadt u het volledige E-portfolio van dit traject als één gecomprimeerd ZIP-bestand. Dit bevat alle door de kandidaat geüploade bewijsstukken.
+
+📄 (PDF-rapportage bekijken): Hiermee opent u het (voorlopige) Ervaringscertificaat (PDF) indien er al een beoordeling heeft plaatsgevonden en een rapport is gegenereerd.
+
+✅ (Resultatenmatrix): Hiermee bekijkt u direct de resultatenmatrix van de beoordeling, zodra de assessor de beoordeling heeft ingevoerd.
+
+✉️ (Inloggegevens versturen): Hiermee kunt u de inloggegevens (opnieuw) naar de kandidaat sturen. Als u hierop klikt, ziet u de e-mail die naar de kandidaat verstuurd zal worden. U kunt de tekst nog aanpassen. Na op "Verzenden" te klikken, wordt de e-mail met inloggegevens meteen verstuurd.
+
+🗒️ (Aantekeningen inzien): Hiermee bekijkt u de interne aantekeningen die begeleiders en assessoren over dit traject hebben gemaakt. (De kandidaat kan deze notities niet zien.) Als Trajectbeheerder kunt u deze aantekeningen lezen en eventueel bewerken. Is het icoontje grijs, dan zijn er nog geen aantekeningen gemaakt.
+
+3.8. De betekenis van de iconen bij elk EVP-traject
+
+Onder "EVP-trajecten" ziet u vergelijkbare iconen achter elk lopend EVP-traject. De functies komen grotendeels overeen met die bij EVC, met een paar verschillen:
+
+🔒 (Tijdelijk inactief/actief zetten): Maakt het EVP-traject inactief (kandidaat kan niet inloggen) of weer actief.
+
+✏️ (EVP-traject aanpassen): Pas trajectgegevens aan:
+
+Startdatum wijzigen.
+
+Begeleider wisselen.
+
+Status van het traject aanpassen (alleen in noodgevallen).
+
+👤 (Kandidaatgegevens beheren): Wijzig de gebruikersgegevens van de kandidaat (wachtwoord resetten, fout in e-mail corrigeren, organisatienaam instellen, etc.).
+
+🔄 (Omzetten naar EVC-traject): Zet het EVP-traject om in een volwaardig EVC-traject:
+
+Kies de kwalificatie voor het EVC-traject, de gewenste startdatum en een identificatiecode.
+
+Klik op "Omzetten". Het EVP-traject verdwijnt en verschijnt direct als nieuw EVC-traject (met behoud van alle tot dan toe verzamelde informatie).
+
+📁 (E-portfolio downloaden): Download het E-portfolio van dit EVP-traject als ZIP-bestand.
+
+📄 (EVP-rapportage bekijken): Bekijk de EVP-rapportage (indien er al een rapport is samengesteld na afronding van het EVP-traject).
+
+✉️ (Inloggegevens versturen): Stuur de inloggegevens (opnieuw) naar de kandidaat. U krijgt weer de mogelijkheid de e-mailtekst aan te passen voordat u verzendt.
+
+🗒️ (Aantekeningen inzien): Bekijk interne aantekeningen van begeleider/assessor over dit traject (niet zichtbaar voor de kandidaat). Grijs icoon betekent geen aantekeningen beschikbaar.
+
+3.9. Inloggegevens kandidaat (opnieuw) verzenden
+
+Het kan voorkomen dat een kandidaat zijn/haar inloggegevens kwijt is. Vaak kan de kandidaat via de inlogpagina zelf op "Wachtwoord vergeten?" klikken om nieuwe gegevens te ontvangen. Is die mogelijkheid er niet of wilt u het rechtstreeks doen, dan kunt u als beheerder de inloggegevens handmatig (opnieuw) toesturen:
+
+Ga naar het betreffende traject van de kandidaat of zoek de kandidaat via "Gebruikers".
+
+Klik op het ✉️-icoon (inloggegevens versturen) naast de naam of in het trajectoverzicht (zie 3.7 en 3.8).
+
+U ziet nu een voorbeeld van de e-mail die naar de kandidaat gestuurd zal worden met zijn/haar gebruikersnaam en nieuw (tijdelijk) wachtwoord.
+
+Pas eventueel de e-mailtekst aan en klik op "Verstuur". De kandidaat ontvangt direct een e-mail met de inloggegevens.
+
+(Opmerking: Als de kandidaat al een account had, kan een nieuw wachtwoord worden gestuurd; gebruikersnaam blijft gelijk. Bij volledig nieuwe accounts ontvangt de kandidaat ook de gebruikersnaam.)
+
+3.10. De stand van zaken in een lopend traject
+
+Als Trajectbeheerder wilt u snel kunnen zien hoe ver een traject gevorderd is. In het "EVC-trajecten" overzicht is dit in één oogopslag mogelijk:
+
+Zoek in de lijst het traject van de betreffende kandidaat en kijk naar de kolom "Status". Hier staat bijvoorbeeld "Bewijs verzamelen" of "Assessorrond" etc.
+
+Klik op de statusnaam van het traject (de status is klikbaar). Er klapt dan direct een compact voortgangsoverzicht uit. U ziet daarin per onderdeel wat de voortgang is (bijv. hoeveel bewijsstukken geleverd, of het portfolio al is ingeleverd, beoordelingen gereed, etc.).
+
+Wilt u ook zien welke statussen al zijn doorlopen en wie dat heeft gedaan? Klik dan op het aantal dagen dat onder de status vermeld staat. Er verschijnt een logboek/tijdlijn met alle statuswijzigingen, de datum waarop ze plaatsvonden en welke gebruiker (bijv. begeleider, assessor, systeem) de wijziging heeft uitgevoerd.
+
+3.11. Wisselen van dossier gedurende een EVC-traject
+
+Het kan gebeuren dat tijdens een EVC-traject de kandidaat naar een andere kwalificatie moet overstappen. Bijvoorbeeld omdat een ander cohort van toepassing is, of omdat het niveau aangepast moet worden. In RemindoEVC kan dit, zonder dat u alle gegevens kwijt bent, via de functie kwalificatie wisselen:
+
+Ga naar "EVC-trajecten" en klik bij het betreffende traject op het kwalificatie-wissel icoon (🔄, zie 3.7).
+
+Kies de nieuwe kwalificatie waarvoor u het traject wilt omzetten.
+
+Feedback gegevens: Indien er in het traject een feedbackinstrument (%LABEL_FEEDBACK%) was ingezet én al ingevuld door de kandidaat, moet u beslissen wat daarmee te doen:
+
+U kunt ervoor kiezen de reeds ingevulde feedbackgegevens mee te nemen naar de nieuwe kwalificatie.
+
+Of u laat het feedbackinstrument opnieuw invullen (de eerdere antwoorden worden dan niet overgenomen).
+
+Licht bij "Motivering" kort toe waarom u van kwalificatie wisselt. Deze motivatie wordt vastgelegd voor de archivering, zodat later duidelijk is waarom deze wijziging plaatsvond.
+
+Onderaan de pagina ziet u twee overzichten: Huidige kwalificatie (links) en Nieuwe kwalificatie (rechts). Hier moet u koppelen waar de bestaande input naartoe gaat:
+
+Voor elk item (bijv. competentie, kerntaak, werkproces) uit de huidige kwalificatie kiest u welk item in de nieuwe kwalificatie daarmee correspondeert.
+
+Dit zorgt ervoor dat eerder geleverde bewijsstukken en eventuele beoordelingen door de assessor op de juiste plek in het nieuwe dossier terechtkomen.
+
+Controleer alles. Voer het gevraagde controlewoord in (staat dikgedrukt en tussen aanhalingstekens vermeld als verificatie dat u bewust deze actie uitvoert).
+
+Klik op "Omzetten". De kwalificatie van het traject wordt nu omgezet. Alle gekoppelde bewijsstukken en beoordelingen verhuizen mee volgens uw mapping.
+
+Na omzetten: Het traject gaat nu verder onder de nieuwe kwalificatie. Controleer eventueel of alle gegevens correct zijn overgenomen. De kandidaat en betrokkenen kunnen nu verder werken in het traject met het nieuwe dossier.
+
+4. E-portfolio
+4.1. E-portfolio importeren
+
+Heeft uw kandidaat al een e-portfolio (digitaal portfolio) elders opgebouwd dat voldoet aan de NEN 2035 / e-Portfolio NL standaard? Dan kunt u dit importeren in RemindoEVC. Alle gegevens uit dat portfolio worden dan direct overgenomen, wat de kandidaat dubbel werk bespaart.
+
+Volg deze stappen om een E-portfolio te importeren:
+
+Klik links in het menu op "E-portfolio import".
+
+Kies of u het portfolio als een EVC-traject of als een EVP-traject wilt importeren (selecteer de gewenste optie).
+
+Klik op "Bladeren..." en zoek het geëxporteerde E-portfolio bestand (meestal een .zip-bestand) op uw computer of USB-stick. Selecteer het bestand en bevestig.
+
+RemindoEVC pakt het bestand uit en begint met importeren. U ziet een voortgangsrapportage verschijnen. Wacht tot dit proces klaar is.
+
+Er verschijnt nu een invulscherm voor de gebruikers- en trajectgegevens:
+
+Kies een gebruikersnaam voor de (nieuwe) gebruiker/kandidaat.
+
+Selecteer het traject (kwalificatie) waaraan de kandidaat gaat deelnemen met dit portfolio.
+
+Vul de startdatum van het traject in. Let op: Bij een startdatum van vandaag ontvangt de kandidaat direct vandaag nog een e-mail met inloggegevens.
+
+Klik op "Volgende" (of "Verder", afhankelijk van de interface). U krijgt nu een scherm om begeleider, assessor en identificatie in te vullen:
+
+Begeleider: Koppel een begeleider aan dit traject.
+
+Assessor: Koppel een assessor aan dit traject.
+
+Identificatienummer/code: Vul een identificatiecode in voor dit traject (zoals u bij 3.6 ook zou doen).
+
+Vink "Actief" aan zodat het traject direct actief is (tenzij u later wilt activeren).
+
+Controleer dat de status op "Bewijs verzamelen" staat (beginstatus).
+
+Klik op "Wijzigen" om het geïmporteerde traject op te slaan.
+
+Het systeem maakt nu het traject aan, met alle data uit het geïmporteerde E-portfolio. De kandidaat kan inloggen (mits actief en startdatum bereikt is) en ziet al zijn/haar portfolio-gegevens terug in RemindoEVC.
+
+4.2. E-portfolio exporteren
+
+Het door de kandidaat in RemindoEVC opgebouwde portfolio kan ook geëxporteerd worden, conform de e-PortfolioNL standaard (NEN 2035). Dit levert een .zip-bestand op dat in andere software of platforms weer ingelezen kan worden.
+
+Waarom exporteren? De kandidaat kan zo zijn portfolio meenemen buiten RemindoEVC, bijvoorbeeld naar een andere werkgever of voor eigen gebruik. Ook als er geen toegang is tot RemindoEVC, kan de kandidaat via deze export zijn portfolio bijvoorbeeld uploaden op eportfolio.nu om het te bekijken.
+
+Export-procedure:
+
+Open het betreffende traject waarvan u het E-portfolio wilt exporteren.
+
+Klik op het E-portfolio exporteer icoon (📁, zie ook 3.7/3.8) bij dat traject.
+
+RemindoEVC stelt het portfolio samen en downloadt automatisch een .zip-bestand via uw browser.
+
+Dit zip-bestand bevat alle portfolio-gegevens in een gestandaardiseerd formaat. U kunt dit bestand overhandigen aan de kandidaat. Indien nodig kan de kandidaat dit bestand uploaden in andere systemen die NEN 2035 ondersteunen of op de genoemde website voor een leesbare weergave.
+
+(Ter info: RemindoEVC kan zulke bestanden zelf ook weer importeren, zie 4.1 hierboven. Zo blijft het portfolio uitwisselbaar tussen systemen.)
+
+5. Excel-export en statistieken
+5.1. Statistieken
+
+Op uw Dashboard krijgt u een grafisch overzicht van de stand van zaken van alle lopende trajecten. Bovenaan de pagina vindt u een icoon of tab voor Statistieken (vaak weergegeven met een grafiek-icoon 📊).
+
+Klik op het statistiek-icoon "Statistieken" bovenaan de dashboardpagina.
+
+U ziet nu diverse grafieken en visualisaties over alle trajecten onder uw beheer, bijvoorbeeld aantallen trajecten per status, afgeronde trajecten, etc.
+
+Onderaan de statistiekenpagina is doorgaans een tabel of link naar brongegevens beschikbaar. Hier kunt u de ruwe data inzien die aan de grafieken ten grondslag ligt (handig als u exacte aantallen of details nodig heeft).
+
+5.2. Excel-export
+
+Met de Excel-exportfunctie kunt u gegevens uit RemindoEVC halen voor rapportages of analyses in Excel.
+
+Zo maakt u een Excel-export:
+
+Gebruik eerst de filtermogelijkheden binnen RemindoEVC om de data te selecteren die u wilt exporteren. U kunt bijvoorbeeld filteren op organisatie, een specifieke groep, trajectstatus, of zoeken op trefwoorden om de lijst met resultaten te verkleinen.
+
+Klik vervolgens op de Excel-export knop (dit kan een icoon zijn met het Excel-logo of tekst "Exporteren").
+
+Er wordt een Excel-bestand (.xlsx) gegenereerd en gedownload met daarin de gegevens die op dat moment gefilterd/zichtbaar waren.
+
+Open het gedownloade bestand in Excel om de gegevens verder te bekijken of te verwerken.
+
+6. Evaluatiemomenten
+6.1. Algemene uitleg
+
+Tijdens en na het doorlopen van EVP/EVC-trajecten kunnen er evaluaties plaatsvinden. RemindoEVC ondersteunt vier verschillende evaluatiemomenten:
+
+Na een EVP-procedure – Een evaluatie die (indien u EVP-trajecten uitvoert) na afronding van het EVP-traject wordt verstuurd, bijvoorbeeld om feedback te vragen aan de kandidaat en de begeleider over het traject.
+
+Tijdens een EVC-traject (na portfolio naar assessor) – Zodra de begeleider het portfolio heeft doorgestuurd aan de assessor voor beoordeling, kan een evaluatieformulier verstuurd worden.
+
+Na afronding van het EVC-traject – Nadat de assessor het Ervaringscertificaat heeft definitief gemaakt en het traject is gearchiveerd, kan een evaluatie verstuurd worden.
+
+Langetermijneffecten – Een evaluatie op langere termijn, om te peilen wat de kandidaat bijvoorbeeld een jaar na dato aan het traject heeft gehad.
+
+Evaluatieformulieren kunnen gestuurd worden aan verschillende rolhouders, afhankelijk van het moment:
+
+De kandidaat zelf.
+
+De begeleider van het traject.
+
+De assessor van het traject.
+
+(Indien van toepassing) een tweede assessor die aan het traject gekoppeld was.
+
+De Inhoudbeheerder binnen RemindoEVC is verantwoordelijk voor het opstellen en beheren van de evaluatievragenlijsten. Deze gebruiker kan de inhoud van evaluatieformulieren maken, aanpassen en activeren (aan- of uitzetten).
+
+6.2. Evaluatie blokkeren
+
+In sommige gevallen wilt u geen evaluatie uitsturen aan een kandidaat, bijvoorbeeld bij demo-kandidaten (oefentrajecten) of om andere redenen. U kunt dan het versturen van evaluaties voor dat specifieke traject blokkeren:
+
+Bij het aanmaken van een traject (zowel EVP als EVC) ziet u de optie om evaluaties te blokkeren. Dit is vaak een vinkje met de tekst 'Evaluatieformulieren niet verzenden' of soortgelijk.
+
+Vinkt u dit aan, dan zal het systeem geen evaluatieverzoeken versturen binnen dat traject, ongeacht de momenten die normaal geactiveerd zouden worden.
+
+U kunt deze instelling het beste meteen bij het starten van het traject zetten. Mocht u het later alsnog uitzetten, dan zullen toekomstige evaluaties weer volgens de normale planning verstuurd worden (voor zover het moment dan nog actueel is).

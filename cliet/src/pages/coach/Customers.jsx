@@ -10,9 +10,13 @@ import {
   getTrajectStatusBadgeClass,
   getTrajectStatusLabel,
   normalizeTrajectStatus,
+  TRAJECT_STATUS,
 } from "../../lib/trajectStatus";
 import { updateAssignmentStatus } from "../../lib/assignmentWorkflow";
 import { questionnaireIsComplete } from "../../lib/questionnaire";
+import { ensureThread } from "../../lib/firestoreMessages";
+import ModalForm from "../../components/ModalForm";
+import { fetchUsersByRole } from "../../lib/firestoreAdmin";
 
 const buildDefaultProgress = (customer) => ({
   trajectId: customer?.trajectId || null,
@@ -139,6 +143,15 @@ const Customers = () => {
   const [statusExpanded, setStatusExpanded] = useState({});
   const [pendingStatusCustomerId, setPendingStatusCustomerId] = useState(null);
   const [statusErrors, setStatusErrors] = useState({});
+  const [pendingChatCustomerId, setPendingChatCustomerId] = useState(null);
+
+  // Assessor selection modal state for coordinator per-card advance
+  const [assessorModalOpen, setAssessorModalOpen] = useState(false);
+  const [assessorsList, setAssessorsList] = useState([]);
+  const [assessorLoading, setAssessorLoading] = useState(false);
+  const [assessorError, setAssessorError] = useState(null);
+  const [selectedAssessorId, setSelectedAssessorId] = useState("");
+  const [assessorCustomerId, setAssessorCustomerId] = useState(null);
 
   const sortedCustomers = useMemo(() => {
     return [...customersFromContext].sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
@@ -195,13 +208,62 @@ const Customers = () => {
     [coachId]
   );
 
+  const openAssessorSelection = useCallback(async (customerId) => {
+    setAssessorCustomerId(customerId);
+    setAssessorModalOpen(true);
+    setAssessorsList([]);
+    setAssessorError(null);
+    setAssessorLoading(true);
+    try {
+      const list = await fetchUsersByRole("assessor");
+      setAssessorsList(Array.isArray(list) ? list : []);
+      setSelectedAssessorId((Array.isArray(list) && list[0]?.id) || "");
+    } catch (error) {
+      setAssessorError(error?.message || "Kon assessoren niet laden.");
+    } finally {
+      setAssessorLoading(false);
+    }
+  }, []);
+
+  const confirmAssessorAdvance = useCallback(async () => {
+    if (!assessorCustomerId) {
+      setAssessorError("Geen kandidaat geselecteerd.");
+      return;
+    }
+    if (!selectedAssessorId) {
+      setAssessorError("Kies een assessor om door te sturen.");
+      return;
+    }
+    setAssessorLoading(true);
+    setAssessorError(null);
+    try {
+      await updateAssignmentStatus({
+        customerId: assessorCustomerId,
+        status: TRAJECT_STATUS.ASSESSMENT,
+        coachId,
+        assessorId: selectedAssessorId,
+      });
+      setAssessorModalOpen(false);
+      setAssessorCustomerId(null);
+    } catch (error) {
+      setAssessorError(error?.data?.error || error?.message || "Doorsturen naar assessor is mislukt.");
+    } finally {
+      setAssessorLoading(false);
+    }
+  }, [assessorCustomerId, coachId, selectedAssessorId]);
+
   const handleAdvanceStatus = useCallback(
     (customerId, currentStatus) => {
       const nextStatus = getNextTrajectStatus(currentStatus);
       if (!nextStatus) return;
+      // If this is the kwaliteitscoordinator moving to ASSESSMENT, prompt assessor selection first
+      if (normalizedRole === "kwaliteitscoordinator" && nextStatus === TRAJECT_STATUS.ASSESSMENT) {
+        openAssessorSelection(customerId);
+        return;
+      }
       handleStatusUpdate(customerId, nextStatus);
     },
-    [handleStatusUpdate]
+    [handleStatusUpdate, normalizedRole, openAssessorSelection]
   );
 
   const handleRewindStatus = useCallback(
@@ -218,7 +280,9 @@ const Customers = () => {
       const next = {};
       sortedCustomers.forEach((customer) => {
         if (!customer?.id) return;
-        if (!customer?.trajectId) {
+        const assignment = assignmentsFromContext.find((a) => a?.customerId === customer.id) || null;
+        const effectiveTrajectId = customer?.trajectId || assignment?.trajectId || null;
+        if (!effectiveTrajectId) {
           next[customer.id] = {
             data: buildDefaultProgress(customer),
             error: null,
@@ -229,16 +293,19 @@ const Customers = () => {
         next[customer.id] = prev[customer.id] || {
           data: buildDefaultProgress(customer),
           error: null,
-          loading: Boolean(customer?.trajectId),
+          loading: true,
         };
       });
       return next;
     });
 
     const unsubscribers = sortedCustomers
-      .filter((customer) => customer?.id && customer?.trajectId)
-      .map((customer) =>
-        subscribeCustomerProgress(customer.id, customer.trajectId, ({ data, error }) => {
+      .map((customer) => {
+        if (!customer?.id) return null;
+        const assignment = assignmentsFromContext.find((a) => a?.customerId === customer.id) || null;
+        const effectiveTrajectId = customer?.trajectId || assignment?.trajectId || null;
+        if (!effectiveTrajectId) return null;
+        return subscribeCustomerProgress(customer.id, effectiveTrajectId, ({ data, error }) => {
           setProgressMap((prev) => ({
             ...prev,
             [customer.id]: {
@@ -251,8 +318,9 @@ const Customers = () => {
               loading: false,
             },
           }));
-        })
-      );
+        });
+      })
+      .filter(Boolean);
 
     return () => {
       unsubscribers.forEach((unsubscribe) => {
@@ -312,7 +380,27 @@ const Customers = () => {
     }));
   };
 
+  const handleStartChat = async (customer) => {
+    if (!customer?.id || !coachId) return;
+    setPendingChatCustomerId(customer.id);
+    try {
+      const threadId = await ensureThread({
+        customerId: customer.id,
+        coachId,
+        customerProfile: { name: customer.name || customer.email || "Kandidaat", email: customer.email || "" },
+        coachProfile: { name: coach?.name || coach?.email || "Begeleider", email: coach?.email || "" },
+      });
+      const normalizedBase = basePath.startsWith("/") ? basePath.replace(/\/$/, "") : `/${basePath.replace(/\/$/, "")}`;
+      navigate(`${normalizedBase}/messages?thread=${encodeURIComponent(threadId)}`);
+    } catch (_) {
+      // Best effort; could show a toast/error UI here if desired
+    } finally {
+      setPendingChatCustomerId((prev) => (prev === customer.id ? null : prev));
+    }
+  };
+
   return (
+    <>
     <div className="space-y-6">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
@@ -594,6 +682,19 @@ const Customers = () => {
                   </button>
                   <button
                     type="button"
+                    onClick={() => handleStartChat(customer)}
+                    disabled={pendingChatCustomerId === customer.id}
+                    className={clsx(
+                      "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold transition",
+                      pendingChatCustomerId === customer.id
+                        ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                        : "border-evc-blue-200 bg-evc-blue-50 text-evc-blue-700 hover:border-evc-blue-300 hover:bg-evc-blue-100"
+                    )}
+                  >
+                    {pendingChatCustomerId === customer.id ? "Openen…" : "Stuur bericht"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => toggleStatusPanel(customer.id)}
                     className={clsx(
                       "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold transition",
@@ -831,7 +932,59 @@ const Customers = () => {
         </div>
       )}
     </div>
+    <ModalForm
+      open={assessorModalOpen}
+      title="Kies assessor"
+      description="Kies de assessor aan wie je dit traject wilt toewijzen."
+      onClose={() => setAssessorModalOpen(false)}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={() => setAssessorModalOpen(false)}
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            disabled={assessorLoading}
+          >
+            Annuleren
+          </button>
+          <button
+            type="button"
+            onClick={confirmAssessorAdvance}
+            className="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={assessorLoading || !selectedAssessorId}
+          >
+            Bevestigen
+          </button>
+        </>
+      }
+    >
+      {assessorError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{assessorError}</p>
+      ) : null}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-slate-700">Assessor</label>
+        <select
+          value={selectedAssessorId}
+          onChange={(e) => setSelectedAssessorId(e.target.value)}
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          disabled={assessorLoading}
+        >
+          <option value="">{assessorLoading ? "Laden..." : "Kies een assessor"}</option>
+          {assessorsList.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name || user.email || user.id}
+            </option>
+          ))}
+        </select>
+      </div>
+    </ModalForm>
+    </>
   );
 };
 
 export default Customers;
+
+// Assessor selection modal UI
+// Render the modal at the end so it overlays the page
+// Note: We place it outside the Customers component return; instead, inline include inside component would be better,
+// but to keep minimal changes we append here using a portal-like approach would be ideal. For simplicity, include within component.

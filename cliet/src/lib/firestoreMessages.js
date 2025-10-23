@@ -90,7 +90,7 @@ export async function ensureThread({
     participantProfiles: mergedProfiles,
     customerId: existing.customerId || customerId,
     coachId: existing.coachId || coachId,
-    updatedAt: Timestamp.now(),
+    updatedAt: serverTimestamp(),
   }).catch(() => undefined);
 
   return threadId;
@@ -264,10 +264,10 @@ export async function sendThreadMessage({
   await updateDoc(threadRef, {
     lastMessageTitle: title,
     lastMessageSnippet: buildMessagePreview(title, text),
-    lastMessageAt: Timestamp.now(),
+    lastMessageAt: serverTimestamp(),
     lastMessageSenderId: senderId,
     lastMessageSenderName: senderName || "",
-    updatedAt: Timestamp.now(),
+    updatedAt: serverTimestamp(),
   }).catch(() => undefined);
 
   return messageRef.id;
@@ -318,6 +318,40 @@ export function subscribeUnreadMessagesForCoach(coachId, observer) {
         };
       });
       observer({ data: records.filter((entry) => !entry.isReadByCoach), error: null });
+    },
+    (error) => observer({ data: [], error })
+  );
+}
+
+export function subscribeUnreadMessagesForCustomer(customerId, observer) {
+  if (!customerId) {
+    observer({ data: [], error: new Error("customerId ontbreekt") });
+    return () => {};
+  }
+
+  const messagesGroup = collectionGroup(db, "messages");
+  const unreadQuery = query(messagesGroup, where("receiverId", "==", customerId));
+
+  return onSnapshot(
+    unreadQuery,
+    (snapshot) => {
+      const records = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data() || {};
+        const parentThreadId = docSnap.ref.parent?.parent?.id || null;
+        return {
+          id: docSnap.id,
+          threadId: data.threadId || parentThreadId,
+          senderId: data.senderId || null,
+          senderRole: data.senderRole || null,
+          timestamp: normalizeDate(data.timestamp) || normalizeDate(data.createdAt) || new Date(),
+          messageTitle: data.messageTitle || "",
+          isReadByCustomer:
+            data.isReadByCustomer !== undefined
+              ? Boolean(data.isReadByCustomer)
+              : (data.senderRole || "").toLowerCase() === "customer",
+        };
+      });
+      observer({ data: records.filter((entry) => !entry.isReadByCustomer), error: null });
     },
     (error) => observer({ data: [], error })
   );

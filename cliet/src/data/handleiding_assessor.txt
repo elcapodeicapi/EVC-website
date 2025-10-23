@@ -1,0 +1,395 @@
+Handleiding voor de Assessor
+1. Inloggen
+
+Als assessor logt u in met uw persoonlijke account. U kunt uw inloggegevens (gebruikersnaam en wachtwoord) altijd wijzigen naar iets dat u makkelijk kunt onthouden, maar zorg wel voor voldoende veiligheid. Deel uw login niet met anderen, want iemand met deze gegevens kan in uw persoonlijke account.
+
+Wachtwoord vergeten? Klik op "Wachtwoord vergeten?" op de inlogpagina. U ontvangt dan een e-mail om een nieuw wachtwoord in te stellen. (Let op: Als u via een externe portal inlogt en die link niet ziet, neem dan contact op met de contactpersoon van uw organisatie. Die kan uw wachtwoord resetten naar een tijdelijk wachtwoord.)
+
+1.1. Inloggen onder meerdere rollen tegelijk
+
+Vervult u meerdere rollen (bijv. zowel begeleider als assessor)? Het is niet mogelijk om in één browser tegelijkertijd onder twee rollen ingelogd te zijn vanwege de beveiliging per rol. U blijft altijd ingelogd onder de rol van de laatst uitgevoerde login.
+
+Tip: U kunt wél twee verschillende browsers gebruiken om parallel in te loggen onder verschillende rollen. Bijvoorbeeld: gebruik Chrome voor uw assessor-account en Firefox voor uw begeleider-account. Zo kunt u in twee rollen tegelijk werken (elke rol in een andere browser).
+
+1.2. Pas op met in een tweede venster als een andere rol inloggen
+
+Open niet in dezelfde browser een tweede venster om met een andere rol in te loggen. Als u dat toch doet, wordt de eerste sessie overschreven door de tweede. Oplossing: Wanneer u klaar bent in de tweede rol, log daar uit. Log vervolgens in datzelfde venster opnieuw in onder de rol die u eerst had. Op die manier zijn beide vensters weer onder dezelfde (eerste) rol actief, zodat u in het eerste venster ongehinderd verder kunt werken.
+
+2. Mijn profiel
+
+In Mijn profiel beheert u uw persoonlijke gegevens en voorkeuren. Hier kunt u uw contactgegevens aanpassen, een foto toevoegen en instellen hoe u notificaties ontvangt.
+
+2.1. Hoe vul ik mijn profiel aan?
+
+Volg deze stappen om uw profielgegevens te bekijken of te wijzigen:
+
+Klik links in het menu op "Mijn profiel". U ziet nu uw huidige profielgegevens.
+
+Klik rechtsboven op de bewerk-knop (vaak weergegeven als een potlood-icoon).
+
+Pas de gewenste gegevens aan. U kunt bijvoorbeeld contactinformatie wijzigen of extra velden invullen.
+
+Klik op "Verzenden" om uw wijzigingen op te slaan.
+
+2.2. Wachtwoord wijzigen
+
+Uw wachtwoord kunt u zelf wijzigen via Mijn profiel:
+
+Ga naar "Mijn profiel" in het linker menu.
+
+Klik rechtsboven op de bewerk-knop (potlood-icoon) om uw profiel te bewerken.
+
+Scroll naar beneden naar het gedeelte Wachtwoord wijzigen.
+
+Voer uw nieuwe wachtwoord in en bevestig dit door het twee keer in te typen. Kies een sterk wachtwoord dat u goed kunt onthouden.
+
+Klik op "Verzenden". Uw wachtwoord wordt direct gewijzigd. U blijft ingelogd. Als u later uitlogt, moet u voortaan met het nieuwe wachtwoord inloggen.
+
+2.3. Voeg een pasfoto toe aan uw profiel
+
+Maak uw profiel persoonlijker door een foto van uzelf toe te voegen. Deze profielfoto is zichtbaar voor alle betrokkenen bij een traject (behalve de kandidaat zelf). Zo weten anderen met wie ze te maken hebben.
+
+Een profielfoto toevoegen:
+
+Ga naar "Mijn profiel". Aan de rechterzijde van de profielpagina ziet u de optie "Voeg profielafbeelding toe".
+
+Klik op de "Bladeren..." / "Browse..." knop en selecteer een fotobestand van uw computer.
+
+Klik op "Openen". De foto wordt meteen geüpload en aan uw profiel gekoppeld.
+
+Bent u niet tevreden of wilt u een andere foto? Klik op "Verwijder afbeelding" om de huidige foto te verwijderen en upload vervolgens een nieuwe.
+
+2.4. Welke fotobestanden zijn toegestaan?
+
+Het EVC-systeem accepteert vrijwel alle gangbare fotobestandstypen, behalve BMP (Bitmap). BMP-bestanden zijn niet geschikt voor gebruik op internet vanwege hun formaat. U kunt JPEG/JPG, PNG, GIF en andere standaardformaten zonder problemen uploaden.
+
+2.5. Dagoverzicht instellen
+
+U ontvangt niet voor elke activiteit van kandidaten een losse e-mail, om inbox-overload te voorkomen. In plaats daarvan is er een dagoverzicht: een verzamelmail op door u gekozen momenten met daarin alle relevante updates (bijvoorbeeld ingeleverd portfolio ter beoordeling, geplande gesprekken, etc.). U kunt zelf instellen wanneer u dit dagoverzicht wilt ontvangen:
+
+Ga naar "Mijn profiel" en klik op de bewerk-knop rechtsboven.
+
+Zoek het gedeelte "Dagoverzicht" in de profielinstellingen.
+
+Kies de dagen van de week en het tijdstip waarop u het overzicht per e-mail wilt ontvangen. U kunt bijvoorbeeld elke werkdag om 17:00 een samenvatting krijgen.
+
+Sla de instellingen op met "Verzenden".
+
+3. Lopende trajecten
+
+In het menu vindt u "EVC-trajecten". Hier staan alle kandidaten en EVC-trajecten waar u bij betrokken bent als assessor, inclusief de status van ieder traject.
+
+3.1. Overzicht van alle EVC-trajecten
+
+Klik in het linker menu op "EVC-trajecten". U ziet een lijst van alle trajecten (kandidaten) die u beoordeelt, met bij elke kandidaat de huidige status van het traject. Rechts kan vaak de profielfoto van de kandidaat zichtbaar zijn.
+
+Klik op het traject (de kandidaat) dat u wilt inzien. U logt daarmee als assessor in op dat specifieke EVC-traject.
+
+Binnen het traject ziet u in één oogopslag de kandidaatgegevens en de voortgang/status van het traject. Bovenaan de pagina bevindt zich het trajectmenu met verschillende onderdelen (Instrumenten, Kwalificatiedossier, Rapportage, etc.) die u kunt openen.
+
+3.2. De kwalificatie inzien en als PDF downloaden
+
+Onder "Kwalificatiedossier" in het trajectmenu vindt u de volledige kwalificatie (het competentieprofiel of standaard) waarop het EVC-traject is gebaseerd. U kunt dit gebruiken ter voorbereiding van beoordelingen en interviews.
+
+Inzien: Klik op "Kwalificatiedossier" om alle competenties, kerntaken en werkprocessen van de kwalificatie te bekijken.
+
+Downloaden als PDF: Wilt u een offline of printbare versie? Klik rechtsboven op het PDF-download icoon (meestal een knop met "Download als PDF"). U kunt hiermee de hele kwalificatie opslaan als PDF-document.
+
+4. Aantekeningen over kandidaten
+
+Als assessor kunt u aantekeningen maken die relevant zijn voor het traject en de kandidaat. Dit zijn privé-notities (voor betrokken professionals) die niet zichtbaar zijn voor de kandidaat. U kunt hier bijvoorbeeld opmerkelijke zaken in het traject noteren of afspraken vastleggen.
+
+U vindt het "Aantekeningenoverzicht" in het linker menu. Hier staan alle eigen notities bij al uw trajecten.
+
+Binnen een specifiek kandidaattraject vindt u in het trajectmenu ook de optie "Aantekeningen". Klik daarop om de notities voor dát traject te bekijken of om een nieuwe aantekening toe te voegen.
+
+Let op: Deze aantekeningen zijn zichtbaar voor alle andere begeleiders/assessors/kwaliteitscoördinatoren die bij het traject betrokken zijn, maar niet voor de kandidaat. Houd de toon van uw notities professioneel.
+
+5. Portfolio van de kandidaat
+
+In het Portfolio verzamelt de kandidaat zijn of haar bewijsmaterialen: diploma’s, certificaten, verslagen, referenties, enz. Als assessor moet u deze bewijsstukken bekijken en beoordelen op relevantie en authenticiteit. Hieronder vindt u hoe u het portfolio opent en de bestanden beoordeelt.
+
+5.1. Het portfolio van de kandidaat bekijken
+
+Ga naar "EVC-trajecten" en log in op het traject van de kandidaat wiens portfolio u wilt inzien.
+
+Klik in het trajectmenu bovenaan op "Instrumenten" en selecteer "Portfolio".
+
+U ziet nu het volledige e-Portfolio van de kandidaat, ingedeeld in rubrieken (Opleidingen, diploma’s en certificaten, Relevante werkervaring, Overige informatie en documenten). U kunt per rubriek de ingediende items bekijken.
+
+5.2. Bijlagen uit het portfolio downloaden
+
+U kunt alle bewijsstukken afzonderlijk bekijken of in één keer downloaden:
+
+Klik in het portfolio op een individueel bewijsstuk om het te openen of te downloaden. Bestanden worden in de browser geopend of direct gedownload, afhankelijk van het type.
+
+Wilt u alle bestanden in één keer downloaden? Klik rechtsboven op de optie "Download alle bestanden". Het systeem maakt dan een gecomprimeerd ZIP-bestand met alle bijlagen uit het portfolio. U kunt dit ZIP-bestand opslaan op uw computer.
+
+5.3. Een ZIP-bestand openen
+
+Als u een ZIP-bestand met alle bijlagen heeft gedownload, moet u het uitpakken om de bestanden te bekijken:
+
+Meestal kunt u op een ZIP-bestand dubbelklikken, waarna uw computer automatisch de inhoud toont en u de bestanden kunt uitpakken (extracten).
+
+Lukt dit niet direct, gebruik dan een hulpmiddel als WinZip (Windows) of de ingebouwde compressiehulpmiddelen van uw besturingssysteem. Pak het bestand uit naar een map om alle bewijsstukken toegankelijk te maken.
+
+5.4. Video- en geluidsbestanden in het portfolio
+
+Wanneer de kandidaat media bestanden (video’s, audio) uploadt, zorgt het platform ervoor dat deze afspeelbaar zijn voor iedereen:
+
+Bij upload converteert het systeem indien nodig het bestand naar een webvriendelijk formaat. Zo bent u ervan verzekerd dat bijvoorbeeld een ingeleverde video of audiofragment binnen de portal afgespeeld kan worden.
+
+In het portfolio ziet u voor dergelijke bestanden een thumbnail (een klein voorbeeldbeeld met een play-icoon). Klik op de thumbnail om de video of audio af te spelen in de ingebouwde mediaspeler.
+
+Naast online afspelen is er altijd de mogelijkheid om het originele media-bestand te downloaden (voor het geval u problemen heeft met de weergave of het later nog eens wilt bekijken).
+
+Ondersteunde formaten:
+
+Audio: .wav, .mp3
+
+Video: .avi, .asf, .flv, .mov, .mp4, .mpg/.mpeg, .wmv, .3gp
+
+Afbeeldingen: .jpg/.jpeg, .png, .gif
+
+Maximale uploadgrootte per bestand is doorgaans 500 MB. Als een kandidaat een videobestand groter dan 500 MB heeft, wordt geadviseerd dit eerst te comprimeren of verkleinen.
+
+5.5. Vaststellen van de authenticiteit van bewijsstukken
+
+U moet nagaan of de ingediende bewijsstukken authentiek zijn (echt en ongewijzigd). Afhankelijk van de afspraken binnen uw organisatie kan de kandidaat dit zelf al hebben aangegeven of is het aan de assessor om het te controleren:
+
+Authenticiteit markeren: Bij elk bewijsstuk in het portfolio staat een icoontje (bijvoorbeeld een vinkje of certificaat-icoon) waarmee u kunt aangeven of het stuk authentiek is bevonden. Klik op dat authenticiteits-icoon om het bewijsstuk als echt/origineel te markeren.
+
+Maak binnen uw organisatie duidelijke afspraken wie deze controle uitvoert (soms doet de begeleider of kandidaat een voorcheck, maar uiteindelijk moet de assessor akkoord zijn dat het bewijs geldig is).
+
+5.6. Relevantie vaststellen
+
+De kandidaat kan bij het toevoegen van elk bewijsstuk een suggestie hebben gedaan voor welke competenties het relevant is. Let op: dit is slechts een suggestie van de kandidaat om zichzelf te ordenen. Als assessor bepaalt ú of en waarvoor een bewijsstuk relevant is.
+
+Relevantie markeren: Gebruik het relevantie-icoon (bijvoorbeeld een label- of filter-icoon) bij elk bewijsstuk om aan te geven of u het stuk van nut acht voor de beoordeling. Dit is een globale selectie: u beslist hiermee of het bewijsstuk wordt meegenomen in de verdere beoordeling of terzijde wordt geschoven.
+
+U kunt deze relevantie per individueel item aangeven, of in één keer voor alle stukken binnen een rubriek (er is vaak een optie om alle items in bijvoorbeeld "Opleidingen" in één keer als relevant of niet relevant te markeren).
+
+Competentiekoppeling inzien: Er is ook een icoon (informatie-icoon) bij elk bewijsstuk waarmee u kunt zien aan welke competenties de kandidaat het bewijsstuk zelf heeft gekoppeld. Dit kan u helpen bij het beoordelen, maar u bent vrij om hiervan af te wijken op basis van uw expert judgement.
+
+Nadat u authenticiteit en relevantie heeft beoordeeld, kunt u door naar de daadwerkelijke beoordeling van het portfolio bij Uw beoordelingen.
+
+6. Loopbaandoel
+
+Voorafgaand aan het EVC-traject formuleert de kandidaat een Loopbaandoel (ook wel ambitie en motivatie). Dit geeft richting aan het traject en verschijnt later in het Ervaringscertificaat. Als assessor kunt u dit inzien en eventueel feedback geven als dat nodig is.
+
+6.1. Aanpassen loopbaandoel
+
+Het loopbaandoel is in principe door de kandidaat zelf ingevuld, maar u kunt het als assessor bekijken en erop letten of het duidelijk geformuleerd is:
+
+Ga in het trajectmenu naar "Mijn loopbaandoel" (de kandidaat heeft hier zijn ambitie en motivatie beschreven). Lees deze tekst goed door zodat u de drijfveren van de kandidaat kent.
+
+Als u merkt dat het loopbaandoel onduidelijk is of aanscherping behoeft, kunt u via de begeleider de kandidaat vragen dit te verduidelijken. (Assessors zelf bewerken doorgaans het loopbaandoel niet, dit is door de kandidaat in te vullen. Wel kunt u als assessor zien of het veld is ingevuld en het belang benadrukken.)
+
+Een goed loopbaandoel beschrijft kort:
+
+Waar de kandidaat naartoe wil in de loopbaan.
+
+Waarom hij/zij dit EVC-traject doet (wat is het doel hiervan?).
+
+Zorg dat eventuele formulering issues (taalfouten, onduidelijkheden) worden opgelost vóórdat de rapportage definitief wordt, aangezien het loopbaandoel één-op-één in het Ervaringscertificaat komt te staan.
+
+7. Criteriumgericht interview
+
+Een criteriumgericht interview is een gesprek waarin de assessor aan de hand van criteria/competenties verdiepende vragen stelt aan de kandidaat. In het systeem zijn er een paar dingen die u moet voorbereiden en invullen rondom dit interview.
+
+7.1. Criteriumgericht interview voorbereiden
+
+Ter voorbereiding op het interview kunt u de kwalificatie- en beoordelingsinformatie verzamelen, en uw vragen alvast noteren:
+
+Kwalificatiedossier raadplegen: Log in op het traject van de kandidaat en klik op "Kwalificatiedossier". Hier ziet u alle competenties en criteria. U kunt dit als naslag gebruiken tijdens het interview.
+
+Eigen aantekeningen verzamelen: Als u tijdens het beoordelen van het portfolio al vragen of aandachtspunten voor het interview heeft genoteerd (bij Uw beoordelingen onder Portfolio, veld "Vragen ten behoeve van aanvullend onderzoek"), dan kunt u deze meenemen.
+
+PDF voor aantekeningen genereren: Het systeem biedt de mogelijkheid om de volledige kwalificatie inclusief uw eventuele vragen/aantekeningen als PDF te downloaden. Klik in het Kwalificatiedossier rechtsboven op het PDF-icoon (Download als PDF). Er verschijnt een menu waar u kunt aanvinken welke informatie u in de PDF wilt opnemen (bijv. uw eigen notities, competentieoverzicht, etc.). Klik vervolgens op "Download als PDF". U krijgt zo een document dat u kunt uitprinten of op een tablet meenemen om tijdens het gesprek op te schrijven.
+
+7.2. Criteriumgericht interview: datum en tijd invullen
+
+Nadat het interview heeft plaatsgevonden, moet u de gegevens ervan registreren in het EVC-systeem. Deze gegevens komen later in het Ervaringscertificaat te staan. Ga als volgt te werk:
+
+Log in op het traject van de betreffende kandidaat.
+
+Navigeer via "Instrumenten" naar "Criteriumgericht interview".
+
+Klik rechtsboven op de bewerk-knop (om het formulier te openen voor bewerken).
+
+Vul de datum en tijd in waarop het interview heeft plaatsgevonden.
+
+Noteer de namen van aanwezigen en de locatie van het gesprek.
+
+Gebruik het tekstveld om een kort verslag of opmerkingen voor de kandidaat achter te laten over het interview (optioneel). Dit kan bijvoorbeeld een samenvatting van het gesprek zijn of punten die zijn opgevallen.
+
+Onderaan de pagina kunt u eventueel een bijlage toevoegen, bijvoorbeeld een gespreksverslag. U kunt aangeven of deze bijlage zichtbaar mag zijn voor de kandidaat of niet.
+
+Klik op "Verzenden" om de ingevoerde gegevens op te slaan.
+
+Na het opslaan is voor de kandidaat (indien toegestaan) het verslag van het criteriumgericht interview zichtbaar in zijn/haar portal.
+
+8. Werkplekbezoek
+
+Indien het EVC-traject dit bevat, kan een werkplekbezoek onderdeel zijn van de beoordeling. Hierbij bezoekt de assessor de kandidaat op de werkplek om praktijkvaardigheden te observeren en te bevragen. Ook hiervan dient u de details in het systeem vast te leggen.
+
+8.1. Werkplekbezoek invullen
+
+Wanneer het werkplekbezoek heeft plaatsgevonden, vult u de gegevens als volgt in:
+
+Log in op het traject van de kandidaat.
+
+Ga via "Instrumenten" naar "Werkplekbezoek".
+
+Klik op de bewerk-knop rechtsboven om de informatie in te voeren.
+
+Vul de datum en tijd in van het werkplekbezoek.
+
+Geef de namen van aanwezigen op (wie waren erbij aanwezig, bijvoorbeeld leidinggevende, assessor, etc.) en de locatie (waar het bezoek heeft plaatsgevonden).
+
+Schrijf in het tekstveld een kort verslag of notitie voor de kandidaat over het werkplekbezoek (optioneel). Hierin kunt u aangeven wat u heeft gezien en besproken.
+
+Voeg indien gewenst een bijlage toe, zoals een uitgebreid observatieverslag of checklist. Kies of de kandidaat deze bijlage mag zien of dat deze alleen intern is.
+
+Klik op "Verzenden" om alles op te slaan.
+
+Let op: Als u niets invult bij het werkplekbezoek, zal het Ervaringscertificaat later wel vermelden dát er een werkplekbezoek instrument is, maar zonder datum/tijd. Het is daarom belangrijk om dit in te vullen als het instrument is uitgevoerd, zodat de rapportage volledig is.
+
+9. Beoordelen
+
+In deze fase geeft u als assessor uw oordeel over de competenties van de kandidaat, op basis van alle verzamelde bewijzen en instrumenten. Onder "Uw beoordelingen" in het trajectmenu kunt u per instrument (Portfolio, Criteriumgericht interview, Werkplekbezoek) uw evaluatie vastleggen.
+
+9.1. Portfolio beoordelen
+
+Voordat u de daadwerkelijke beoordeling invult, zorg dat u de voorbereidingen heeft gedaan: de relevante bewijstukken zijn gemarkeerd en authenticiteit is vastgesteld (zie §5.5 en §5.6). Daarna kunt u het portfolio beoordelen:
+
+Voorbereidend – selectie van bewijsmateriaal:
+
+Relevantie bepalen: Ga naar de Portfolio pagina (Instrumenten > Portfolio). Loop alle bewijsstukken door. Gebruik het relevantie-icoon om per bewijsstuk (of per rubriek in één keer) aan te geven welke stukken u mee wilt nemen in uw beoordeling. Stukken die u niet relevant vindt, markeert u als zodanig zodat u ze kunt negeren bij het beoordelen.
+
+Authenticiteit controleren: Als de authenticiteit nog niet door u of de begeleider is gemarkeerd, kunt u dat nu doen (klik op het authenticiteits-icoon bij de betreffende bewijzen).
+
+Bestanden bekijken: Download en bekijk alle relevante bijlagen (zie §5.2). U moet de inhoud kennen om een goed oordeel te vellen.
+
+Portfolio beoordelen – stappen in het systeem:
+
+Ga naar "Uw beoordelingen" via het trajectmenu. U ziet hier een overzicht van de beschikbare instrumenten (Portfolio, Criteriumgericht interview, Werkplekbezoek).
+
+Klik op "Beoordelen" (of "Aanpassen") naast het instrument Portfolio om het beoordelingsformulier te openen.
+
+U krijgt een lijst te zien van alle competenties (of werkprocessen) die binnen dit traject beoordeeld moeten worden. Loop deze één voor één langs. Voor elke competentie vult u in:
+
+Conclusie/oordeel: Welk niveau of welke beoordeling geeft u voor deze competentie? (Bijvoorbeeld bekwaam/onbekwaam, voldoende/onvoldoende, of een beschrijving afhankelijk van het format van het EVC-traject).
+
+Bewijsstukken gebruikt: Noteer of selecteer welke ingediende bewijsstukken u voor deze competentie hebt meegewogen. Vaak kunt u aankruisen of benoemen welke documenten of ervaringen aantonen dat de kandidaat deze competentie beheerst.
+
+Onderbouwing: Schrijf een toelichting waarom u tot dit oordeel bent gekomen. Wees zo specifiek mogelijk: refereer aan wat de kandidaat heeft laten zien in het portfolio (en eventueel tijdens gesprekken) dat deze competentie aantoont of juist waar nog tekortkomingen liggen. Let op: Deze onderbouking wordt letterlijk overgenomen in het Ervaringscertificaat. Formuleer dus in volledige zinnen en op een professionele toon.
+
+Vragen/aandachtspunten: Als u tijdens het portfolio beoordelen vragen heeft genoteerd voor verder onderzoek (bijvoorbeeld om te stellen in het interview of na te gaan bij het werkplekbezoek), dan heeft u waarschijnlijk deze al eerder ingevuld bij het daarvoor bestemde veld. (In het PDF kwalificatiedossier dat u kunt downloaden, worden deze vragen meegenomen.)
+
+Loop alle competenties/systematisch door op deze manier. Neem de tijd om alles in te vullen.
+
+Klik halverwege of na afloop op "Opslaan" (of "Verzenden") om uw beoordelingen op te slaan. U kunt tussentijds opslaan en later verder gaan; uw ingevulde tekst blijft bewaard. Wanneer u later terugkomt in dit scherm, kunt u verder gaan waar u was gebleven.
+
+9.2. Criteriumgericht interview beoordelen
+
+Na het portfolio geeft u ook per competentie uw oordeel over wat in het criteriumgericht interview is besproken of vastgesteld:
+
+Ga (indien u niet al in Uw beoordelingen bent) via het trajectmenu naar "Uw beoordelingen".
+
+Klik op "Beoordelen" naast Criteriumgericht interview. Er verschijnt een vergelijkbaar formulier als bij Portfolio, met alle relevante competenties.
+
+Per competentie vult u uw conclusie/oordeel in op basis van het interview. Geef aan of de kandidaat tijdens het gesprek voldoende blijk gaf van deze competentie.
+
+Schrijf bij elke competentie een onderbouwing voor uw oordeel. Bijvoorbeeld: "Tijdens het interview kon de kandidaat meerdere concrete voorbeelden noemen waaruit bleek dat hij deze vaardigheid beheerst, zoals [...]". (Ook deze teksten komen in het certificaat te staan, dus schrijf in duidelijk Nederlands.)
+
+Sla uw beoordelingen op (met "Opslaan/Verzenden"). U kunt ook hier tussentijds opslaan en later verder invullen indien nodig.
+
+9.3. Werkplekbezoek beoordelen
+
+Indien een werkplekbezoek onderdeel was van het traject, beoordeelt u hier de competenties op basis van wat u op de werkvloer heeft gezien:
+
+Ga naar "Uw beoordelingen" en open via "Beoordelen" het onderdeel Werkplekbezoek.
+
+Wederom ziet u per competentie een invoerveld. Vul voor elke competentie in hoeverre de kandidaat hieraan voldeed tijdens het werkplekbezoek.
+
+Geef per competentie een onderbouwing in het tekstveld. Bijvoorbeeld: "Tijdens het werkplekbezoek liet de kandidaat zien op adequate wijze met onverwachte situaties om te gaan (zie observatie in verslag)...". Dit is belangrijk om uw oordeel te staven en verschijnt ook in de eindrapportage.
+
+Sla alles op wanneer u gereed bent.
+
+(Mocht het werkplekbezoek eigenlijk niet relevant of niet uitgevoerd zijn, zie de volgende paragraaf hoe u het instrument kunt uitsluiten.)
+
+9.4. Instrument niet van toepassing verklaren
+
+Het kan voorkomen dat een beoordelingsinstrument uiteindelijk niet wordt gebruikt. Bijvoorbeeld: een werkplekbezoek blijkt niet nodig of was vooraf al niet gepland. U kunt het desbetreffende instrument dan markeren als niet van toepassing, zodat het verder buiten beschouwing blijft in het traject en de rapportage.
+
+Een instrument uitsluiten (niet van toepassing maken):
+
+Open het formulier van het betreffende instrument via "Uw beoordelingen" (klik op Beoordelen/Aanpassen bij het instrument dat u wilt uitsluiten, bijvoorbeeld Werkplekbezoek).
+
+Rechtsboven op de beoordelingspagina vindt u een optie "Dit instrument is niet van toepassing". Klik op dat selectievakje.
+
+Er verschijnt een veld (meestal onderaan) waar u de motivatie/toelichting moet invullen waarom u dit instrument uitsluit. Leg hier kort uit waarom bijvoorbeeld het werkplekbezoek niet is uitgevoerd of niet nodig was.
+
+U ziet ook een keuze "Dit instrument niet vermelden in het ervaringscertificaat". Vinkt u deze aan, dan zal in de uiteindelijke rapportage nergens genoemd worden dat dit instrument überhaupt bestond in het traject. (Als u dit niet aanvinkt, kan het instrument wel genoemd worden maar bijvoorbeeld als "niet toegepast".)
+
+Klik op "Verzenden" om uw keuze door te voeren.
+
+Na het verzenden verdwijnt het instrument uit het Totaaloverzicht van het traject en zal het ook niet meer voorkomen in het Ervaringscertificaat (als u dat zo heeft ingesteld). Zorg dat u dit uiteraard in overleg met uw organisatie doet en dat het volgens de procedure is toegestaan om een instrument over te slaan.
+
+10. Rapportage
+
+Wanneer u alle beoordelingen heeft afgerond, is het tijd om de rapportage (het Ervaringscertificaat) samen te stellen. In deze stap voegt u alle informatie en conclusies samen tot een formeel rapport.
+
+10.1. Rapportage invullen
+
+Start met het invullen van de concept-rapportage:
+
+Ga in het trajectmenu naar "Rapportage". Er opent een pagina met een formulier waarin u de rapportage kunt opstellen.
+
+Vul alle velden zorgvuldig in. Velden met een * zijn verplicht – deze móeten ingevuld worden voordat u de rapportage kunt aanmaken. Velden zonder ster zijn optioneel; laat u deze leeg, dan worden ze ook niet getoond in de uiteindelijke rapportage (hier hoeft u dus geen dummy tekst in te zetten).
+
+Let op uw schrijfwijze en spelling: alle teksten die u hier invoert (zoals onderbouwingen, samenvattingen, concl usies) komen één-op-één in het officiële Ervaringscertificaat te staan. Controleer dus op typfouten en zorg voor duidelijke formuleringen.
+
+Onder in het formulier kunt u vaak aanvinken welke overzichten of grafieken u in de rapportage wilt opnemen. Denk aan een overzichtstabel van competenties, eventuele grafische weergave van resultaten, etc. Selecteer wat van toepassing is (deze opties kunnen afhangen van het systeem en trajecttype).
+
+Als alles is ingevuld, klik op "Maak rapportage aan". Het systeem genereert nu een concept-rapportage.
+
+Na het aanmaken ziet u een pagina die aangeeft dat de rapportage is samengesteld. Bovenaan staat een knop "Download rapportage". Gebruik deze om de gegenereerde concept-rapportage (meestal in PDF-formaat) te downloaden en te controleren.
+
+Onder deze knop ziet u twee opties:
+
+"Ja, het rapport is definitief" – Pas op: klik hier nog niet als de rapportage nog niet perfect is. Deze knop dient om de rapportage definitief in te leveren (daarna kunt u niets meer wijzigen).
+
+"Nee, de rapportage is nog niet compleet" – Klik hierop als u nog aanpassingen wilt doen. U keert dan terug naar de rapportagebewerking.
+
+Rapportage bijwerken of aanpassen:
+Wanneer u terugkeert naar de rapportage-samenstellingspagina, ziet u aan de rechterkant een lijst met versies (data) van uw rapportageconcepten. De meest recente versie staat bovenaan met datum en tijd.
+
+Klik op de datum van de laatst opgeslagen versie. Er verschijnt een melding; bevestig dat u deze versie wilt laden. Het formulier wordt nu automatisch gevuld met alle teksten en keuzes zoals u die bij die versie had ingevoerd. U kunt nu gemakkelijk verder werken vanaf dat punt, in plaats van alles opnieuw in te typen.
+
+Pas de gewenste onderdelen aan in het formulier (corrigeer bijvoorbeeld tekst of voeg iets toe dat u eerder vergeten was).
+
+U kunt tussentijds opnieuw een concept genereren door wederom op "Maak rapportage aan" te klikken. Dit zal een nieuwe versie opslaan (ook deze verschijnt weer in de rechterkolom met de datum). U kunt zo vaak als nodig de concept-rapportage bekijken en fine-tunen.
+
+Concept verwijderen: Als een concept-versie geheel mislukt of overbodig is, kunt u deze verwijderen. Klik op het prullenbak-icoon naast een conceptdatum (als beschikbaar). Let op: hiermee wist u die versie en alle ingevulde teksten van dat moment. Dit beïnvloedt niet de al eerder opgeslagen versies; het is enkel om opschoning te doen als u wilt.
+
+Werk zo iteratief verder tot u helemaal tevreden bent met de inhoud van de rapportage.
+
+10.2. Rapportage definitief maken
+
+Wanneer u de rapportage volledig naar wens heeft ingevuld én gecontroleerd, kunt u deze definitief indienen. Dit betekent dat u aangeeft dat uw beoordeling klaar is, zodat de kwaliteitscoördinator het Ervaringscertificaat kan finaliseren. Ga als volgt te werk:
+
+Zorg dat de laatst bewerkte versie van de rapportage in het formulier staat (laad de meest recente conceptversie zoals hierboven beschreven, als dat niet al het geval is).
+
+Controleer één laatste keer alle onderdelen: zijn alle verplichte velden gevuld? Staan er geen typfouten of onduidelijkheden in de onderbouwingen? Vooral de onderbouwingen per competentie moeten volledig en helder zijn, omdat dit de kern van het certificaat vormt.
+
+Klik op "Maak rapportage aan" om het allerlaatste concept te genereren, en download dit eventueel nogmaals ter controle met "Download rapportage".
+
+Is nu alles 100% correct en compleet? Klik dan op "Ja, het rapport is definitief". Er zal om bevestiging gevraagd worden (aangezien u hierna niets meer kunt aanpassen). Bevestig uw keuze.
+
+Vanaf dit moment is de rapportage ingediend. De kwaliteitscoördinator van uw organisatie krijgt automatisch bericht dat uw rapportage gereed staat om definitief te worden gemaakt. In veel systemen zal de status van het traject nu op iets als "Ter kwaliteitscontrole" of "Wacht op definitief verklaring" komen te staan.
+
+Belangrijk: Nadat u op definitief hebt geklikt, kunt u zelf geen wijzigingen meer aanbrengen. Eventuele fouten of aanvullingen moeten nu via de kwaliteitscoördinator worden opgelost. Wees dus zeker van uw zaak voordat u de rapportage definitief indient.
+
+Met deze handleiding kunt u als assessor effectief aan de slag in het EVC-systeem. Succes met uw beoordelingen!

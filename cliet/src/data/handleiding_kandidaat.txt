@@ -1,0 +1,147 @@
+1.Intake
+2.Mijn profiel
+2.1.Hoe vul ik mijn profiel aan?
+2.2.Wachtwoord wijzigen
+2.3.Aanvinken vrijwillige deelname
+2.4.Voeg een pasfoto toe aan uw profiel!
+2.5.Welke fotobestanden zijn toegestaan?
+3.Portfolio
+3.1.Portfolio-instructie
+3.2.Vullen van het portfolio
+3.3.Video en geluidsbestanden in het Portfolio
+3.4.De groene balk onderaan in uw Portfolio
+4.Loopbaandoel
+4.1.Aanpassen Loopbaandoel
+5.Criteriumgericht interview
+5.1.Criteriumgericht interview
+6.Werkplekbezoek
+6.1.Werkplekbezoek verslag
+7.Middels "Klaar?" uw portfolio ter beoordeling inleveren
+1.Intake
+Afhankelijk van de instellingen ziet u eventueel de knop "Intake" links in uw menu. Hier kunnen specifieke afspraken over uw EVC-traject vastgelegd worden door uw begeleider.
+
+2.Mijn profiel
+2.1.Hoe vul ik mijn profiel aan?
+Ga naar uw profielgegevens via de knop "Mijn profiel" links in het menu
+Om uw gegevens te wijzigen klikt u rechtsboven op  
+Pas uw gegevens aan en klik op "Verzenden" om uw gegevens op te slaan
+2.2.Wachtwoord wijzigen
+Wilt u uw wachtwoord wijzigingen, dan kan dat als volgt:
+
+Klik op de knop "Mijn profiel" links in het menu
+Klik op   rechtsboven op de pagina
+Onderaan de daaropvolgende pagina kunt u uw wachtwoord wijzigen. U moet het wachtwoord van uw keuze voor controle, 2x intypen
+Klik op "Verzenden" en uw nieuwe wachtwoord is direct van kracht. U blijft ingelogd en kunt verder met uw werkzaamheden. Logt u echter uit en wilt u vervolgens weer inloggen, dan moet dat met uw nieuwe wachtwoord.
+2.3.Aanvinken vrijwillige deelname
+Een voorwaarde om de EVC-procedure af te kunnen ronden en uw portfolio in te leveren, is dat u aanvinkt dat u vrijwillig deelneemt aan dit EVC-traject.
+
+Ga hiervoor naar de knop "Mijn profiel" links in het menu
+Onderaan de pagina ziet u de mogelijkheid om vrijwillige deelname aan te vinken
+Vink dit aan en druk op "Verzenden" en u heeft netjes aangegeven dat u vrijwillig deelneemt aan dit EVC-traject
+2.4.Voeg een pasfoto toe aan uw profiel!
+Met een pasfoto op uw profiel maakt u uzelf zichtbaar voor de mensen met wie u in de online omgeving te maken krijgt. U maakt daarmee uw profiel wat persoonlijker.
+
+Uw pasfoto is zichtbaar voor allen die betrokken zijn bij een traject, en uiteraard kunt u ook hun pasfoto's zien.
+
+U voegt uw foto toe door te klikken op de menuknop "Mijn profiel" links in het menu
+Aan de rechterzijde van de pagina kunt u een foto toevoegen
+Onder de tekst "Voeg Profielafbeelding toe" staat een knop met "Bladeren..." of "Browse..." er op, waarop u kunt klikken
+Er opent een venstertje waarin u het bestand kunt zoeken van uw foto. Klik op het bestand van de foto en vervolgens op "Openen"
+De foto wordt direct toegevoegd. Wilt u deze aanpassen, klik dan op "verwijder afbeelding" en u kunt vervolgens een andere foto toevoegen
+2.5.Welke fotobestanden zijn toegestaan?
+RemindoEVC accepteert nagenoeg alle fotobestanden behalve een BMP-bestand. BMP staat voor Bitmap, een fotobestand wat niet geschikt is voor gebruik op het internet. Alle andere fotobestandtypes zijn wel mogelijk.
+
+3.Portfolio
+3.1.Portfolio-instructie
+Op de pagina "Portfolio" kan een extra uitleg geplaatst zijn. Lees de instructies boven het "Portfolio" daarom nauwkeurig door en bekijk goed of er links zijn naar meer informatie.
+
+3.2.Vullen van het portfolio
+Een tip vooraf: zorg  ervoor dat u zoveel mogelijk informatie en documenten digitaal beschikbaar heeft of krijgt. Dat kan door het scannen van de documenten, een foto te maken van de documenten of gewoon de documenten al digitaal hebben (uw functioneringsgespreksverslag in Word bijvoorbeeld).
+
+Let er bij het scannen op dat documenten die uit meerdere pagina's bestaan, liefst zoveel mogelijk in één digitaal bestand geplaatst worden. Dus niet vier losse bestanden van een document van vier pagina's, maar indien mogelijk graag er één bestand van maken.
+
+Gaat u naar uw portfolio, dan ziet u een drietal rubrieken waaruit uw Portfolio bestaat:
+
+Opleidingen, diploma's en certificaten
+Relevante werkervaring
+Overige informatie en documenten
+Bij elk van deze onderdelen ziet u telkens dit icoon  
+
+Bedenk telkens aan welk van de drie rubrieken u iets toe wilt voegen
+Klik vervolgens op "Toevoegen"
+Vul de velden met een * in en zoveel mogelijk ook de andere velden
+Daarna kunt u eventueel bladeren naar een bestand op uw eigen computer of USB-stick. U kunt zoveel bestanden toevoegen als u wilt
+Geef de omschrijving van het bij te voegen document (bijvoorbeeld als het gaat om een diploma of cijferlijst, wat er in precies aan bod is gekomen) en vink daarna aan welke ervaringen/competenties u daarmee hebt opgedaan
+Klik daarna op "Verzenden" helemaal onder aan de pagina
+Herhaal deze handelingen tot u alle bewijsstukken die in elk van de drie rubrieken horen, heeft toegevoegd
+Let op: indien u hier niets invult zal de procedure niet afgesloten kunnen worden!
+
+Bij de rubriek "Overige informatie en documenten" kunt u denken aan:
+
+Relevante e-mails van collegae, leidinggevenden of anderen
+Lidmaatschap van bijvoorbeeld een medezeggenschapsorgaan, ouderraad of vakbondsactiviteiten
+Vrijwilligerswerk
+Door u geschreven protocollen,  projectplannen of artikelen
+Foto’s of video’s
+Er wordt van uw verwacht dat u zelf aangeeft waarom u denkt dat dit relevante bewijslast is.
+
+3.3.Video en geluidsbestanden in het Portfolio
+Bij het uploaden van bestanden, filmpjes, audio en foto's naar het Portfolio worden bepaalde bestanden automatisch omgezet zodat RemindoEVC kan garanderen dat alles is af te spelen.
+
+In het Portfolio ziet u bepaalde bestanden met een zogenaamde "thumbnail" erbij. Een thumbnail is een klein plaatje waarop u kunt klikken. Wanneer u hier op klikt zal een grotere versie getoond worden in het geval van een afbeelding.
+
+Als het een video-bestand is, dan zal er een player geladen worden waarmee de video is af te spelen. Naast het online bekijken van de video is er ook altijd de mogelijkheid het video-bestand te downloaden.
+
+We raden aan video's en audio zoveel mogelijk direct online in het Portfolio af te spelen.
+
+Audio: wav en mp3
+Video: avi, asf, flv, mov, mp4, mpg, mpeg, wmv en 3gp
+Afbeeldingen: jpg, jpeg, gif en png
+De maximale bestandsgrootte is 500 Mb. In principe zou dat ruim voldoende moeten zijn voor een video. Mocht uw bestand groter zijn dan 500MB, let er dan op dat deze eerst verkleind wordt tot onder de 500 Mb, voordat het wordt geüpload.
+
+3.4.De groene balk onderaan in uw Portfolio
+Bij alles wat u  aan uw portfolio toegevoegd heeft, kunt u aangeven welke competenties hierop van toepassing zijn. De resultaten per competentie ziet u vervolgens in deze groene balk terug.
+
+Let op: de indicator van bewijsstukken die er zo uitziet Bewijsstukkenindicator, is géén voortgangsbalk. Deze balk geeft enkel aan hoeveel bewijsstukken u per competenties heeft aangeleverd, en natuurlijk niet of dit genoeg is of niet. Dit is namelijk afhankelijk van het soort en de kwaliteit van uw bewijsstukken en niet van de hoeveelheid.
+
+4.Loopbaandoel
+4.1.Aanpassen Loopbaandoel
+Vooraf aan uw EVC-traject heeft u nagedacht over uw ambitie en motivatie. Voor een goed en zinvol traject is het belangrijk om dit doel goed te formuleren.
+
+Een loopbaandoel:
+
+Beschrijft waar u naar toe wilt in uw verdere loopbaan;
+Beschrijft waarom u dit traject doorloopt (wat uw doel hiermee is);
+Is kort en bondig beschreven (enkele regels!)
+Tip: Geef zoveel mogelijk aan "waarom" u dit traject doet. Indien u een diploma wilt behalen, geef dan aan waarom dat diploma belangrijk is voor uw verdere (loopbaan)ontwikkeling.
+
+LET OP: Uw Loopbaandoel komt in het formele Ervaringscertificaat te staan. Let dus op typ- en stijlfouten.
+
+Om de tekst aan te passen of aan te vullen klikt u rechts op  . Pas de tekst aan en klik op "Verzenden".
+
+5.Criteriumgericht interview
+5.1.Criteriumgericht interview
+In uw menu vindt u de knop Criteriumgericht interview. Indien het betreffende Criteriumgericht interview heeft plaatsgevonden kunt u na afloop hier de datum en tijd en soms ook een kort verslag van het gesprek vinden.
+
+Dit is niet de beoordeling van het Criteriumgericht interview, maar puur enkele gegevens wanneer het Criteriumgericht interview heeft plaatsgevonden. De beoordeling zelf vindt plaats achter de schermen door de assessor, en vindt u na afloop in uw Ervaringscertificaat.
+
+6.Werkplekbezoek
+6.1.Werkplekbezoek verslag
+LET OP: dit instrument wordt niet in alle EVC trajecten gebruikt.
+
+In uw menu links vindt u de knop Werkplekbezoek indien dit onderdeel is van uw EVC-traject. Wanneer het Werkplekbezoek plaatstvindt kunt u hier na afloop de datum, tijd en eventueel een kort verslag van het gesprek vinden.
+
+Dit is niet de beoordeling van het Werkplekbezoek. Dit wordt door de assessor vastgelegd en ziet u weer terug in uw Ervaringscertificaat.
+
+7.Middels "Klaar?" uw portfolio ter beoordeling inleveren
+Indien u alle zaken in uw EVC-omgeving heeft ingevuld, aangevuld en aangevinkt te weten, kunt u uw portfolio ter beoordeling inleveren. Hiervoor dient u minimaal de volgende zaken te hebben gedaan:
+
+U dient aangegeven te hebben vrijwillig deel te nemen
+U dient minimaal één werkervaring toegevoegd te hebben
+Uw Loopbaandoel dient ingevuld danwel beschikbaar te zijn
+Indien in uw EVC-traject een %LABEL_FEEDBACK% is opgenomen, dient u de vragenlijst(en) voor uw zelfbeoordeling ingevuld te hebben
+Wanneer aan deze voorwaarden is voldaan, verschijnt links in uw menu onderaan de knop "Klaar?" Wanneer u hierop klikt en dit vervolgens bevestigt, dan dient u uw portfolio in om beoordeeld te worden en gaat de volgende fase van uw EVC-traject in.
+
+Wanneer de knop verschijnt en u bent nog niet klaar, dan is dat geen enkel probleem! U kunt gewoon doorwerken aan uw portfolio, en u bepaalt zelf of u klaar bent of nog niet.
+
+Nadat u heeft bevestigd en uw portfolio is ingediend, kijkt uw begeleider nog even of er voldoende inhoud in het portfolio is en of alles zo in orde is. De begeleider zal daarna het portfolio doorzetten naar de assessor. Mocht er iets nog niet helemaal in orde zijn, dan zal de begeleider het portfolio naar u terugzetten zodat u nog aanpassingen kunt maken.

@@ -115,7 +115,7 @@ exports.updateAssignmentStatus = async (req, res) => {
       throw new HttpError(400, "customerId is vereist");
     }
 
-    const { status, note = null } = req.body || {};
+  const { status, note = null, assessorId: assessorIdFromBody = null } = req.body || {};
     const targetStatus = normalizeTrajectStatus(status);
     if (!targetStatus) {
       throw new HttpError(400, "Ongeldige statuswaarde");
@@ -174,6 +174,33 @@ exports.updateAssignmentStatus = async (req, res) => {
         payload.createdAt = now;
       }
 
+      // Pre-read any additional docs needed BEFORE any writes
+      let coordinatorId = null;
+      if (actorRole === "coach" && targetStatus === TRAJECT_STATUS.QUALITY) {
+        const coordinatorsQuery = db.collection("users").where("role", "==", "kwaliteitscoordinator").limit(1);
+        const coordSnap = await tx.get(coordinatorsQuery);
+        const coordinatorDoc = coordSnap.docs[0];
+        coordinatorId = coordinatorDoc ? coordinatorDoc.id : null;
+        if (!coordinatorId) {
+          throw new HttpError(400, "Geen kwaliteitscoördinator gevonden");
+        }
+      }
+
+      let validatedAssessorId = null;
+      if (actorRole === "kwaliteitscoordinator" && targetStatus === TRAJECT_STATUS.ASSESSMENT) {
+        const assessorId = typeof assessorIdFromBody === "string" ? assessorIdFromBody : null;
+        if (!assessorId) {
+          throw new HttpError(400, "assessorId is vereist voor doorsturen naar assessor");
+        }
+        const assessorRef = db.collection("users").doc(assessorId);
+        const assessorSnap = await tx.get(assessorRef);
+        if (!assessorSnap.exists || (assessorSnap.data()?.role || "").toLowerCase() !== "assessor") {
+          throw new HttpError(400, "Ongeldige assessorId");
+        }
+        validatedAssessorId = assessorId;
+      }
+
+      // Now perform all writes
       const coachId = existing.coachId || (typeof req.body?.coachId === "string" ? req.body.coachId : null) || null;
       if (coachId) {
         payload.coachId = coachId;
@@ -183,6 +210,52 @@ exports.updateAssignmentStatus = async (req, res) => {
           {
             customerId,
             coachId,
+            status: targetStatus,
+            statusUpdatedAt: now,
+            statusUpdatedBy: actorId || null,
+            statusUpdatedByRole: actorRole,
+            updatedAt: now,
+            statusHistory: storedHistory,
+          },
+          { merge: true }
+        );
+      }
+
+      if (coordinatorId) {
+        payload.kwaliteitscoordinatorId = coordinatorId;
+        const userRef = db.collection("users").doc(customerId);
+        tx.set(
+          userRef,
+          { kwaliteitscoordinatorId: coordinatorId, kwaliteitscoordinatorLinkedAt: now },
+          { merge: true }
+        );
+        const coordAssignmentRef = db.collection("assignmentsByCoordinator").doc(coordinatorId).collection("customers").doc(customerId);
+        tx.set(
+          coordAssignmentRef,
+          {
+            customerId,
+            kwaliteitscoordinatorId: coordinatorId,
+            status: targetStatus,
+            statusUpdatedAt: now,
+            statusUpdatedBy: actorId || null,
+            statusUpdatedByRole: actorRole,
+            updatedAt: now,
+            statusHistory: storedHistory,
+          },
+          { merge: true }
+        );
+      }
+
+      if (validatedAssessorId) {
+        payload.assessorId = validatedAssessorId;
+        const userRef = db.collection("users").doc(customerId);
+        tx.set(userRef, { assessorId: validatedAssessorId, assessorLinkedAt: now }, { merge: true });
+        const assessorAssignmentRef = db.collection("assignmentsByAssessor").doc(validatedAssessorId).collection("customers").doc(customerId);
+        tx.set(
+          assessorAssignmentRef,
+          {
+            customerId,
+            assessorId: validatedAssessorId,
             status: targetStatus,
             statusUpdatedAt: now,
             statusUpdatedBy: actorId || null,
@@ -211,6 +284,8 @@ exports.updateAssignmentStatus = async (req, res) => {
       statusHistory: serializeHistoryForResponse(finalData.statusHistory),
       previousStatus: getPreviousTrajectStatus(finalData.status),
       nextStatus: getNextTrajectStatus(finalData.status),
+      kwaliteitscoordinatorId: finalData.kwaliteitscoordinatorId || null,
+      assessorId: finalData.assessorId || null,
     };
 
     return res.json(responsePayload);

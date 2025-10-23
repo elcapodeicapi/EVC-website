@@ -544,6 +544,44 @@ export function subscribeCoachAssignments(coachUid, observer) {
   );
 }
 
+export function subscribeCoordinatorAssignments(coordinatorUid, observer) {
+  if (!coordinatorUid) {
+    observer({ data: [], error: new Error("coordinatorUid ontbreekt") });
+    return () => {};
+  }
+
+  const ref = collection(db, "assignmentsByCoordinator", coordinatorUid, "customers");
+  const q = query(ref, orderBy("statusUpdatedAt", "desc"));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const assignments = snapshot.docs.map(mapAssignmentDoc).filter(Boolean);
+      observer({ data: assignments, error: null });
+    },
+    (error) => observer({ data: [], error })
+  );
+}
+
+export function subscribeAssessorAssignments(assessorUid, observer) {
+  if (!assessorUid) {
+    observer({ data: [], error: new Error("assessorUid ontbreekt") });
+    return () => {};
+  }
+
+  const ref = collection(db, "assignmentsByAssessor", assessorUid, "customers");
+  const q = query(ref, orderBy("statusUpdatedAt", "desc"));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const assignments = snapshot.docs.map(mapAssignmentDoc).filter(Boolean);
+      observer({ data: assignments, error: null });
+    },
+    (error) => observer({ data: [], error })
+  );
+}
+
 export function subscribeCoachFeedback(coachUid, observer) {
   if (!coachUid) {
     observer({ data: [], error: new Error("coachUid ontbreekt") });

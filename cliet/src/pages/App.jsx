@@ -40,7 +40,6 @@ import CustomerVragenlijst from "./customer/Vragenlijst";
 import CoachDashboard from "./coach/Dashboard";
 import CoachCustomers from "./coach/Customers";
 import CoachCustomerCompetency from "./coach/CustomerCompetency";
-import CoachFeedback from "./coach/Feedback";
 import CoachMessages from "./coach/Messages";
 import CoachNotes from "./coach/AantekeningenOverzicht";
 import CoachProfile from "./coach/Profile";
@@ -68,8 +67,9 @@ import { subscribeCustomerContext } from "../lib/firestoreCustomer";
 import {
 	subscribeCoachAssignments,
 	subscribeCoachCustomers,
-	subscribeCoachFeedback,
 	subscribeCoachProfile,
+	subscribeCoordinatorAssignments,
+	subscribeAssessorAssignments,
 } from "../lib/firestoreCoach";
 import { subscribeUnreadMessagesForCoach } from "../lib/firestoreMessages";
 import { get, post } from "../lib/api";
@@ -82,6 +82,8 @@ import {
 	TRAJECT_STATUS,
 } from "../lib/trajectStatus";
 import { updateAssignmentStatus } from "../lib/assignmentWorkflow";
+import ModalForm from "../components/ModalForm";
+import { fetchUsersByRole, getUsersIndex } from "../lib/firestoreAdmin";
 
 const ADMIN_NAV_ITEMS = [
 	{ label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
@@ -89,15 +91,16 @@ const ADMIN_NAV_ITEMS = [
 	{ label: "Trajecten", to: "/admin/trajects", icon: FileText },
 	{ label: "Gebruikers", to: "/admin/users", icon: UsersIcon },
 	{ label: "Profiel", to: "/admin/profile", icon: IdCard },
+  { label: "Handleiding", to: "/admin/manual", icon: BookOpen },
 ];
 
 const COACH_NAV_BLUEPRINT = [
 	{ label: "Dashboard", path: "", icon: LayoutDashboard, end: true },
 	{ label: "Mijn kandidaten", path: "/customers", icon: UsersIcon },
-	{ label: "Feedback", path: "/feedback", icon: FileText },
 	{ label: "Aantekeningen", path: "/aantekeningen", icon: NotebookPen },
 	{ label: "Berichten", path: "/messages", icon: Mail },
 	{ label: "Profiel", path: "/profile", icon: IdCard },
+  { label: "Handleiding", path: "/manual", icon: BookOpen },
 ];
 
 const buildCoachNavItems = (basePath) => {
@@ -362,8 +365,24 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		};
 	}, [coachUid]);
 
+	// Resolve role and navigation early, used by downstream effects
+	const resolvedRole = useMemo(
+		() => (roleOverride || coachDoc?.role || sqlUser?.role || "coach").toLowerCase(),
+		[roleOverride, coachDoc, sqlUser]
+	);
+	const roleLabel = COACH_ROLE_LABELS[resolvedRole] || "Begeleider";
+	const explicitBasePath = basePathProp || COACH_ROLE_ROUTES[resolvedRole] || "/coach";
+	const normalizedBasePath = explicitBasePath.startsWith("/")
+		? explicitBasePath.replace(/\/$/, "") || "/"
+		: `/${explicitBasePath.replace(/\/$/, "")}`;
+	const coachNavItems = useMemo(() => buildCoachNavItems(normalizedBasePath || "/"), [normalizedBasePath]);
+
 	const [assignments, setAssignments] = useState([]);
 	const [assignmentsError, setAssignmentsError] = useState(null);
+
+	// Derived customers for kwaliteitscoordinator/assessor based on assignments
+	const [assignedCustomers, setAssignedCustomers] = useState([]);
+	const [assignedCustomersError, setAssignedCustomersError] = useState(null);
 
 	useEffect(() => {
 		if (!coachUid) {
@@ -371,22 +390,90 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 			setAssignmentsError(null);
 			return () => {};
 		}
-		const unsubscribe = subscribeCoachAssignments(coachUid, ({ data, error }) => {
-			if (error) {
-				setAssignmentsError(error);
-				setAssignments([]);
-				return;
-			}
-			setAssignmentsError(null);
-			setAssignments(Array.isArray(data) ? data : []);
-		});
+		let unsubscribe = null;
+		if (resolvedRole === "kwaliteitscoordinator") {
+			unsubscribe = subscribeCoordinatorAssignments(coachUid, ({ data, error }) => {
+				if (error) {
+					setAssignmentsError(error);
+					setAssignments([]);
+					return;
+				}
+				setAssignmentsError(null);
+				setAssignments(Array.isArray(data) ? data : []);
+			});
+		} else if (resolvedRole === "assessor") {
+			unsubscribe = subscribeAssessorAssignments(coachUid, ({ data, error }) => {
+				if (error) {
+					setAssignmentsError(error);
+					setAssignments([]);
+					return;
+				}
+				setAssignmentsError(null);
+				setAssignments(Array.isArray(data) ? data : []);
+			});
+		} else {
+			unsubscribe = subscribeCoachAssignments(coachUid, ({ data, error }) => {
+				if (error) {
+					setAssignmentsError(error);
+					setAssignments([]);
+					return;
+				}
+				setAssignmentsError(null);
+				setAssignments(Array.isArray(data) ? data : []);
+			});
+		}
 		return () => {
 			if (typeof unsubscribe === "function") unsubscribe();
 		};
-	}, [coachUid]);
+	}, [coachUid, resolvedRole]);
 
-	const [feedbackItems, setFeedbackItems] = useState([]);
-	const [feedbackError, setFeedbackError] = useState(null);
+	// Build customers list for non-coach roles from assignments
+	useEffect(() => {
+		if (resolvedRole === "coach") {
+			setAssignedCustomers([]);
+			setAssignedCustomersError(null);
+			return;
+		}
+		const ids = Array.from(new Set(assignments.map((a) => a.customerId).filter(Boolean)));
+		if (ids.length === 0) {
+			setAssignedCustomers([]);
+			setAssignedCustomersError(null);
+			return;
+		}
+		let active = true;
+		(async () => {
+			try {
+				const index = await getUsersIndex();
+				if (!active) return;
+				const list = ids
+					.map((id) => index.get(id))
+					.filter(Boolean)
+					.map((user) => ({
+						id: user.id,
+						name: user.name || "",
+						email: user.email || "",
+						photoURL: user.photoURL || user.photoUrl || null,
+						lastActivity: user.lastActivity || null,
+						lastLoggedIn: user.lastLoggedIn || null,
+						// Ensure dossier/instrument views can resolve the traject
+						trajectId: user.trajectId || null,
+						trajectName: user.trajectName || user.trajectTitle || "",
+						trajectTitle: user.trajectTitle || user.trajectName || "",
+						trajectCode: user.trajectCode || "",
+					}));
+				setAssignedCustomers(list);
+				setAssignedCustomersError(null);
+			} catch (error) {
+				if (!active) return;
+				setAssignedCustomers([]);
+				setAssignedCustomersError(error);
+			}
+		})();
+		return () => {
+			active = false;
+		};
+	}, [assignments, resolvedRole]);
+
 	const [unreadMessages, setUnreadMessages] = useState([]);
 	const [unreadMessagesError, setUnreadMessagesError] = useState(null);
 
@@ -410,40 +497,31 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		};
 	}, [coachUid]);
 
-	useEffect(() => {
-		if (!coachUid) {
-			setFeedbackItems([]);
-			setFeedbackError(null);
-			return () => {};
-		}
-		const unsubscribe = subscribeCoachFeedback(coachUid, ({ data, error }) => {
-			if (error) {
-				setFeedbackError(error);
-				setFeedbackItems([]);
-				return;
-			}
-			setFeedbackError(null);
-			setFeedbackItems(Array.isArray(data) ? data : []);
-		});
-		return () => {
-			if (typeof unsubscribe === "function") unsubscribe();
-		};
-	}, [coachUid]);
 
 	const customerOptions = useMemo(() => {
-		const options = [
-			{ value: "all", label: "Alle kandidaten" },
-			...customersList.map((customer) => ({
-				value: customer.id,
-				label: customer.name || customer.email || "Onbekende kandidaat",
-			})),
-		];
-		return options;
-	}, [customersList]);
+			const base = [{ value: "all", label: "Alle kandidaten" }];
+			const sourceList = resolvedRole === "coach" ? customersList : assignedCustomers;
+			if (sourceList.length > 0) {
+				return [
+					...base,
+					...sourceList.map((customer) => ({
+						value: customer.id,
+						label: customer.name || customer.email || "Onbekende kandidaat",
+					})),
+				];
+			}
+			return base;
+		}, [assignedCustomers, customersList, resolvedRole]);
 
 	const [selectedCustomerId, setSelectedCustomerId] = useState("all");
 	const [statusUpdating, setStatusUpdating] = useState(false);
 	const [statusUpdateError, setStatusUpdateError] = useState(null);
+	// Assessor selection modal state (for kwaliteitscoordinator advancing to ASSESSMENT)
+	const [assessorModalOpen, setAssessorModalOpen] = useState(false);
+	const [assessorsList, setAssessorsList] = useState([]);
+	const [assessorLoading, setAssessorLoading] = useState(false);
+	const [assessorError, setAssessorError] = useState(null);
+	const [selectedAssessorId, setSelectedAssessorId] = useState("");
 	const isImpersonating = Boolean(impersonationBackup);
 	const impersonatingAdminLabel = useMemo(() => {
 		if (!impersonationBackup?.userData) return null;
@@ -461,13 +539,14 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		setStatusUpdateError(null);
 	}, [selectedCustomerId]);
 
-	const selectedCustomer = useMemo(
-		() =>
-			selectedCustomerId === "all"
-				? null
-				: customersList.find((customer) => customer.id === selectedCustomerId) || null,
-		[selectedCustomerId, customersList]
-	);
+		const selectedCustomer = useMemo(
+			() => {
+				if (selectedCustomerId === "all") return null;
+				const sourceList = resolvedRole === "coach" ? customersList : assignedCustomers;
+				return sourceList.find((customer) => customer.id === selectedCustomerId) || null;
+			},
+			[assignedCustomers, customersList, resolvedRole, selectedCustomerId]
+		);
 
 	const selectedAssignment = useMemo(
 		() =>
@@ -477,20 +556,21 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		[assignments, selectedCustomerId]
 	);
 
-	const subtitle = useMemo(() => {
+		const subtitle = useMemo(() => {
 		const parts = [];
 		if (isImpersonating) {
 			parts.push(`Meespelen door ${impersonatingAdminLabel || "Beheerder"}`);
 		}
 		if (selectedCustomer) {
 			parts.push(`Focus: ${selectedCustomer.name || selectedCustomer.email || "Kandidaat"}`);
-		} else if (customersList.length === 0) {
+			} else if ((resolvedRole === "coach" ? customersList.length : assignedCustomers.length) === 0) {
 			parts.push("Geen kandidaten gekoppeld");
 		} else {
-			parts.push(`${customersList.length} kandidaten gekoppeld`);
+				const count = resolvedRole === "coach" ? customersList.length : assignedCustomers.length;
+				parts.push(`${count} kandidaten gekoppeld`);
 		}
 		return parts.join(" • ");
-	}, [customersList.length, impersonatingAdminLabel, isImpersonating, selectedCustomer]);
+		}, [assignedCustomers.length, customersList.length, impersonatingAdminLabel, isImpersonating, resolvedRole, selectedCustomer]);
 
 	const unreadMessagesByThread = useMemo(() => {
 		const map = {};
@@ -514,19 +594,9 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		};
 	}, [unreadMessages, unreadMessagesError]);
 
-	const resolvedRole = useMemo(
-		() => (roleOverride || coachDoc?.role || sqlUser?.role || "coach").toLowerCase(),
-		[roleOverride, coachDoc, sqlUser]
-	);
-	const roleLabel = COACH_ROLE_LABELS[resolvedRole] || "Begeleider";
-	const explicitBasePath = basePathProp || COACH_ROLE_ROUTES[resolvedRole] || "/coach";
-	const normalizedBasePath = explicitBasePath.startsWith("/")
-		? explicitBasePath.replace(/\/$/, "") || "/"
-		: `/${explicitBasePath.replace(/\/$/, "")}`;
-	const coachNavItems = useMemo(() => buildCoachNavItems(normalizedBasePath || "/"), [normalizedBasePath]);
 
 	const performStatusUpdate = useCallback(
-		async ({ customerId, status, note } = {}) => {
+		async ({ customerId, status, note, assessorId } = {}) => {
 			if (statusUpdating) return false;
 			const targetCustomerId = customerId || selectedCustomerId;
 			if (!targetCustomerId || targetCustomerId === "all") {
@@ -546,6 +616,7 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 					status: normalizedStatus,
 					note,
 					coachId: coachUid,
+					assessorId,
 				});
 				return true;
 			} catch (error) {
@@ -563,6 +634,48 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		[coachUid, selectedCustomerId, statusUpdating]
 	);
 
+	const openAssessorSelection = useCallback(async () => {
+		setAssessorModalOpen(true);
+		setAssessorsList([]);
+		setAssessorError(null);
+		setAssessorLoading(true);
+		try {
+			const list = await fetchUsersByRole("assessor");
+			setAssessorsList(Array.isArray(list) ? list : []);
+			setSelectedAssessorId((Array.isArray(list) && list[0]?.id) || "");
+		} catch (error) {
+			setAssessorError(error?.message || "Kon assessoren niet laden.");
+		} finally {
+			setAssessorLoading(false);
+		}
+	}, []);
+
+	const confirmAssessorAdvance = useCallback(async () => {
+		if (!selectedAssignment) {
+			setAssessorError("Geen kandidaat geselecteerd.");
+			return;
+		}
+		if (!selectedAssessorId) {
+			setAssessorError("Kies een assessor om door te sturen.");
+			return;
+		}
+		setAssessorLoading(true);
+		setAssessorError(null);
+		try {
+			await updateAssignmentStatus({
+				customerId: selectedAssignment.customerId || selectedAssignment.id,
+				status: TRAJECT_STATUS.ASSESSMENT,
+				coachId: coachUid,
+				assessorId: selectedAssessorId,
+			});
+			setAssessorModalOpen(false);
+		} catch (error) {
+			setAssessorError(error?.data?.error || error?.message || "Doorsturen naar assessor is mislukt.");
+		} finally {
+			setAssessorLoading(false);
+		}
+	}, [coachUid, selectedAssessorId, selectedAssignment]);
+
 	const handleAdvanceStatus = useCallback(
 		async ({ note } = {}) => {
 			const assignment = selectedAssignment;
@@ -576,13 +689,18 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 				setStatusUpdateError("Geen vervolgstap beschikbaar.");
 				return false;
 			}
+			// If coordinator advancing to ASSESSMENT, require assessor selection first
+			if (resolvedRole === "kwaliteitscoordinator" && nextStatus === TRAJECT_STATUS.ASSESSMENT) {
+				openAssessorSelection();
+				return false;
+			}
 			return performStatusUpdate({
 				customerId: assignment.customerId || assignment.id,
 				status: nextStatus,
 				note,
 			});
 		},
-		[performStatusUpdate, selectedAssignment]
+		[openAssessorSelection, performStatusUpdate, resolvedRole, selectedAssignment]
 	);
 
 	const handleRewindStatus = useCallback(
@@ -675,8 +793,7 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		setCustomersError(null);
 		setAssignments([]);
 		setAssignmentsError(null);
-		setFeedbackItems([]);
-		setFeedbackError(null);
+		// feedback removed
 		setUnreadMessages([]);
 		setUnreadMessagesError(null);
 		setSelectedCustomerId("all");
@@ -708,21 +825,25 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		setCustomersError(null);
 		setAssignments([]);
 		setAssignmentsError(null);
-		setFeedbackItems([]);
-		setFeedbackError(null);
+		// feedback removed
 		setUnreadMessages([]);
 		setUnreadMessagesError(null);
 		setSelectedCustomerId("all");
 		navigate("/login", { replace: true });
 	};
 
+	const customersForContext = useMemo(
+		() => (resolvedRole === "coach" ? customersList : assignedCustomers),
+		[assignedCustomers, customersList, resolvedRole]
+	);
+
 	const contextValue = useMemo(
 		() => ({
 			coach: coachDoc,
 			account: sqlUser,
-			customers: customersList,
+			customers: customersForContext,
 			assignments,
-			feedback: feedbackItems,
+			// feedback removed
 			selectedCustomer,
 			selectedCustomerId,
 			setSelectedCustomerId,
@@ -749,7 +870,7 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 				profile: coachProfileError,
 				customers: customersError,
 				assignments: assignmentsError,
-				feedback: feedbackError,
+				// feedback removed
 				messages: unreadMessagesError,
 			},
 			loading: {
@@ -763,9 +884,8 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 			coachProfileError,
 			coachNavItems,
 			customersError,
-			customersList,
-			feedbackError,
-			feedbackItems,
+			customersForContext,
+			// feedback removed
 			handleAdvanceStatus,
 			handleRewindStatus,
 			loadingUser,
@@ -847,6 +967,52 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 			}
 		>
 			<Outlet context={contextValue} />
+			<ModalForm
+				open={assessorModalOpen}
+				title="Kies assessor"
+				description="Kies de assessor aan wie je dit traject wilt toewijzen."
+				onClose={() => setAssessorModalOpen(false)}
+				footer={
+					<>
+						<button
+							type="button"
+							onClick={() => setAssessorModalOpen(false)}
+							className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+							disabled={assessorLoading}
+						>
+							Annuleren
+						</button>
+						<button
+							type="button"
+							onClick={confirmAssessorAdvance}
+							className="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
+							disabled={assessorLoading || !selectedAssessorId}
+						>
+							Bevestigen
+						</button>
+					</>
+				}
+			>
+				{assessorError ? (
+					<p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{assessorError}</p>
+				) : null}
+				<div>
+					<label className="mb-2 block text-sm font-medium text-slate-700">Assessor</label>
+					<select
+						value={selectedAssessorId}
+						onChange={(e) => setSelectedAssessorId(e.target.value)}
+						className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-100"
+						disabled={assessorLoading}
+					>
+						<option value="">{assessorLoading ? "Laden..." : "Kies een assessor"}</option>
+						{assessorsList.map((user) => (
+							<option key={user.id} value={user.id}>
+								{user.name || user.email || user.id}
+							</option>
+						))}
+					</select>
+				</div>
+			</ModalForm>
 		</DashboardLayout>
 	);
 };
@@ -1191,6 +1357,7 @@ const App = () => {
 					<Route path="assignments" element={<AdminAssignments />} />
 					<Route path="trajects" element={<AdminTrajects />} />
 					<Route path="profile" element={<AdminProfile />} />
+					<Route path="manual" element={<CustomerManual />} />
 					<Route path="users" element={<AdminUsers />} />
 					<Route path="users/create" element={<AdminCreateUser />} />
 				</Route>
@@ -1199,9 +1366,9 @@ const App = () => {
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
-					<Route path="feedback" element={<CoachFeedback />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
+					<Route path="manual" element={<CustomerManual />} />
 									<Route path="profile" element={<CoachProfile />} />
 				</Route>
 
@@ -1212,9 +1379,9 @@ const App = () => {
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
-					<Route path="feedback" element={<CoachFeedback />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
+					<Route path="manual" element={<CustomerManual />} />
 									<Route path="profile" element={<CoachProfile />} />
 				</Route>
 
@@ -1225,9 +1392,9 @@ const App = () => {
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
-					<Route path="feedback" element={<CoachFeedback />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
+					<Route path="manual" element={<CustomerManual />} />
 									<Route path="profile" element={<CoachProfile />} />
 				</Route>
 
