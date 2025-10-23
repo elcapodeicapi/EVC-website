@@ -14,10 +14,11 @@
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^5.1.0",
     "dotenv": "^16.4.5",
+    "express": "^5.1.0",
     "firebase-admin": "^13.5.0",
     "multer": "^2.0.2",
-    "path-match": "^1.2.4"
+    "path-match": "^1.2.4",
+    "root": "file:.."
   }
 }
