@@ -13,8 +13,9 @@ import {
   Loader2,
   UserCog,
 } from "lucide-react";
+import ModalForm from "../../components/ModalForm";
 import { subscribeTrajects, subscribeUsers } from "../../lib/firestoreAdmin";
-import { post } from "../../lib/api";
+import { post, del as apiDelete } from "../../lib/api";
 import { auth } from "../../firebase";
 import { signInWithCustomToken } from "firebase/auth";
 
@@ -364,8 +365,29 @@ const AdminUsers = () => {
       window.alert(`Bewerken van ${row.name} is nog niet beschikbaar in deze omgeving.`);
     };
 
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deletePending, setDeletePending] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
+
     const handleDeleteUser = (row) => {
-      window.alert(`Verwijderen van ${row.name} is nog niet beschikbaar in deze omgeving.`);
+      setDeleteTarget(row);
+      setDeleteError(null);
+    };
+
+    const confirmDelete = async () => {
+      if (!deleteTarget) return;
+      setDeletePending(true);
+      setDeleteError(null);
+      try {
+        const uid = deleteTarget.id || deleteTarget.raw?.firebaseUid;
+        if (!uid) throw new Error("Kan gebruikers-id niet bepalen");
+        await apiDelete(`/auth/admin/users/${uid}`);
+        setDeleteTarget(null);
+      } catch (err) {
+        setDeleteError(err?.data?.error || err?.message || "Verwijderen mislukt");
+      } finally {
+        setDeletePending(false);
+      }
     };
 
     const handleCreateUser = () => {
@@ -625,6 +647,40 @@ const AdminUsers = () => {
             </div>
           </div>
         </section>
+        {deleteTarget ? (
+          <ModalForm
+            open={true}
+            title="Gebruiker verwijderen"
+            description={`Weet je zeker dat je ${deleteTarget.name || deleteTarget.email || "deze gebruiker"} wilt verwijderen? Dit verwijdert het account en profiel permanent.`}
+            onClose={() => (!deletePending ? setDeleteTarget(null) : null)}
+            footer={
+              <>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={deletePending}
+                  className="rounded-full border border-slate-200 px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Annuleren
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={deletePending}
+                  className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deletePending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Verwijderen…</>) : "Verwijderen"}
+                </button>
+              </>
+            }
+          >
+            {deleteError ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {deleteError}
+              </div>
+            ) : null}
+          </ModalForm>
+        ) : null}
       </div>
     );
   };

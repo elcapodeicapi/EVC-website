@@ -63,3 +63,4 @@ export const get = (path, headers) => apiFetch(path, { method: "GET", headers })
 export const post = (path, body, headers) => apiFetch(path, { method: "POST", body, headers });
 export const put = (path, body, headers) => apiFetch(path, { method: "PUT", body, headers });
 export const postForm = (path, formData, headers) => apiFetch(path, { method: "POST", body: formData, headers, isForm: true });
+export const del = (path, headers) => apiFetch(path, { method: "DELETE", headers });

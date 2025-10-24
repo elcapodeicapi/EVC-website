@@ -350,3 +350,70 @@ exports.adminImpersonate = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
+// DELETE /auth/admin/users/:uid
+exports.adminDeleteUser = async (req, res) => {
+  try {
+    const { uid } = req.params || {};
+    if (!uid) return res.status(400).json({ error: "uid is required" });
+
+    const db = getDb();
+    const auth = getAuth();
+
+    // Load user profile (to decide on related cleanup)
+    const userRef = db.collection("users").doc(uid);
+    const userSnap = await userRef.get();
+    const userData = userSnap.exists ? userSnap.data() || {} : {};
+    const role = String(userData.role || "").toLowerCase();
+
+    // Clean Firestore profile data first
+    // 1) Remove profile subdocuments under users/{uid}/profile/*
+    const profileDetailsRef = userRef.collection("profile").doc("details");
+    const profileQuestionnaireRef = userRef.collection("profile").doc("questionnaire");
+    await Promise.allSettled([
+      profileDetailsRef.delete(),
+      profileQuestionnaireRef.delete(),
+    ]);
+
+    // 2) Remove resume/profile doc in top-level 'profiles' collection if present
+    await db.collection("profiles").doc(uid).delete().catch(() => {});
+
+    // 3) Remove assignment for customers (best-effort)
+    if (role === "customer" || role === "user") {
+      const assignmentRef = db.collection("assignments").doc(uid);
+      const assignmentSnap = await assignmentRef.get().catch(() => null);
+      if (assignmentSnap && assignmentSnap.exists) {
+        const assignment = assignmentSnap.data() || {};
+        const coachId = assignment.coachId || null;
+        await assignmentRef.delete().catch(() => {});
+        if (coachId) {
+          await db
+            .collection("assignmentsByCoach")
+            .doc(coachId)
+            .collection("customers")
+            .doc(uid)
+            .delete()
+            .catch(() => {});
+        }
+      }
+    }
+
+    // 4) Finally remove the main user profile document
+    await userRef.delete().catch(() => {});
+
+    // Delete Firebase Authentication account (ignore if already absent)
+    try {
+      await auth.deleteUser(uid);
+    } catch (e) {
+      // If user doesn't exist in Auth, continue
+      const code = String(e?.errorInfo?.code || e?.code || "").toLowerCase();
+      if (!code.includes("not-found")) {
+        throw e;
+      }
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Failed to delete user" });
+  }
+};

@@ -9,6 +9,8 @@ import {
 import { subscribeCustomerProgress } from "../../lib/firestoreCoach";
 import { get } from "../../lib/api";
 import { getTrajectStatusLabel, getStatusOwnerRoles } from "../../lib/trajectStatus";
+import { useResubscribingListener } from "../../hooks/useFirestoreListeners";
+import { markMessagesAsRead } from "../../lib/firestoreMessages";
 import { QUESTIONNAIRE_SECTION_IDS } from "../../lib/questionnaire";
 import { subscribeUnreadMessagesForCustomer } from "../../lib/firestoreMessages";
 
@@ -101,25 +103,28 @@ const CustomerDashboard = () => {
   const [unreadError, setUnreadError] = useState(null);
   const [statusNotice, setStatusNotice] = useState(null);
 
-  useEffect(() => {
-    if (!customerId) {
-      setUnreadMessages([]);
-      setUnreadError(null);
-      return () => {};
-    }
-    const unsubscribe = subscribeUnreadMessagesForCustomer(customerId, ({ data, error }) => {
-      if (error) {
-        setUnreadError(error);
+  // Stable unread listener: keep last-known data on transient errors and resubscribe on auth changes
+  useResubscribingListener(
+    (helpers) => {
+      if (!customerId) {
         setUnreadMessages([]);
-        return;
+        setUnreadError(null);
+        return () => {};
       }
-      setUnreadError(null);
-      setUnreadMessages(Array.isArray(data) ? data : []);
-    });
-    return () => {
-      if (typeof unsubscribe === "function") unsubscribe();
-    };
-  }, [customerId]);
+      return subscribeUnreadMessagesForCustomer(customerId, ({ data, error }) => {
+        if (error) {
+          // keep last-known list; route error to hook for resubscribe
+          setUnreadError(error);
+          helpers?.onError?.(error);
+          return;
+        }
+        setUnreadError(null);
+        setUnreadMessages(Array.isArray(data) ? data : []);
+      });
+    },
+    [customerId],
+    { name: "customer:unread" }
+  );
 
   useEffect(() => {
     if (!customerId) {
@@ -480,11 +485,40 @@ const CustomerDashboard = () => {
       ) : null}
       {Array.isArray(unreadMessages) && unreadMessages.length > 0 ? (
         <div className="rounded-3xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          <div className="flex items-start gap-3">
-            <BellDot className="mt-0.5 h-5 w-5 text-amber-600" />
-            <div className="space-y-1">
-              <p className="font-semibold">Je hebt {unreadMessages.length} ongelezen {unreadMessages.length === 1 ? "bericht" : "berichten"}</p>
-              <p className="text-amber-800/80">Ga naar Contact om je nieuwe {unreadMessages.length === 1 ? "bericht" : "berichten"} te bekijken. Deze melding verdwijnt zodra je de berichten hebt geopend.</p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <BellDot className="mt-0.5 h-5 w-5 text-amber-600" />
+              <div className="space-y-1">
+                <p className="font-semibold">Je hebt {unreadMessages.length} ongelezen {unreadMessages.length === 1 ? "bericht" : "berichten"}</p>
+                <p className="text-amber-800/80">Ga naar Contact om je nieuwe {unreadMessages.length === 1 ? "bericht" : "berichten"} te bekijken. Deze melding blijft staan tot je ze opent of markeert als gelezen.</p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    // Group unread by thread and mark all as read for customer
+                    const groups = unreadMessages.reduce((acc, m) => {
+                      const tid = m.threadId;
+                      if (!tid) return acc;
+                      if (!acc[tid]) acc[tid] = [];
+                      acc[tid].push(m.id);
+                      return acc;
+                    }, {});
+                    await Promise.all(
+                      Object.entries(groups).map(([threadId, ids]) =>
+                        markMessagesAsRead({ threadId, messageIds: ids, readerRole: "customer" })
+                      )
+                    );
+                  } catch (_) {
+                    // best-effort; errors will not clear the banner
+                  }
+                }}
+                className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-50"
+              >
+                Markeer als gelezen
+              </button>
             </div>
           </div>
         </div>

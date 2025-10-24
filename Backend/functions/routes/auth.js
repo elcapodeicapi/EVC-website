@@ -51,6 +51,14 @@ router.post(
 	authController.adminImpersonate
 );
 
+// Delete any user (including admins) — admin only
+router.delete(
+	"/admin/users/:uid",
+	authenticate,
+	authorizeRoles("admin"),
+	authController.adminDeleteUser
+);
+
 // Optional: quick health route to list providers (useful when testing emulators)
 router.get("/providers", async (req, res) => {
 	try {
