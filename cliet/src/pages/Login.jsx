@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
 import { post } from "../lib/api";
 import { auth } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import LegacyPageLayout from "./LegacyPageLayout";
 
 const Login = () => {
@@ -11,6 +11,11 @@ const Login = () => {
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
+	const [showReset, setShowReset] = useState(false);
+	const [resetEmail, setResetEmail] = useState("");
+	const [resetLoading, setResetLoading] = useState(false);
+	const [resetError, setResetError] = useState("");
+	const [resetSuccess, setResetSuccess] = useState("");
 	const navigate = useNavigate();
 
 	const onSubmit = async (event) => {
@@ -31,6 +36,42 @@ const Login = () => {
 			setError(err?.data?.error || err?.message || "Inloggen is niet gelukt. Controleer je gegevens.");
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const toggleReset = () => {
+		setShowReset((prev) => {
+			const next = !prev;
+			if (next) {
+				setResetEmail((val) => val || email);
+				setResetError("");
+				setResetSuccess("");
+			}
+			return next;
+		});
+	};
+
+	const handleSendReset = async (event) => {
+		event.preventDefault();
+		setResetError("");
+		setResetSuccess("");
+		const targetEmail = (resetEmail || email || "").trim();
+		if (!targetEmail) {
+			setResetError("Vul een geldig e-mailadres in.");
+			return;
+		}
+		setResetLoading(true);
+		try {
+			await sendPasswordResetEmail(auth, targetEmail);
+			setResetSuccess("Er is een e-mail verzonden met instructies om je wachtwoord te herstellen.");
+		} catch (err) {
+			const code = err?.code || "";
+			let msg = err?.message || "Het verzenden van de reset e-mail is mislukt.";
+			if (code === "auth/invalid-email") msg = "Het e-mailadres is ongeldig.";
+			else if (code === "auth/user-not-found") msg = "Er is geen account gevonden met dit e-mailadres.";
+			setResetError(msg);
+		} finally {
+			setResetLoading(false);
 		}
 	};
 
@@ -92,12 +133,55 @@ const Login = () => {
 						</label>
 						<button
 							type="button"
-							onClick={() => alert("Neem contact op met het supportteam om je wachtwoord te resetten.")}
+							onClick={toggleReset}
 							className="font-medium text-brand-600 transition hover:text-brand-500"
 						>
 							Wachtwoord vergeten?
 						</button>
 					</div>
+
+						{showReset ? (
+							<div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+								<form onSubmit={handleSendReset} className="space-y-3">
+									{resetError ? (
+										<div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{resetError}</div>
+									) : null}
+									{resetSuccess ? (
+										<div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{resetSuccess}</div>
+									) : null}
+									<div className="grid gap-1.5">
+										<label htmlFor="reset-email" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+											E-mailadres voor herstel
+										</label>
+										<input
+											id="reset-email"
+											type="email"
+											placeholder="jij@voorbeeld.nl"
+											value={resetEmail}
+											onChange={(e) => setResetEmail(e.target.value)}
+											className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+											required
+										/>
+									</div>
+									<div className="flex items-center justify-end gap-2">
+										<button
+											type="button"
+											onClick={() => setShowReset(false)}
+											className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+										>
+											Annuleren
+										</button>
+										<button
+											type="submit"
+											disabled={resetLoading}
+											className="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
+										>
+											{resetLoading ? "Versturen..." : "Stuur herstel e-mail"}
+										</button>
+									</div>
+								</form>
+							</div>
+						) : null}
 					<button
 						type="submit"
 						disabled={loading}

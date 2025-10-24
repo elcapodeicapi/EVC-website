@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import LegacyPageLayout from "./LegacyPageLayout";
+import BrandLogo from "../components/BrandLogo";
 import { post } from "../lib/api";
 import { auth } from "../firebase";
 
@@ -36,7 +37,8 @@ const Home = () => {
         <div className="grid w-full max-w-5xl gap-10 rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-2xl sm:p-10 lg:grid-cols-2">
           <div className="flex flex-col justify-between rounded-3xl bg-brand-50/60 p-8 shadow-inner">
             <div className="space-y-6">
-              <div>
+              <div className="flex flex-col items-center gap-3">
+                <BrandLogo className="mx-auto" tone="light" />
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-500">EVC-platform</p>
                 <h1 className="mt-3 text-2xl font-semibold text-slate-900">Welkom bij het EVC-portaal</h1>
               </div>

@@ -5,6 +5,7 @@ import {
   ensureThread,
   sendThreadMessage,
   subscribeThreadMessages,
+  markMessagesAsRead,
 } from "../../lib/firestoreMessages";
 
 const formatTimestamp = (value) => {
@@ -94,13 +95,15 @@ const CustomerMessages = () => {
       return () => {};
     }
 
-    const unsubscribe = subscribeThreadMessages(threadId, ({ data, error: subscriptionError }) => {
+    const unsubscribe = subscribeThreadMessages(threadId, async ({ data, error: subscriptionError }) => {
       if (subscriptionError) {
         setError(subscriptionError.message || "Kon berichten niet laden");
         return;
       }
       setError(null);
-      setMessages(Array.isArray(data) ? data : []);
+      const records = Array.isArray(data) ? data : [];
+      // NOTE: Do NOT auto-mark as read here; only mark when the user clicks messages.
+      setMessages(records);
     });
 
     return () => {
@@ -116,6 +119,19 @@ const CustomerMessages = () => {
       senderInitial: (message.senderName || "?").charAt(0).toUpperCase(),
     }));
   }, [messages, customerId]);
+
+  const handleMessageClick = async (message) => {
+    if (!message || !threadId) return;
+    if (message.receiverId !== customerId || message.isReadByCustomer) return;
+    try {
+      await markMessagesAsRead({ threadId, messageIds: [message.id], readerRole: "customer" });
+      setMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? { ...m, isReadByCustomer: true } : m))
+      );
+    } catch (_) {
+      // ignore
+    }
+  };
 
   const handleSend = async (event) => {
     event.preventDefault();
@@ -188,6 +204,7 @@ const CustomerMessages = () => {
                 formattedMessages.map((message) => (
                   <article
                     key={message.id}
+                    onClick={() => handleMessageClick(message)}
                     className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-sm ${
                       message.isOwn ? "border-evc-blue-100 bg-evc-blue-50/60" : "border-slate-100 bg-slate-50"
                     }`}

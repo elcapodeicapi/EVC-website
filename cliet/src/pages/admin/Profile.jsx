@@ -4,6 +4,7 @@ import { auth } from "../../firebase";
 import { subscribeAdminProfile, updateAdminProfile } from "../../lib/firestoreAdmin";
 import { uploadCustomerProfilePhoto } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import ChangePasswordModal from "../../components/ChangePasswordModal";
 
 const ROLE_LABELS = new Map([
   ["admin", "Beheerder"],
@@ -51,6 +52,7 @@ const AdminProfile = () => {
   const [photoStatus, setPhotoStatus] = useState(null);
   const [photoInputKey, setPhotoInputKey] = useState(0);
   const [photoURL, setPhotoURL] = useState("");
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -400,6 +402,13 @@ const AdminProfile = () => {
               <div className="space-y-4 border-t border-slate-100 pt-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Contact</h3>
+                  <button
+                    type="button"
+                    onClick={() => setPasswordOpen(true)}
+                    className="text-sm font-semibold text-brand-600 transition hover:text-brand-500"
+                  >
+                    Wachtwoord wijzigen
+                  </button>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="grid gap-2">
@@ -502,6 +511,7 @@ const AdminProfile = () => {
           </ul>
         )}
       </section>
+  <ChangePasswordModal open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </div>
   );
 };

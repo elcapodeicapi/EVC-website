@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useOutletContext } from "react-router-dom";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import {
@@ -43,6 +43,7 @@ const CoachMessages = () => {
   const [threadsError, setThreadsError] = useState(null);
 
   const [activeThreadId, setActiveThreadId] = useState(null);
+  const [userSelectedThreadId, setUserSelectedThreadId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messagesError, setMessagesError] = useState(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -94,9 +95,17 @@ const CoachMessages = () => {
       });
   }, [threads, unreadMessagesByThread]);
 
+  const selectThread = useCallback((threadId, { userInitiated = false } = {}) => {
+    setActiveThreadId(threadId);
+    if (userInitiated) {
+      setUserSelectedThreadId(threadId);
+    }
+  }, []);
+
   useEffect(() => {
     if (sortedThreads.length === 0) {
       setActiveThreadId(null);
+      setUserSelectedThreadId(null);
       return;
     }
     setActiveThreadId((previous) => {
@@ -115,6 +124,7 @@ const CoachMessages = () => {
     const requested = params.get("thread") || params.get("threadId");
     if (!requested) return;
     setActiveThreadId((prev) => (prev && prev === requested ? prev : requested));
+    setUserSelectedThreadId(requested);
   }, [location.search]);
 
   useEffect(() => {
@@ -135,30 +145,6 @@ const CoachMessages = () => {
 
       const records = Array.isArray(data) ? data : [];
 
-      if (coachId) {
-        const unreadForCoach = records.filter(
-          (message) => message.receiverId === coachId && !message.isReadByCoach
-        );
-        if (unreadForCoach.length > 0) {
-          const unreadIds = unreadForCoach.map((message) => message.id).filter(Boolean);
-          if (unreadIds.length > 0) {
-            markMessagesAsRead({
-              threadId: activeThreadId,
-              messageIds: unreadIds,
-              readerRole: "coach",
-            }).catch((err) => setMessagesError(err));
-            setMessages(
-              records.map((message) =>
-                unreadIds.includes(message.id) ? { ...message, isReadByCoach: true } : message
-              )
-            );
-            setMessagesError(null);
-            setMessagesLoading(false);
-            return;
-          }
-        }
-      }
-
       setMessages(records);
       setMessagesError(null);
       setMessagesLoading(false);
@@ -167,7 +153,7 @@ const CoachMessages = () => {
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
-  }, [activeThreadId, coachId]);
+  }, [activeThreadId, coachId, userSelectedThreadId]);
 
   const activeThread = useMemo(
     () => sortedThreads.find((thread) => thread.id === activeThreadId) || null,
@@ -196,6 +182,7 @@ const CoachMessages = () => {
     if (!message || !activeThreadId) return;
     if (message.receiverId !== coachId || message.isReadByCoach) return;
     try {
+      setUserSelectedThreadId(activeThreadId);
       await markMessagesAsRead({
         threadId: activeThreadId,
         messageIds: [message.id],
@@ -286,7 +273,7 @@ const CoachMessages = () => {
                     <li key={thread.id}>
                       <button
                         type="button"
-                        onClick={() => setActiveThreadId(thread.id)}
+                        onClick={() => selectThread(thread.id, { userInitiated: true })}
                         className={`w-full rounded-2xl px-4 py-3 text-left text-sm transition ${baseClasses}`}
                       >
                         <div className="flex items-center justify-between gap-3">

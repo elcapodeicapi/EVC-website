@@ -10,6 +10,7 @@ import {
   updateDoc,
   where,
   writeBatch,
+  limit,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { getUsersIndex } from "./firestoreAdmin";
@@ -543,6 +544,33 @@ export function subscribeCoachAssignments(coachUid, observer) {
     (error) => observer({ data: [], error })
   );
 }
+  /**
+   * Subscribe to a single assignment for a given customer that is also owned by the provided coach.
+   * Falls back to null if none found or permission denied.
+   */
+  export function subscribeAssignmentForCoach(customerId, coachUid, observer) {
+    if (!customerId || !coachUid) {
+      observer({ data: null, error: new Error("customerId en coachUid zijn verplicht") });
+      return () => {};
+    }
+    const assignmentsRef = collection(db, "assignments");
+    const q = query(
+      assignmentsRef,
+      where("customerId", "==", customerId),
+      where("coachId", "==", coachUid),
+      limit(1)
+    );
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const docSnap = snapshot.docs[0];
+        const item = docSnap ? mapAssignmentDoc(docSnap) : null;
+        observer({ data: item, error: null });
+      },
+      (error) => observer({ data: null, error })
+    );
+  }
+
 
 export function subscribeCoordinatorAssignments(coordinatorUid, observer) {
   if (!coordinatorUid) {
@@ -579,6 +607,23 @@ export function subscribeAssessorAssignments(assessorUid, observer) {
       observer({ data: assignments, error: null });
     },
     (error) => observer({ data: [], error })
+  );
+}
+
+// Subscribe to a single assignment document by customerId
+export function subscribeAssignmentByCustomerId(customerId, observer) {
+  if (!customerId) {
+    observer({ data: null, error: new Error("customerId ontbreekt") });
+    return () => {};
+  }
+  const ref = doc(db, "assignments", customerId);
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      const item = mapAssignmentDoc(snapshot);
+      observer({ data: item, error: null });
+    },
+    (error) => observer({ data: null, error })
   );
 }
 

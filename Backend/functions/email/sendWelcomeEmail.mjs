@@ -43,14 +43,6 @@ function generateTempPassword(length = 12) {
   return Array.from(bytes, (b) => chars[b % chars.length]).join("");
 }
 
-function resolvePasswordPlaceholder(data) {
-  return (
-    data?.initialPassword ||
-    data?.temporaryPassword ||
-    data?.tempPassword ||
-    "[password]"
-  );
-}
 
 function shouldSend(user, data) {
   if (!user.email) return false;
@@ -95,23 +87,23 @@ export const sendWelcomeEmail = functions
       return;
     }
 
-    let password = resolvePasswordPlaceholder(userData);
-    if (password === "[password]") {
-      try {
-        const temp = generateTempPassword();
-        await auth.updateUser(uid, { password: temp });
-        await db.collection("users").doc(uid).set(
-          {
-            temporaryPassword: temp,
-            passwordGeneratedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-        password = temp;
-      } catch (err) {
-        functions.logger.error("Could not create temp password", err);
-        password = "(stel je wachtwoord in via 'Wachtwoord vergeten')";
-      }
+    // Always generate a fresh temporary password and set it for the user
+    let password;
+    try {
+      const temp = generateTempPassword();
+      await auth.updateUser(uid, { password: temp });
+      await db.collection("users").doc(uid).set(
+        {
+          temporaryPassword: temp,
+          passwordGeneratedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+      password = temp;
+    } catch (err) {
+      functions.logger.error("Could not set temporary password for new user", err);
+      // As a last resort, keep instructions to use password reset
+      password = "(stel je wachtwoord in via 'Wachtwoord vergeten')";
     }
 
     const name =

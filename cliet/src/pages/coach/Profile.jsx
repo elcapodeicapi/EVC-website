@@ -4,6 +4,7 @@ import { Users as UsersIcon, ClipboardList, Mail, Phone, MapPin, CalendarDays, C
 import { updateCoachProfile } from "../../lib/firestoreCoach";
 import { uploadCustomerProfilePhoto } from "../../lib/firestoreCustomer";
 import { normalizeTrajectStatus, TRAJECT_STATUS } from "../../lib/trajectStatus";
+import ChangePasswordModal from "../../components/ChangePasswordModal";
 
 const CoachProfile = () => {
   const { coach, customers = [], assignments = [], account } = useOutletContext() ?? {};
@@ -32,6 +33,7 @@ const CoachProfile = () => {
   const [photoStatus, setPhotoStatus] = useState(null);
   const [photoInputKey, setPhotoInputKey] = useState(0);
   const [photoURL, setPhotoURL] = useState("");
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   useEffect(() => {
     if (!coach) return;
@@ -348,7 +350,16 @@ const CoachProfile = () => {
               </div>
 
               <div className="space-y-4 border-t border-slate-100 pt-6">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Contact</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Contact</h3>
+                  <button
+                    type="button"
+                    onClick={() => setPasswordOpen(true)}
+                    className="text-sm font-semibold text-brand-600 transition hover:text-brand-500"
+                  >
+                    Wachtwoord wijzigen
+                  </button>
+                </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="grid gap-2">
                     <label htmlFor="phoneFixed" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Telefoon (vast)</label>
@@ -495,6 +506,7 @@ const CoachProfile = () => {
           )}
         </article>
       </section>
+  <ChangePasswordModal open={passwordOpen} onClose={() => setPasswordOpen(false)} />
 
       <section className="rounded-3xl bg-white p-6 shadow-card">
         <h3 className="text-base font-semibold text-slate-900">Aankomende sessies</h3>

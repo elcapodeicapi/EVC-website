@@ -4,6 +4,7 @@ import { get, put } from "../../lib/api";
 import { subscribeCustomerProfileDetails, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
+import ChangePasswordModal from "../../components/ChangePasswordModal";
 
 const initialFormState = {
   dateOfBirth: "",
@@ -59,6 +60,7 @@ const CustomerProfile = () => {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoStatus, setPhotoStatus] = useState(null);
   const [photoInputKey, setPhotoInputKey] = useState(0);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const customerId = customer?.id || customer?.firebaseUid || customer?.uid || null;
   const customerName = useMemo(() => customer?.name || form.name || "Jouw profiel", [customer?.name, form.name]);
@@ -397,6 +399,7 @@ const CustomerProfile = () => {
           </div>
         ) : null}
       </header>
+      <ChangePasswordModal open={passwordOpen} onClose={() => setPasswordOpen(false)} />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -666,7 +669,7 @@ const CustomerProfile = () => {
                   <h2 className="text-base font-semibold text-slate-900">Contactgegevens</h2>
                   <button
                     type="button"
-                    onClick={() => alert("Vraag je beheerder om je wachtwoord te wijzigen.")}
+                    onClick={() => setPasswordOpen(true)}
                     className="text-sm font-semibold text-brand-600 transition hover:text-brand-500"
                   >
                     Wachtwoord wijzigen

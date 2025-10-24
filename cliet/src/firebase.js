@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics, isSupported as analyticsIsSupported } from "firebase/analytics";
 import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence, onIdTokenChanged } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
@@ -16,7 +16,13 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Use initializeFirestore with auto-detected long polling to be resilient to
+// proxies/ad blockers that interfere with streaming channels.
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+  // Disable fetch streams for wider compatibility across browsers/extensions
+  useFetchStreams: false,
+});
 export const storage = getStorage(app);
 
 // Initialize Analytics only in supported environments and when configured

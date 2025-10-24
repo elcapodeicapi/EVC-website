@@ -99,6 +99,7 @@ const CustomerDashboard = () => {
 
   const [unreadMessages, setUnreadMessages] = useState([]);
   const [unreadError, setUnreadError] = useState(null);
+  const [statusNotice, setStatusNotice] = useState(null);
 
   useEffect(() => {
     if (!customerId) {
@@ -251,6 +252,54 @@ const CustomerDashboard = () => {
     return statusOwnerRoles.map((role) => ownerRoleLabels[role] || role).join(", ");
   }, [assignment, ownerRoleLabels, statusOwnerRoles]);
 
+  // Determine the latest status change from assignment history or fallback to statusUpdatedAt
+  const latestStatusChange = useMemo(() => {
+    if (!assignment) return null;
+    const history = Array.isArray(assignment.statusHistory) ? assignment.statusHistory : [];
+    const lastEntry = history.length > 0 ? history[history.length - 1] : null;
+    const changedAt = lastEntry?.changedAt || assignment.statusUpdatedAt || null;
+    const status = lastEntry?.status || assignment.status || null;
+    const changedByRole = lastEntry?.changedByRole || assignment.statusUpdatedByRole || null;
+    const changedAtMillis = changedAt instanceof Date ? changedAt.getTime() : null;
+    if (!status || !changedAtMillis) return null;
+    return { status, changedAt, changedAtMillis, changedByRole };
+  }, [assignment]);
+
+  // Show a banner if there's a newer status change than the last-seen marker in localStorage
+  useEffect(() => {
+    if (!assignment || !latestStatusChange?.changedAtMillis) {
+      setStatusNotice(null);
+      return;
+    }
+    const key = `evc:lastSeenStatus:${assignment.id}`;
+    let stored = null;
+    try {
+      const raw = localStorage.getItem(key);
+      stored = raw ? parseInt(raw, 10) : null;
+    } catch (_) {
+      stored = null;
+    }
+    if (!stored) {
+      // No marker yet: show the notice until the user marks it as read
+      setStatusNotice(latestStatusChange);
+      return;
+    }
+    if (latestStatusChange.changedAtMillis > stored) {
+      setStatusNotice(latestStatusChange);
+    } else {
+      setStatusNotice(null);
+    }
+  }, [assignment?.id, latestStatusChange?.changedAtMillis]);
+
+  const markStatusNoticeAsSeen = () => {
+    if (!assignment || !latestStatusChange?.changedAtMillis) return;
+    const key = `evc:lastSeenStatus:${assignment.id}`;
+    try {
+      localStorage.setItem(key, String(latestStatusChange.changedAtMillis));
+    } catch (_) {}
+    setStatusNotice(null);
+  };
+
   const totalCompetencies = progressData?.totalCompetencies ?? 0;
   const completedCompetencies = progressData?.completedCompetencies ?? 0;
   const completionPercentage = progressData?.completionPercentage ?? 0;
@@ -396,6 +445,39 @@ const CustomerDashboard = () => {
 
   return (
     <div className="space-y-10">
+      {statusNotice ? (
+        <div className="rounded-3xl border border-sky-300 bg-sky-50 p-4 text-sm text-sky-900">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <BellDot className="mt-0.5 h-5 w-5 text-sky-600" />
+              <div className="space-y-1">
+                <p className="font-semibold">
+                  Je trajectstatus is gewijzigd naar {getTrajectStatusLabel(statusNotice.status)}
+                </p>
+                <p className="text-sky-800/80">
+                  Wijziging: {formatRelative(statusNotice.changedAt) || "zojuist"}
+                  {(() => {
+                    const owners = getStatusOwnerRoles(statusNotice.status) || [];
+                    const ownerLabel = owners.length
+                      ? owners.map((r) => ownerRoleLabels[r] || r).join(", ")
+                      : null;
+                    return ownerLabel ? ` • Aan zet: ${ownerLabel}` : "";
+                  })()}
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <button
+                type="button"
+                onClick={markStatusNoticeAsSeen}
+                className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-700 shadow-sm transition hover:bg-sky-50"
+              >
+                Markeer als gelezen
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {Array.isArray(unreadMessages) && unreadMessages.length > 0 ? (
         <div className="rounded-3xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <div className="flex items-start gap-3">

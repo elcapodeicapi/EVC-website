@@ -1,9 +1,29 @@
 import React, { useCallback, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Users as UsersIcon, ClipboardList, Clock, MessageCircle } from "lucide-react";
+import { Users as UsersIcon, ClipboardList, Clock, MessageCircle, BellRing } from "lucide-react";
 import StatsCard from "../../components/StatsCard";
-import { normalizeTrajectStatus, TRAJECT_STATUS } from "../../lib/trajectStatus";
+import {
+  normalizeTrajectStatus,
+  TRAJECT_STATUS,
+  getStatusOwnerRoles,
+  getTrajectStatusLabel,
+} from "../../lib/trajectStatus";
 import StatusWorkflowPanel from "../../components/StatusWorkflowPanel";
+
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("nl-NL", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+const formatDateTime = (value) => {
+  if (!(value instanceof Date)) return null;
+  if (Number.isNaN(value.getTime())) return null;
+  try {
+    return DATE_TIME_FORMATTER.format(value);
+  } catch (_) {
+    return value.toLocaleString();
+  }
+};
 
 const CoachDashboard = () => {
   const {
@@ -14,6 +34,7 @@ const CoachDashboard = () => {
     unreadMessageSummary,
     selectedAssignment,
     selectedCustomer,
+    setSelectedCustomerId,
     role: resolvedRole,
     statusWorkflow,
     statusUpdating,
@@ -111,6 +132,65 @@ const CoachDashboard = () => {
   const handleAdvance = useCallback(() => statusWorkflow?.advance?.({}), [statusWorkflow]);
   const handleRewind = useCallback(() => statusWorkflow?.rewind?.({}), [statusWorkflow]);
 
+  // Debug assignment/status rendering issues
+  React.useEffect(() => {
+    if (import.meta?.env?.VITE_DEBUG_STATUS === "true") {
+      // eslint-disable-next-line no-console
+      console.log("[coach:dashboard] selectedCustomer=", selectedCustomer?.id, selectedCustomer?.name);
+      // eslint-disable-next-line no-console
+      console.log("[coach:dashboard] selectedAssignment=", selectedAssignment ? {
+        id: selectedAssignment.id,
+        customerId: selectedAssignment.customerId,
+        status: selectedAssignment.status,
+      } : null);
+    }
+  }, [selectedAssignment, selectedCustomer]);
+
+  const customerIndex = useMemo(() => {
+    const map = new Map();
+    customers.forEach((customer) => {
+      if (!customer?.id) return;
+      map.set(customer.id, customer);
+    });
+    return map;
+  }, [customers]);
+
+  const actionableAssignments = useMemo(() => {
+    const normalizedRole = (resolvedRole || "coach").toLowerCase();
+    return assignments
+      .map((assignment) => {
+        const status = normalizeTrajectStatus(assignment?.status);
+        const ownerRoles = getStatusOwnerRoles(status);
+        const customerId = assignment?.customerId || assignment?.id || null;
+        if (!customerId || !ownerRoles.includes(normalizedRole)) return null;
+        const customerInfo = customerIndex.get(customerId) || {};
+        const statusUpdatedAt =
+          assignment?.statusUpdatedAt instanceof Date ? assignment.statusUpdatedAt : null;
+        return {
+          id: assignment?.id || customerId,
+          customerId,
+          status,
+          statusLabel: getTrajectStatusLabel(status),
+          statusUpdatedAt,
+          customerName: customerInfo.name || customerInfo.email || customerId,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        const timeA = a.statusUpdatedAt instanceof Date ? a.statusUpdatedAt.getTime() : 0;
+        const timeB = b.statusUpdatedAt instanceof Date ? b.statusUpdatedAt.getTime() : 0;
+        return timeB - timeA;
+      });
+  }, [assignments, customerIndex, resolvedRole]);
+
+  const handleSelectCustomer = useCallback(
+    (customerId) => {
+      if (!customerId || typeof setSelectedCustomerId !== "function") return;
+      setSelectedCustomerId(customerId);
+    },
+    [setSelectedCustomerId]
+  );
+
   return (
     <div className="space-y-8">
       <section className="rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-10 text-white shadow-card">
@@ -120,6 +200,49 @@ const CoachDashboard = () => {
           Bekijk de nieuwste uploads, geef gerichte feedback en houd je kandidaten in beweging tijdens hun EVC-traject.
         </p>
       </section>
+
+      {actionableAssignments.length > 0 ? (
+        <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-card">
+          <div className="flex items-start gap-3">
+            <BellRing className="mt-0.5 h-5 w-5 text-amber-600" />
+            <div className="space-y-3 text-sm text-amber-900">
+              <div>
+                <p className="font-semibold">
+                  {actionableAssignments.length === 1
+                    ? "1 traject wacht op jouw actie"
+                    : `${actionableAssignments.length} trajecten wachten op jouw actie`}
+                </p>
+                <p className="text-xs text-amber-700">
+                  Kies een kandidaat om de volgende stap in de workflow te zetten.
+                </p>
+              </div>
+              <ul className="space-y-2">
+                {actionableAssignments.slice(0, 3).map((entry) => (
+                  <li key={entry.id} className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCustomer(entry.customerId)}
+                      className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                    >
+                      Open traject
+                    </button>
+                    <span className="font-medium">{entry.customerName}</span>
+                    <span className="text-xs text-amber-700">
+                      • {entry.statusLabel}
+                      {entry.statusUpdatedAt ? ` • ${formatDateTime(entry.statusUpdatedAt)}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {actionableAssignments.length > 3 ? (
+                <p className="text-xs text-amber-700">
+                  +{actionableAssignments.length - 3} andere trajecten wachten ook op actie.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {selectedAssignment ? (
         <StatusWorkflowPanel

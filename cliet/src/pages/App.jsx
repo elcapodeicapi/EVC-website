@@ -70,7 +70,10 @@ import {
 	subscribeCoachProfile,
 	subscribeCoordinatorAssignments,
 	subscribeAssessorAssignments,
+	subscribeAssignmentByCustomerId,
+	subscribeAssignmentForCoach,
 } from "../lib/firestoreCoach";
+
 import { subscribeUnreadMessagesForCoach } from "../lib/firestoreMessages";
 import { get, post } from "../lib/api";
 import {
@@ -84,6 +87,7 @@ import {
 import { updateAssignmentStatus } from "../lib/assignmentWorkflow";
 import ModalForm from "../components/ModalForm";
 import { fetchUsersByRole, getUsersIndex } from "../lib/firestoreAdmin";
+import { useResubscribingListener, withObserver } from "../hooks/useFirestoreListeners";
 
 const ADMIN_NAV_ITEMS = [
 	{ label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
@@ -156,7 +160,7 @@ const AdminLayout = () => {
 
 	const handleLogout = () => {
 		localStorage.removeItem("token");
-		navigate("/login", { replace: true });
+		navigate("/", { replace: true });
 	};
 
 	useEffect(() => {
@@ -322,48 +326,58 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 	const [coachDoc, setCoachDoc] = useState(null);
 	const [coachProfileError, setCoachProfileError] = useState(null);
 
-	useEffect(() => {
-		if (!coachUid) {
-			setCoachDoc(null);
-			setCoachProfileError(null);
-			return () => {};
-		}
-		const unsubscribe = subscribeCoachProfile(coachUid, ({ data, error }) => {
-			if (error) {
-				setCoachProfileError(error);
-				setCoachDoc(null);
-				return;
-			}
-			setCoachProfileError(null);
-			setCoachDoc(data || null);
-		});
-		return () => {
-			if (typeof unsubscribe === "function") unsubscribe();
-		};
-	}, [coachUid]);
+			useResubscribingListener(
+					(helpers) => {
+				if (!coachUid) {
+					setCoachDoc(null);
+					setCoachProfileError(null);
+					return () => {};
+				}
+				return subscribeCoachProfile(
+					coachUid,
+							withObserver(
+						(data) => {
+							setCoachProfileError(null);
+							setCoachDoc(data || null);
+						},
+						(error) => {
+									setCoachProfileError(error);
+								},
+								helpers
+					)
+				);
+			},
+					[coachUid],
+			{ name: "coach:profile" }
+		);
 
 	const [customersList, setCustomersList] = useState([]);
 	const [customersError, setCustomersError] = useState(null);
 
-	useEffect(() => {
-		if (!coachUid) {
-			setCustomersList([]);
-			setCustomersError(null);
-			return () => {};
-		}
-		const unsubscribe = subscribeCoachCustomers(coachUid, ({ data, error }) => {
-			if (error) {
-				setCustomersError(error);
-				setCustomersList([]);
-				return;
-			}
-			setCustomersError(null);
-			setCustomersList(Array.isArray(data) ? data : []);
-		});
-		return () => {
-			if (typeof unsubscribe === "function") unsubscribe();
-		};
-	}, [coachUid]);
+			useResubscribingListener(
+					(helpers) => {
+				if (!coachUid) {
+					setCustomersList([]);
+					setCustomersError(null);
+					return () => {};
+				}
+				return subscribeCoachCustomers(
+					coachUid,
+							withObserver(
+						(data) => {
+							setCustomersError(null);
+							setCustomersList(Array.isArray(data) ? data : []);
+						},
+						(error) => {
+									setCustomersError(error);
+								},
+								helpers
+					)
+				);
+			},
+					[coachUid],
+			{ name: "coach:customers" }
+		);
 
 	// Resolve role and navigation early, used by downstream effects
 	const resolvedRole = useMemo(
@@ -384,48 +398,34 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 	const [assignedCustomers, setAssignedCustomers] = useState([]);
 	const [assignedCustomersError, setAssignedCustomersError] = useState(null);
 
-	useEffect(() => {
-		if (!coachUid) {
-			setAssignments([]);
-			setAssignmentsError(null);
-			return () => {};
-		}
-		let unsubscribe = null;
-		if (resolvedRole === "kwaliteitscoordinator") {
-			unsubscribe = subscribeCoordinatorAssignments(coachUid, ({ data, error }) => {
-				if (error) {
-					setAssignmentsError(error);
+			useResubscribingListener(
+					(helpers) => {
+				if (!coachUid) {
 					setAssignments([]);
-					return;
+					setAssignmentsError(null);
+					return () => {};
 				}
-				setAssignmentsError(null);
-				setAssignments(Array.isArray(data) ? data : []);
-			});
-		} else if (resolvedRole === "assessor") {
-			unsubscribe = subscribeAssessorAssignments(coachUid, ({ data, error }) => {
-				if (error) {
-					setAssignmentsError(error);
-					setAssignments([]);
-					return;
+						const observer = withObserver(
+					(data) => {
+						setAssignmentsError(null);
+						setAssignments(Array.isArray(data) ? data : []);
+					},
+					(error) => {
+								setAssignmentsError(error);
+							},
+							helpers
+				);
+				if (resolvedRole === "kwaliteitscoordinator") {
+					return subscribeCoordinatorAssignments(coachUid, observer);
 				}
-				setAssignmentsError(null);
-				setAssignments(Array.isArray(data) ? data : []);
-			});
-		} else {
-			unsubscribe = subscribeCoachAssignments(coachUid, ({ data, error }) => {
-				if (error) {
-					setAssignmentsError(error);
-					setAssignments([]);
-					return;
+				if (resolvedRole === "assessor") {
+					return subscribeAssessorAssignments(coachUid, observer);
 				}
-				setAssignmentsError(null);
-				setAssignments(Array.isArray(data) ? data : []);
-			});
-		}
-		return () => {
-			if (typeof unsubscribe === "function") unsubscribe();
-		};
-	}, [coachUid, resolvedRole]);
+				return subscribeCoachAssignments(coachUid, observer);
+			},
+					[coachUid, resolvedRole],
+			{ name: "coach:assignments" }
+		);
 
 	// Build customers list for non-coach roles from assignments
 	useEffect(() => {
@@ -477,25 +477,30 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 	const [unreadMessages, setUnreadMessages] = useState([]);
 	const [unreadMessagesError, setUnreadMessagesError] = useState(null);
 
-	useEffect(() => {
-		if (!coachUid) {
-			setUnreadMessages([]);
-			setUnreadMessagesError(null);
-			return () => {};
-		}
-		const unsubscribe = subscribeUnreadMessagesForCoach(coachUid, ({ data, error }) => {
-			if (error) {
-				setUnreadMessagesError(error);
-				setUnreadMessages([]);
-				return;
-			}
-			setUnreadMessages(Array.isArray(data) ? data : []);
-			setUnreadMessagesError(null);
-		});
-		return () => {
-			if (typeof unsubscribe === "function") unsubscribe();
-		};
-	}, [coachUid]);
+			useResubscribingListener(
+					(helpers) => {
+				if (!coachUid) {
+					setUnreadMessages([]);
+					setUnreadMessagesError(null);
+					return () => {};
+				}
+				return subscribeUnreadMessagesForCoach(
+					coachUid,
+							withObserver(
+						(data) => {
+							setUnreadMessages(Array.isArray(data) ? data : []);
+							setUnreadMessagesError(null);
+						},
+						(error) => {
+									setUnreadMessagesError(error);
+								},
+								helpers
+					)
+				);
+			},
+					[coachUid],
+			{ name: "coach:unread" }
+		);
 
 
 	const customerOptions = useMemo(() => {
@@ -548,13 +553,76 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 			[assignedCustomers, customersList, resolvedRole, selectedCustomerId]
 		);
 
-	const selectedAssignment = useMemo(
-		() =>
-			selectedCustomerId === "all"
-				? null
-				: assignments.find((assignment) => assignment.customerId === selectedCustomerId) || null,
-		[assignments, selectedCustomerId]
-	);
+		const [focusedAssignment, setFocusedAssignment] = useState(null);
+
+		// Directly subscribe to the assignment for the selected candidate (by customerId)
+		useResubscribingListener(
+			(helpers) => {
+				if (!selectedCustomerId || selectedCustomerId === "all") {
+					setFocusedAssignment(null);
+					return () => {};
+				}
+				const normalizedRole = (resolvedRole || "coach").toLowerCase();
+				if (normalizedRole === "coach" && coachUid) {
+					return subscribeAssignmentForCoach(
+						selectedCustomerId,
+						coachUid,
+						({ data, error }) => {
+							if (error) {
+								helpers?.onError?.(error);
+								return;
+							}
+							setFocusedAssignment(data || null);
+						}
+					);
+				}
+				return subscribeAssignmentByCustomerId(
+					selectedCustomerId,
+					({ data, error }) => {
+						if (error) {
+							helpers?.onError?.(error);
+							return;
+						}
+						setFocusedAssignment(data || null);
+					}
+				);
+			},
+			[selectedCustomerId],
+			{ name: "coach:assignmentByCustomer" }
+		);
+
+		const selectedAssignment = useMemo(() => {
+			if (selectedCustomerId === "all") return null;
+			// Prefer focused assignment subscription for freshest status
+			if (focusedAssignment && (focusedAssignment.customerId === selectedCustomerId || focusedAssignment.id === selectedCustomerId)) {
+				return focusedAssignment;
+			}
+			return (
+				assignments.find(
+					(assignment) => assignment.customerId === selectedCustomerId || assignment.id === selectedCustomerId
+				) || null
+			);
+		}, [assignments, focusedAssignment, selectedCustomerId]);
+
+		// Debug selection flow (toggle with VITE_DEBUG_STATUS=true)
+		useEffect(() => {
+			if (import.meta?.env?.VITE_DEBUG_STATUS === "true") {
+				// eslint-disable-next-line no-console
+				console.log("[status] coachUid=", coachUid, "selectedCustomerId=", selectedCustomerId, "assignments=", assignments?.length || 0);
+				if (selectedAssignment) {
+					// eslint-disable-next-line no-console
+					console.log("[status] selectedAssignment:", {
+						id: selectedAssignment.id,
+						customerId: selectedAssignment.customerId,
+						status: selectedAssignment.status,
+						updatedAt: selectedAssignment.statusUpdatedAt,
+					});
+				} else {
+					// eslint-disable-next-line no-console
+					console.log("[status] no selectedAssignment");
+				}
+			}
+		}, [assignments, coachUid, selectedAssignment, selectedCustomerId]);
 
 		const subtitle = useMemo(() => {
 		const parts = [];
@@ -801,7 +869,7 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		if (adminSignInError) {
 			localStorage.removeItem("user");
 			setSqlUser(null);
-			navigate("/login", { replace: true });
+			navigate("/", { replace: true });
 			return;
 		}
 
@@ -829,7 +897,7 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		setUnreadMessages([]);
 		setUnreadMessagesError(null);
 		setSelectedCustomerId("all");
-		navigate("/login", { replace: true });
+		navigate("/", { replace: true });
 	};
 
 	const customersForContext = useMemo(
@@ -1076,32 +1144,32 @@ const CustomerLayout = () => {
 
 	const firebaseUid = sqlUser?.firebaseUid || sqlUser?.uid || null;
 
-	useEffect(() => {
-		if (!firebaseUid) {
-			setCustomerDoc(null);
-			setCoachDoc(null);
-			setAssignmentDoc(null);
-			setFirestoreError(null);
-			return undefined;
-		}
-
-		const unsubscribe = subscribeCustomerContext(firebaseUid, ({ customer, coach, assignment, error }) => {
-			if (error) {
-				setFirestoreError(error);
-				return;
-			}
-			setFirestoreError(null);
-			if (customer !== undefined) setCustomerDoc(customer || null);
-			if (coach !== undefined) setCoachDoc(coach || null);
-			if (assignment !== undefined) setAssignmentDoc(assignment || null);
-		});
-
-		return () => {
-			if (typeof unsubscribe === "function") {
-				unsubscribe();
-			}
-		};
-	}, [firebaseUid]);
+			useResubscribingListener(
+					(helpers) => {
+				if (!firebaseUid) {
+					setCustomerDoc(null);
+					setCoachDoc(null);
+					setAssignmentDoc(null);
+					setFirestoreError(null);
+					return () => {};
+				}
+				return subscribeCustomerContext(
+					firebaseUid,
+					({ customer, coach, assignment, error }) => {
+						if (error) {
+							setFirestoreError(error);
+								return;
+						}
+						setFirestoreError(null);
+						if (customer !== undefined) setCustomerDoc(customer || null);
+						if (coach !== undefined) setCoachDoc(coach || null);
+						if (assignment !== undefined) setAssignmentDoc(assignment || null);
+					}
+				);
+			},
+					[firebaseUid],
+			{ name: "customer:context" }
+		);
 
 	const resolvedCustomer = useMemo(() => {
 		if (customerDoc) {
@@ -1209,7 +1277,7 @@ const CustomerLayout = () => {
 		setCustomerDoc(null);
 		setCoachDoc(null);
 		setAssignmentDoc(null);
-		navigate("/login", { replace: true });
+		navigate("/", { replace: true });
 	};
 
 	const handleExitImpersonation = async () => {

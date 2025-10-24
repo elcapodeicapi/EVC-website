@@ -58,7 +58,7 @@ const Navbar = () => {
 		localStorage.removeItem("user");
 		localStorage.removeItem("impersonationBackup");
 		setIsLoggedIn(false);
-		navigate("/login", { replace: true });
+		navigate("/", { replace: true });
 		setMobileOpen(false);
 	};
 
