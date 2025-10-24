@@ -11,13 +11,16 @@
   "functions": {
     "source": "Backend/functions",
     "codebase": "default",
+    "runtime": "nodejs22",
     "ignore": [
       "node_modules",
       ".git",
       "firebase-debug.log",
       "firebase-debug.*.log",
       "*.local"
-    ]
+    ],
+    "predeploy": ["npm --prefix Backend/functions --omit=dev"],
+    "regions": ["europe-west1"]
   },
   "hosting": {
     "public": "cliet/dist",
@@ -37,22 +40,11 @@
     ]
   },
   "emulators": {
-    "auth": {
-      "port": 9099
-    },
-    "functions": {
-      "port": 5001
-    },
-    "firestore": {
-      "port": 8080
-    },
-    "storage": {
-      "port": 9199
-    },
-    "ui": {
-      "enabled": true,
-      "port": 4500
-    },
+    "auth": { "port": 9099 },
+    "functions": { "port": 5001 },
+    "firestore": { "port": 8080 },
+    "storage": { "port": 9199 },
+    "ui": { "enabled": true, "port": 4500 },
     "singleProjectMode": true
   }
 }

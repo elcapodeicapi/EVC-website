@@ -37,14 +37,10 @@ function createApp() {
   const assignmentsRoutes = require("./routes/assignments");
 
   const allowedOrigins = [
-    "http://localhost:5173",
-    "http://localhost:5000",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5000",
-    "http://127.0.0.1:3000",
-    "https://evcwebsite12345.web.app",
-    "https://evcwebsite12345.firebaseapp.com",
+     "https://mijnevcgo.nl",
+     "https://evcwebsite12345.web.app",
+     "https://evcwebsite12345.firebaseapp.com",
+     "http://localhost:5000" // for local testing
   ];
   function isAllowedOrigin(origin) {
     if (!origin) return true; // same-origin or server-to-server

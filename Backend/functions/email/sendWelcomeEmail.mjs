@@ -1,188 +1,150 @@
+/**
+ * sendWelcomeEmail.mjs
+ * 1st-Gen Firebase Function – runs alongside Gen 2 functions.
+ */
+
+
 import sgMail from "@sendgrid/mail";
-import * as functions from "firebase-functions";
 import { createRequire } from "node:module";
 import { randomBytes } from "node:crypto";
 
-// Use stable v1 auth trigger via CommonJS require to avoid ESM interop issues
+
 const require = createRequire(import.meta.url);
-const functionsV1 = require("firebase-functions/v1");
+const functions = require("firebase-functions/v1");
+const firebaseHelpers = require("../firebase");
+const { getDb, getAuth } = firebaseHelpers;
 
-let firebaseHelpers; // lazy-loaded to keep import time light
+// -- Lazy SendGrid setup
 let sendgridConfigured = false;
-
-function getDbLazy() {
-  if (!firebaseHelpers) firebaseHelpers = require("../firebase");
-  return firebaseHelpers.getDb();
-}
-
-function getAuthLazy() {
-  if (!firebaseHelpers) firebaseHelpers = require("../firebase");
-  return firebaseHelpers.getAuth();
-}
-
-function getRuntimeConfig() {
-  const cfg = (functions.config && typeof functions.config === "function") ? functions.config() : {};
-  const sendgridKey = cfg?.sendgrid?.key || "";
-  const mailFrom = cfg?.evc?.from_email || "info@mijnevcgo.nl";
-  const websiteUrl = cfg?.evc?.site_url || "https://mijnevcgo.nl";
-  const sandboxDefault = process.env.FUNCTIONS_EMULATOR === "true";
-  const sandboxCfg = cfg?.sendgrid?.sandbox;
-  const sandbox = sandboxCfg == null ? sandboxDefault : String(sandboxCfg).toLowerCase() !== "false";
-  if (sendgridKey && !sendgridConfigured) {
-    try {
-      sgMail.setApiKey(sendgridKey);
+function setupSendGrid() {
+  if (sendgridConfigured) return;
+  try {
+    const config = functions.config?.() || {};
+    const key =
+      config?.sendgrid?.key ||
+      process.env.SENDGRID_API_KEY ||
+      "";
+    if (key) {
+      sgMail.setApiKey(key);
       sendgridConfigured = true;
-    } catch (e) {
-      functions.logger.error("Failed to set SendGrid API key", e?.message || e);
+    } else {
+      functions.logger.warn("SendGrid key not configured.");
     }
+  } catch (err) {
+    functions.logger.error("SendGrid setup failed", err);
   }
-  return { sendgridKey, mailFrom, websiteUrl, sandbox };
 }
 
-function resolvePasswordPlaceholder(userData) {
-  if (!userData) return "[password]";
+// -- Helpers ---------------------------------------------------------------
+function generateTempPassword(length = 12) {
+  const chars =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const bytes = randomBytes(length);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
+
+function resolvePasswordPlaceholder(data) {
   return (
-    userData.initialPassword ||
-    userData.temporaryPassword ||
-    userData.tempPassword ||
+    data?.initialPassword ||
+    data?.temporaryPassword ||
+    data?.tempPassword ||
     "[password]"
   );
 }
 
-function shouldSendEmail(user, userData) {
+function shouldSend(user, data) {
   if (!user.email) return false;
-
-  if (!userData) {
-    return true; // default to sending when metadata is missing
-  }
-
+  if (!data) return true;
   const createdByAdmin =
-    userData.createdBy === "admin" ||
-    userData.isAdminCreated === true ||
-    Boolean(userData.createdByAdminId);
-
-  if (createdByAdmin) return true;
-
-  const role = String(userData.role || "").toLowerCase();
-  return role === "customer" || role === "user";
+    data.createdBy === "admin" ||
+    data.isAdminCreated === true ||
+    Boolean(data.createdByAdminId);
+  return createdByAdmin || ["customer", "user"].includes(String(data.role).toLowerCase());
 }
 
-function generateTempPassword(length = 12) {
-  // Alphanumeric with at least one uppercase to satisfy common policies
-  const bytes = randomBytes(length);
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let pwd = '';
-  for (let i = 0; i < length; i++) {
-    pwd += chars[bytes[i] % chars.length];
-  }
-  // Ensure it has at least one uppercase, one lowercase, and one digit
-  if (!/[A-Z]/.test(pwd)) pwd = 'A' + pwd.slice(1);
-  if (!/[a-z]/.test(pwd)) pwd = pwd.slice(0, -1) + 'a';
-  if (!/[0-9]/.test(pwd)) pwd = pwd.slice(0, -2) + '0' + pwd.slice(-1);
-  return pwd;
-}
-
-export const sendWelcomeEmail = functionsV1
+// -- Main Trigger ----------------------------------------------------------
+export const sendWelcomeEmail = functions
   .region("europe-west1")
   .auth.user()
   .onCreate(async (user) => {
-    const { sendgridKey, mailFrom, websiteUrl, sandbox } = getRuntimeConfig();
-    const email = user?.email;
-    const uid = user?.uid;
+    setupSendGrid();
+    const db = getDb();
+    const auth = getAuth();
 
+    const config = functions.config?.() || {};
+    const mailFrom = config?.evc?.from_email || process.env.MAIL_FROM || "info@mijnevcgo.nl";
+    const websiteUrl = config?.evc?.site_url || process.env.WEBSITE_URL || "https://mijnevcgo.nl";
+
+    const { uid, email } = user;
     if (!email) {
-      functions.logger.warn("Skipping welcome email; user has no email address.", { uid });
+      functions.logger.warn("User has no email; skipping welcome email.", { uid });
       return;
     }
 
-    if (!sendgridKey) {
-      functions.logger.error("SendGrid API key is missing; welcome email cannot be sent.", { uid, email });
-      return;
-    }
-
+    // Fetch user Firestore data
     let userData = null;
     try {
-      const db = getDbLazy();
       const snap = await db.collection("users").doc(uid).get();
-      if (snap.exists) {
-        userData = snap.data() || null;
-      }
-    } catch (error) {
-      functions.logger.error("Failed to fetch user Firestore document for welcome email.", {
-        uid,
-        email,
-        error: error?.message || error,
-      });
+      if (snap.exists) userData = snap.data();
+    } catch (err) {
+      functions.logger.error("Failed to fetch Firestore user data", err);
     }
 
-    if (!shouldSendEmail(user, userData)) {
-      functions.logger.info("Welcome email skipped based on user metadata.", { uid, email });
+    if (!shouldSend(user, userData)) {
+      functions.logger.info("Skipping email based on metadata", { uid, email });
       return;
     }
 
-    const name = (
-      (userData?.name || user?.displayName || email.split("@")[0] || "deelnemer")
-    ).trim();
-    let passwordForEmail = resolvePasswordPlaceholder(userData);
-
-    // If no password was found in Firestore metadata, generate a temporary one,
-    // update the Auth user, and store it back to Firestore for traceability.
-    if (!passwordForEmail || passwordForEmail === "[password]") {
+    let password = resolvePasswordPlaceholder(userData);
+    if (password === "[password]") {
       try {
-        const tmpPwd = generateTempPassword(12);
-
-        const auth = getAuthLazy();
-        await auth.updateUser(uid, { password: tmpPwd });
-
-        const db = getDbLazy();
+        const temp = generateTempPassword();
+        await auth.updateUser(uid, { password: temp });
         await db.collection("users").doc(uid).set(
-          { temporaryPassword: tmpPwd, passwordGeneratedAt: new Date().toISOString() },
+          {
+            temporaryPassword: temp,
+            passwordGeneratedAt: new Date().toISOString(),
+          },
           { merge: true }
         );
-
-        passwordForEmail = tmpPwd;
+        password = temp;
       } catch (err) {
-        functions.logger.error("Failed to generate and set a temporary password.", {
-          uid,
-          email,
-          error: err?.message || err,
-        });
-        // As a last resort, include a reset instruction instead of a placeholder
-        passwordForEmail = "(stel je wachtwoord in via 'Wachtwoord vergeten')";
+        functions.logger.error("Could not create temp password", err);
+        password = "(stel je wachtwoord in via 'Wachtwoord vergeten')";
       }
     }
 
-    const textLines = [
+    const name =
+      userData?.name ||
+      user.displayName ||
+      email.split("@")[0] ||
+      "deelnemer";
+
+    const body = [
       `Beste ${name},`,
       "",
       `Je kunt op ${websiteUrl} inloggen met de volgende gegevens:`,
       "",
-      `Email: ${email}`,
-      `Wachtwoord: ${passwordForEmail}`,
+      `E-mail: ${email}`,
+      `Wachtwoord: ${password}`,
       "",
-      'Wij adviseren je het wachtwoord direct te wijzigen in een zelfgekozen wachtwoord. Dit kun je doen onder de knop "Mijn profiel".',
+      'Wij adviseren je om het wachtwoord direct te wijzigen onder "Mijn profiel".',
       "",
       "Met vriendelijke groet,",
-      "",
       "Team EVC GO",
-    ];
+    ].join("\n");
 
     const msg = {
       to: email,
       from: mailFrom,
       subject: "Welkom bij jouw EVC-traject",
-      text: textLines.join("\n"),
-      ...(sandbox ? { mailSettings: { sandboxMode: { enable: true } } } : {}),
+      text: body,
     };
 
     try {
       await sgMail.send(msg);
-      functions.logger.info("Welcome email sent.", { uid, email });
-    } catch (error) {
-      functions.logger.error("Error sending welcome email via SendGrid.", {
-        uid,
-        email,
-        error: error?.message || error,
-      });
+      functions.logger.info("Welcome email sent successfully", { uid, email });
+    } catch (err) {
+      functions.logger.error("Error sending email", { uid, email, error: err?.message || err });
     }
   });
