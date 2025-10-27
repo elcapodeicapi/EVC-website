@@ -9,7 +9,10 @@
     "root": "file:"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.0.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.16"
   },
   "scripts": {
     "start": "concurrently -n API,WEB -c green,cyan \"node Backend/server.js\" \"npm --prefix cliet run dev\"",

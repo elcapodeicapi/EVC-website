@@ -289,29 +289,41 @@ const CustomerPlanning = () => {
   }, [competencies]);
 
   const renderBulletList = (items, emptyMessage, size = "sm") => {
-    if (!items || items.length === 0) {
-      return <p className={`mt-2 ${size === "xs" ? "text-xs" : "text-sm"} text-slate-400`}>{emptyMessage}</p>;
-    }
-
-    const listGap = size === "xs" ? "space-y-1.5" : "space-y-2";
-    const textSize = size === "xs" ? "text-xs" : "text-sm";
-    const badgeSize = size === "xs" ? "mt-1 h-1 w-1" : "mt-1 h-1.5 w-1.5";
-    const padding = size === "xs" ? "px-3 py-1.5" : "px-3 py-2";
-
+  if (!items || items.length === 0) {
     return (
-      <ul className={`mt-3 ${listGap} ${textSize} text-slate-600`}>
-        {items.map((value, index) => (
-          <li
-            key={`${value}-${index}`}
-            className={`flex items-start gap-3 rounded-xl bg-white/70 ${padding} shadow-sm`}
-          >
-            <span className={`${badgeSize} flex-shrink-0 rounded-full bg-brand-500`} />
-            <span className="leading-relaxed break-words whitespace-pre-line">{String(value)}</span>
-          </li>
-        ))}
-      </ul>
+      <p
+        className={`mt-2 ${
+          size === "xs" ? "text-[15px]" : "text-[16px]"
+        } text-slate-500 font-medium`}
+      >
+        {emptyMessage}
+      </p>
     );
-  };
+  }
+
+  const listGap = size === "xs" ? "space-y-2" : "space-y-3";
+  const textSize = size === "xs" ? "text-[15px]" : "text-[16px]";
+  const badgeSize = size === "xs" ? "mt-1 h-1.5 w-1.5" : "mt-1.5 h-2 w-2";
+  const padding = size === "xs" ? "px-3 py-1.5" : "px-3.5 py-2.5";
+
+  return (
+    <ul className={`mt-3 ${listGap} ${textSize} text-slate-800 font-medium`}>
+      {items.map((value, index) => (
+        <li
+          key={`${value}-${index}`}
+          className={`flex items-start gap-3 rounded-xl bg-white px-3 py-2 shadow-sm border border-slate-100`}
+        >
+          <span
+            className={`${badgeSize} flex-shrink-0 rounded-full bg-evc-blue-600 mt-[6px]`}
+          />
+          <span className="leading-relaxed break-words whitespace-pre-line">
+            {String(value)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+};
 
   const getUploadsFor = (competency, fallbackKey) => {
     if (!competency) return [];
@@ -427,12 +439,12 @@ const CustomerPlanning = () => {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="planning-page space-y-10">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">Mijn portfolio</p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-900">Jouw verzameling aan bewijsstukken</h1>
+        
+        <h1 className="mt-2 text-3xl font-semibold text-slate-900">Portfolio {participantName}</h1>
         <div className="mt-3 max-w-3xl space-y-4 text-sm text-slate-500">
-          <p className="font-semibold text-slate-700">Portfolio {participantName}</p>
+          
           <p>Beste kandidaat,</p>
           <p>
             Bij de EVC-procedure beoordelen we hoe goed jouw vaardigheden en kennis overeenkomen met wat er van je verwacht wordt in je beroep,
@@ -460,7 +472,6 @@ const CustomerPlanning = () => {
       {/* Section 1: Opleidingen, diploma's en certificaten */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <header className="mb-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">Portfolio</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-900">Opleidingen, diploma's en certificaten</h2>
           <p className="text-sm text-slate-500">Overzicht van je opleidingen en officiële documenten.</p>
         </header>
@@ -587,178 +598,179 @@ const CustomerPlanning = () => {
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-3xl font-extrabold uppercase text-black-600 mb-2">
+  Belangrijk! Klik hieronder en lees verder
+</h2>
         <div className="flex flex-col gap-3">
           <button
             type="button"
             onClick={toggleInstructions}
-            className="inline-flex items-center justify-between rounded-2xl bg-evc-blue-600 px-5 py-3 text-left text-sm font-semibold text-white shadow-lg transition hover:bg-evc-blue-500 sm:text-base"
-          >
+            className="inline-flex items-center justify-between rounded-2xl bg-evc-blue-600 px-5 py-3 text-left text-sm font-semibold text-white shadow-lg transition hover:bg-evc-blue-500 sm:text-base">
             <span>Klik hier voor de instructies</span>
             <ChevronDown
               className={`h-5 w-5 transition-transform ${showInstructions ? "rotate-180" : ""}`}
             />
           </button>
           {showInstructions ? (
-            <div className="rounded-2xl border border-evc-blue-200 bg-evc-blue-50 p-5 text-sm text-evc-blue-900">
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-evc-blue-800">Instructies voor Mijn portfolio</h3>
+            <div className="rounded-2xl border border-evc-blue-200 bg-evc-blue-50 p-6 text-[17px] leading-relaxed text-black">
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-evc-blue-800 font-[Poppins]">
+                Instructies voor Mijn portfolio
+              </h3>
 
-                <div className="space-y-2">
-                  <p>
-                    Hieronder staat per onderdeel uitgelegd hoe je jouw portfolio aanlevert. Volg de stappen zorgvuldig. Heb je vragen? Neem contact op
-                    met je begeleider via de pagina Berichten (Contact).
-                  </p>
-                </div>
+              <div className="space-y-3">
+                <p>
+                  Hieronder staat per onderdeel uitgelegd hoe je jouw portfolio aanlevert. Volg de stappen zorgvuldig. 
+                  Heb je vragen? Neem contact op met je begeleider via de pagina <strong>Berichten (Contact)</strong>.
+                </p>
+              </div>
 
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Mijn profiel</p>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>Voeg een duidelijke profielfoto van jezelf toe (zichtbaar voor de assessor).</li>
-                    <li>Vink aan: ‘Ik neem vrijwillig deel aan dit EVC-traject’.</li>
-                  </ul>
-                </div>
+              {/* Mijn profiel */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Mijn profiel</p>
+                <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>Voeg een duidelijke profielfoto van jezelf toe (zichtbaar voor de assessor).</li>
+                  <li>Vink aan: ‘Ik neem vrijwillig deel aan dit EVC-traject’.</li>
+                </ul>
+              </div>
 
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Mijn loopbaandoel</p>
-                  <p>Begin met het invullen van je loopbaandoel op de pagina ‘Mijn loopbaandoel’. Beschrijf minimaal:</p>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>
-                      <strong>Ambitie</strong>: Wat je nog wilt bereiken en hoe je jouw loopbaan de komende jaren ziet.
-                    </li>
-                    <li>
-                      <strong>Motivatie</strong>: Wat je van dit EVC-traject verwacht, waarom je meedoet en welke resultaten je hoopt te behalen.
-                    </li>
-                  </ul>
-                  <p className="text-slate-600">Dit komt terug tijdens het assessmentgesprek en in je EVC-rapport.</p>
-                </div>
+              {/* Mijn loopbaandoel */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Mijn loopbaandoel</p>
+                <p>Begin met het invullen van je loopbaandoel op de pagina ‘Mijn loopbaandoel’. Beschrijf minimaal:</p>
+                <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>
+                    <strong>Ambitie:</strong> Wat je nog wilt bereiken en hoe je jouw loopbaan de komende jaren ziet.
+                  </li>
+                  <li>
+                    <strong>Motivatie:</strong> Wat je van dit EVC-traject verwacht, waarom je meedoet en welke resultaten je hoopt te behalen.
+                  </li>
+                </ul>
+                <p className="text-slate-700">Dit komt terug tijdens het assessmentgesprek en in je EVC-rapport.</p>
+              </div>
 
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Vragenlijst (Loopbaan en Burgerschap)</p>
-                  <p>
-                    Vul de vragenlijst voor Loopbaan en Burgerschap (L&amp;B) volledig en onderbouwd in. Dit is verplicht voor alle MBO-opleidingen.
-                    Denk aan ongeveer 2 à 3 alinea’s per onderdeel. Dit onderdeel wordt meegenomen door de examencommissie bij de verzilvering van het
-                    EVC-certificaat.
-                  </p>
-                </div>
+              {/* Vragenlijst */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Vragenlijst (Loopbaan en Burgerschap)</p>
+                <p>
+                  Vul de vragenlijst voor Loopbaan en Burgerschap (L&amp;B) volledig en onderbouwd in. 
+                  Dit is verplicht voor alle MBO-opleidingen. Denk aan ongeveer 2 à 3 alinea’s per onderdeel. 
+                  Dit onderdeel wordt meegenomen door de examencommissie bij de verzilvering van het EVC-certificaat.
+                </p>
+              </div>
 
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Zo werkt dit scherm</p>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>Alle competenties staan onder elkaar. Klik op een competentie om de details te openen of te sluiten.</li>
-                    <li>Je ziet per competentie: verwachtingen, vakkennis/vaardigheden, gedragscomponenten en het gewenste resultaat.</li>
-                    <li>
-                      Voeg bewijsstukken toe per competentie. Geef eerst een <strong>verplichte titel</strong> in het veld ‘Naam van je upload’ en klik
-                      daarna op ‘Voeg upload toe’.
-                    </li>
-                    <li>Je kunt meerdere bestanden per competentie plaatsen. Je begeleider kan ze bekijken, downloaden en feedback geven.</li>
-                    <li>Gebruik de knoppen ‘Download’ en ‘Verwijder’ om je bestanden te beheren.</li>
-                  </ul>
-                </div>
+              {/* Zo werkt dit scherm */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Zo werkt dit scherm</p>
+                <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>Alle competenties staan onder elkaar. Klik op een competentie om de details te openen of te sluiten.</li>
+                  <li>Je ziet per competentie: verwachtingen, vakkennis/vaardigheden, gedragscomponenten en het gewenste resultaat.</li>
+                  <li>Voeg bewijsstukken toe per competentie. Geef eerst een <strong>verplichte titel</strong> in het veld ‘Naam van je upload’ en klik daarna op ‘Voeg upload toe’.</li>
+                  <li>Je kunt meerdere bestanden per competentie plaatsen. Je begeleider kan ze bekijken, downloaden en feedback geven.</li>
+                  <li>Gebruik de knoppen ‘Download’ en ‘Verwijder’ om je bestanden te beheren.</li>
+                </ul>
+              </div>
 
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Mijn portfolio: wat lever je aan?</p>
-                  <p>
-                    In je portfolio laat je zien wat je allemaal kunt en hebt gedaan. Voeg informatie toe over je werk, cursussen, diploma’s en
-                    certificaten onder de kopjes ‘opleidingen, diploma’s en certificaten’ en ‘relevante werkervaring’.
-                  </p>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>
-                      Omschrijf per competentie wat je hebt gedaan en lever <strong>minimaal één bewijsstuk</strong> aan dat aantoont dat je die
-                      competentie beheerst.
-                    </li>
-                    <li>
-                      Werk bij voorkeur met <strong>STARR-verslagen</strong> (Situatie, Taak, Actie, Resultaat, Reflectie). Gebruik het STARR-formulier.
-                      Als je het formulier niet hebt, vraag dit aan via Berichten (Contact).
-                    </li>
-                    <li>
-                      Upload verslagen en bewijzen bij een <strong>relevante competentie</strong>. Heb je een algemeen document? Plaats dit bij
-                      <strong> ‘Overige informatie en documenten’</strong> (indien beschikbaar in jouw omgeving).
-                    </li>
-                    <li>Vul daarnaast je relevante opleidingen/diploma’s, certificaten en werkervaring aan in je profiel en/of portfolio.</li>
-                  </ul>
-                  <div className="mt-1 pl-4 text-xs text-slate-600">
-                    <p>Raadpleeg ook het document ‘VRAAK-Criteria’ voor voorbeelden van toelaatbare bewijsstukken. Vraag dit document op via Berichten als je het niet kunt vinden.</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Bestandsnamen en -formaten</p>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>
-                      Gebruik voor vakinhoudelijke documenten deze structuur: <strong>CODE - Naam - (d-m-jjjj)</strong> (verplicht). Voorbeelden:
-                      <div className="mt-1 pl-4 text-xs text-slate-600">
-                        <p>B1-K1-W6 - Verslag Handelt in onvoorziene en/of crisissituaties - (17-4-2025)</p>
-                        <p>B1-K1-W6 - Evaluatieverslag - (13-1-2025)</p>
-                        <p>B1-K1-W6 - Plan van aanpak - (18-2-2025)</p>
-                      </div>
-                    </li>
-                    <li>Upload bij voorkeur als <strong>PDF</strong>. Foto’s/video’s? Voeg ook een korte PDF toe met toelichting.</li>
-                    <li>Andere documenten (zoals authenticiteitsverklaring, werkovereenkomst): zorg voor een duidelijke titel die precies de inhoud weergeeft.</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Privacy (AVG)</p>
-                  <p>
-                    Plaats geen persoonsgegevens van anderen zonder toestemming. Anonimiseer gegevens zodat personen niet herkenbaar zijn.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Keuzedelen (alleen MBO)</p>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>Kies in totaal ten minste 720 uur aan keuzedelen (wij raden aan om meer dan 720 uur te kiezen).</li>
-                    <li>Lever voor keuzedelen dezelfde soorten verslagen en bewijsstukken aan als voor het basisgedeelte.</li>
-                    <li>Geef je gekozen keuzedelen door aan je begeleider via Berichten (Contact).</li>
-                  </ul>
-                  <div className="mt-1 pl-4 text-xs text-slate-600">
-                    <p>De keuzedelenlijst voor ‘Persoonlijk Begeleider Maatschappelijke Zorg’ is op te vragen via Berichten of te vinden in de bijlagen als deze in jouw omgeving beschikbaar zijn.</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Authenticiteitsverklaring</p>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>Vermeld alle ingeleverde bewijsstukken op de verklaring (voeg zelf regels toe indien nodig).</li>
-                    <li>Onderteken met een <strong>‘natte’ handtekening</strong> en upload als <strong>PDF</strong>.</li>
-                    <li>
-                      Upload bij een relevante competentie of een algemene sectie (Overige informatie en documenten) indien beschikbaar.
-                    </li>
-                    <li>Zorg dat de titels op de verklaring exact overeenkomen met de titels van je uploads in dit portfolio.</li>
-                  </ul>
-                  <div className="mt-1 pl-4 text-xs text-slate-600">
-                    <p>Je kunt de authenticiteitsverklaring downloaden via de materialen van je traject of opvragen via Berichten (Contact).</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Feedback en contact</p>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>Je portfoliobegeleider reageert doorgaans binnen drie werkdagen.</li>
-                    <li>Vraag actief om feedback via Berichten; de begeleider kijkt niet uit zichzelf in je portfolio.</li>
-                    <li>Verwerk ontvangen feedback vóórdat je je portfolio als ‘klaar’ wilt laten aanmerken.</li>
-                    <li>Je begeleider ondersteunt je; de <strong>assessor</strong> beoordeelt uiteindelijk je portfolio.</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-evc-blue-700">Checklist vóór je afrondt</p>
-                  <ol className="list-decimal space-y-1 pl-5 text-slate-700 marker:text-evc-blue-700">
-                    <li>Vrijwillige deelname aangevinkt.</li>
-                    <li>Profielfoto toegevoegd.</li>
-                    <li>Relevante werkervaring, opleidingen en certificaten toegevoegd.</li>
-                    <li>Loopbaandoel ingevuld (pagina ‘Mijn loopbaandoel’).</li>
-                    <li>Vragenlijst Loopbaan en Burgerschap (indien van toepassing) ingevuld.</li>
-                    <li>Feedback van je begeleider verwerkt.</li>
-                    <li>Alle documenten als PDF geüpload en duidelijk benoemd.</li>
-                  </ol>
-                </div>
-
-                <div className="rounded-xl border border-evc-blue-200 bg-white/85 p-4 text-[0.8rem] text-evc-blue-900">
-                  Heb je hulp nodig of twijfel je over je bewijs? Stuur je begeleider een bericht via de pagina Berichten.
+              {/* Mijn portfolio */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Mijn portfolio: wat lever je aan?</p>
+                <p>
+                  In je portfolio laat je zien wat je allemaal kunt en hebt gedaan. Voeg informatie toe over je werk, cursussen, diploma’s en certificaten onder de kopjes 
+                  ‘Opleidingen, diploma’s en certificaten’ en ‘Relevante werkervaring’.
+                </p>
+                <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>Omschrijf per competentie wat je hebt gedaan en lever <strong>minimaal één bewijsstuk</strong> aan dat aantoont dat je die competentie beheerst.</li>
+                  <li>Werk bij voorkeur met <strong>STARR-verslagen</strong> (Situatie, Taak, Actie, Resultaat, Reflectie). Gebruik het STARR-formulier.</li>
+                  <li>Upload verslagen en bewijzen bij een <strong>relevante competentie</strong>. Heb je een algemeen document? Plaats dit bij <strong>‘Overige informatie en documenten’</strong>.</li>
+                  <li>Vul daarnaast je relevante opleidingen, diploma’s, certificaten en werkervaring aan in je profiel en/of portfolio.</li>
+                </ul>
+                <div className="mt-2 pl-4 text-[15px] text-slate-700">
+                  <p>Raadpleeg ook het document ‘VRAAK-Criteria’ voor voorbeelden van toelaatbare bewijsstukken. Vraag dit document op via Berichten als je het niet kunt vinden.</p>
                 </div>
               </div>
+
+              {/* Bestandsnamen */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Bestandsnamen en -formaten</p>
+                <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>
+                    Gebruik voor vakinhoudelijke documenten deze structuur: <strong>CODE - Naam - (d-m-jjjj)</strong>. 
+                    Voorbeelden:
+                    <div className="mt-1 pl-4 text-[15px] text-slate-700">
+                      <p>B1-K1-W6 - Verslag Handelt in onvoorziene en/of crisissituaties - (17-4-2025)</p>
+                      <p>B1-K1-W6 - Evaluatieverslag - (13-1-2025)</p>
+                      <p>B1-K1-W6 - Plan van aanpak - (18-2-2025)</p>
+                    </div>
+                  </li>
+                  <li>Upload bij voorkeur als <strong>PDF</strong>. Foto’s/video’s? Voeg ook een korte PDF toe met toelichting.</li>
+                  <li>Andere documenten (zoals authenticiteitsverklaring of werkovereenkomst): geef een duidelijke titel die precies de inhoud weergeeft.</li>
+                </ul>
+              </div>
+
+              {/* Privacy */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Privacy (AVG)</p>
+                <p>Plaats geen persoonsgegevens van anderen zonder toestemming. Anonimiseer gegevens zodat personen niet herkenbaar zijn.</p>
+              </div>
+
+              {/* Keuzedelen */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Keuzedelen (alleen MBO)</p>
+                <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>Kies in totaal ten minste 720 uur aan keuzedelen (wij raden aan om meer dan 720 uur te kiezen).</li>
+                  <li>Lever voor keuzedelen dezelfde soorten verslagen en bewijsstukken aan als voor het basisgedeelte.</li>
+                  <li>Geef je gekozen keuzedelen door aan je begeleider via Berichten (Contact).</li>
+                </ul>
+                <div className="mt-2 pl-4 text-[15px] text-slate-700">
+                  <p>De keuzedelenlijst voor ‘Persoonlijk Begeleider Maatschappelijke Zorg’ is op te vragen via Berichten of te vinden in de bijlagen.</p>
+                </div>
+              </div>
+
+              {/* Authenticiteitsverklaring */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Authenticiteitsverklaring</p>
+                <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>Vermeld alle ingeleverde bewijsstukken op de verklaring (voeg zelf regels toe indien nodig).</li>
+                  <li>Onderteken met een <strong>‘natte’ handtekening</strong> en upload als <strong>PDF</strong>.</li>
+                  <li>Upload bij een relevante competentie of algemene sectie (‘Overige informatie en documenten’) indien beschikbaar.</li>
+                  <li>Zorg dat de titels op de verklaring exact overeenkomen met de titels van je uploads in dit portfolio.</li>
+                </ul>
+                <div className="mt-2 pl-4 text-[15px] text-slate-700">
+                  <p>Je kunt de authenticiteitsverklaring downloaden via de materialen van je traject of opvragen via Berichten (Contact).</p>
+                </div>
+              </div>
+
+              {/* Feedback */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Feedback en contact</p>
+                <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>Je portfoliobegeleider reageert doorgaans binnen drie werkdagen.</li>
+                  <li>Vraag actief om feedback via Berichten; de begeleider kijkt niet uit zichzelf in je portfolio.</li>
+                  <li>Verwerk ontvangen feedback vóórdat je je portfolio als ‘klaar’ wilt laten aanmerken.</li>
+                  <li>Je begeleider ondersteunt je; de <strong>assessor</strong> beoordeelt uiteindelijk je portfolio.</li>
+                </ul>
+              </div>
+
+              {/* Checklist */}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-evc-blue-800 font-[Poppins]">Checklist vóór je afrondt</p>
+                <ol className="list-decimal space-y-1 pl-5 text-black marker:text-evc-blue-700">
+                  <li>Vrijwillige deelname aangevinkt.</li>
+                  <li>Profielfoto toegevoegd.</li>
+                  <li>Relevante werkervaring, opleidingen en certificaten toegevoegd.</li>
+                  <li>Loopbaandoel ingevuld.</li>
+                  <li>Vragenlijst Loopbaan en Burgerschap ingevuld.</li>
+                  <li>Feedback van je begeleider verwerkt.</li>
+                  <li>Alle documenten als PDF geüpload en duidelijk benoemd.</li>
+                </ol>
+              </div>
+
+              {/* Slotblok */}
+              <div className="rounded-xl border border-evc-blue-200 bg-white/85 p-4 text-[16px] text-evc-blue-900 font-medium">
+                Heb je hulp nodig of twijfel je over je bewijs? Stuur je begeleider een bericht via de pagina Berichten.
+              </div>
             </div>
+          </div>
           ) : null}
         </div>
       </section>
@@ -820,17 +832,15 @@ const CustomerPlanning = () => {
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-[0.58rem] font-semibold uppercase tracking-[0.35em] text-evc-blue-600">
-                        {item.code || `Competentie ${index + 1}`}
-                      </p>
+
                       {item.groupTitle ? (
                         <span className="text-[0.55rem] uppercase tracking-[0.25em] text-slate-400">
                           {item.groupTitle}
                         </span>
                       ) : null}
                     </div>
-                    <h3 className="text-lg font-semibold leading-tight text-slate-900">
-                      {item.name || item.title || "Onbenoemde competentie"}
+                    <h3 className="text-xl font-semibold leading-tight text-slate-900">
+                      {item.code ? `${item.code} - ${item.name || item.title}` : item.name || item.title || "Onbenoemde competentie"}
                     </h3>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition">
@@ -848,23 +858,23 @@ const CustomerPlanning = () => {
                     <div className="space-y-6 text-xs text-slate-500">
                       {item.description ? (
                         <div className="space-y-2">
-                          <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                          <h4 className="text-lg font-semibold leading-tight text-slate-700">
                             Korte omschrijving
                           </h4>
-                          <p className="leading-relaxed text-slate-600">{item.description}</p>
+                          <p className="text-sm font-medium leading-relaxed text-slate-800">{item.description}</p>
                         </div>
                       ) : null}
 
                       <div className="grid gap-6 lg:grid-cols-2">
                         <div className="space-y-4">
                           <div className="space-y-2">
-                            <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                            <h4 className="text-lg font-semibold leading-tight text-slate-700">
                               Wat wordt er van je verwacht?
                             </h4>
                             {renderBulletList(item.expectations, "Nog geen verwachtingen vastgelegd.", "xs")}
                           </div>
                           <div className="space-y-2">
-                            <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                            <h4 className="text-lg font-semibold leading-tight text-slate-700">
                               Vakkennis en vaardigheden
                             </h4>
                             {renderBulletList(item.subjectKnowledge, "Nog geen vakkennis vastgelegd.", "xs")}
@@ -872,16 +882,16 @@ const CustomerPlanning = () => {
                         </div>
                         <div className="space-y-4">
                           <div className="space-y-2">
-                            <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                            <h4 className="text-lg font-semibold leading-tight text-slate-700">
                               Gedragscomponenten
                             </h4>
                             {renderBulletList(item.behavioralComponents, "Nog geen gedragscomponenten vastgelegd.", "xs")}
                           </div>
                           <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-slate-600">
-                            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-slate-500">
+                            <p className="text-lg font-semibold leading-tight text-slate-700">
                               Gewenst resultaat
                             </p>
-                            <p className="mt-2 leading-relaxed text-xs">
+                            <p className="mt-2 text-sm font-medium leading-relaxed text-slate-800">
                               {item.desiredOutcome || "Nog niet vastgelegd."}
                             </p>
                           </div>
@@ -889,7 +899,7 @@ const CustomerPlanning = () => {
                       </div>
 
                       <div className="space-y-3">
-                        <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                        <h4 className="text-lg font-semibold leading-tight text-slate-700">
                           Bewijsstukken
                         </h4>
                         {/* Gekoppeld uit profiel */}
@@ -977,7 +987,7 @@ const CustomerPlanning = () => {
 
                         <div className="space-y-3">
                           <div>
-                            <label className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-slate-400">
+                            <label className="text-lg font-semibold leading-tight text-slate-700">
                               Naam van je upload
                             </label>
                             <input

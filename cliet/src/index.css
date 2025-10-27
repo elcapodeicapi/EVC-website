@@ -1,8 +1,40 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Legacy layout and navbar styles merged from styles/global.css */
+/* Keep navbar dark, links white, and legacy layout helpers */
+.main-navbar, nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 16px;
+  background: #222;
+  color: #fff;
+}
+.main-navbar .logo, nav .logo { font-weight: 700; }
+.main-navbar ul, nav ul { list-style: none; display: flex; gap: 12px; margin: 0; padding: 0; }
+.main-navbar a, nav a { color: #fff; text-decoration: none; }
+.content { padding: 16px; }
+.task { margin-bottom: 16px; }
+.task textarea { width: 100%; min-height: 90px; }
+.task-actions { display: flex; gap: 8px; margin-top: 8px; }
+.task-evidence { margin-top: 6px; color: #333; }
+
+/* Ensure nav descendants inherit white text (so base text rules don't force black) */
+nav :is(p, span, li, label, dd, dt, figcaption, small) { color: inherit; }
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure anchored sections aren't hidden under sticky headers */
+section[id] {
+  scroll-margin-top: 96px;
+}
 
 html,
 body,
@@ -26,3 +58,95 @@ a {
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-300 rounded-full hover:bg-slate-400;
 }
+
+/* Global typography adjustments (text-only, avoid UI surface changes) */
+@layer base {
+  /* Larger, darker body text across the app (text-only) */
+  body, :where(p, span, li, label, dd, dt, figcaption) {
+    @apply text-black leading-relaxed;
+  }
+  :where(p, span, li, label, dd, dt, figcaption) {
+    @apply text-[17px];
+  }
+
+  /* Muted small text (still black but slightly smaller) */
+  small {
+    @apply text-black text-[0.95rem] leading-relaxed;
+  }
+  /* Only color small utility when no explicit text color utility is present */
+  .text-sm:not([class*="text-"]) {
+    @apply text-black;
+  }
+  .text-sm {
+    @apply text-[0.95rem] leading-relaxed;
+  }
+
+  /* Headings stay black and bold (no bg changes) */
+  h1, h2, h3, h4, h5, h6 {
+    /* Keep distinctive header font for headings */
+    font-family: 'Poppins', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    @apply text-black font-semibold;
+  }
+
+  /* Respect explicit text color utilities on ancestors (e.g., sidebar dark mode) */
+  [class*="text-"] :is(p, span, li, label, dd, dt, figcaption, small) {
+    color: inherit;
+  }
+
+  /* Inputs and textareas should be white with readable text and neutral placeholders */
+  input, textarea, select {
+    @apply bg-white text-black placeholder:text-slate-500;
+  }
+
+  /* Restore panels/cards if any custom classes are used */
+  .card, .panel, .box, .form-section, .profile-card {
+    background-color: #ffffff;
+  }
+}
+
+/* If placeholders turned black, force them back to neutral (slate-500) */
+::placeholder { color: #6b7280 !important; }
+
+/* Sidebar and nav restoration (in case these utility classes are present globally) */
+.sidebar, nav.sidebar, .app-sidebar {
+  background-color: #0f172a; /* slate-900 */
+  color: #f8fafc; /* slate-50 */
+}
+.sidebar a { color: #e2e8f0; } /* slate-200 */
+.sidebar a:hover { color: #ffffff; }
+
+/* Semantic text utilities (opt-in, no background changes) */
+@layer components {
+  .text-body { @apply text-black text-[17px] leading-relaxed; }
+  .text-muted { @apply text-black/80 text-[16px]; }
+  .heading { @apply text-black font-semibold; }
+}
+@layer components {
+  /* Alle standaardtekst binnen de planning page wordt zwart en leesbaar */
+  .planning-page :is(p, span, small, .text-sm, .text-xs) {
+    @apply text-black leading-relaxed;
+  }
+
+  /* Iets grotere tekst voor small-classes */
+  .planning-page .text-sm {
+    @apply text-base; /* ongeveer 16px */
+  }
+
+  /* Iets grotere tekst voor extra-small tekst */
+  .planning-page .text-xs {
+    @apply text-[15px];
+  }
+
+  /* Zorg dat kleine titeltjes of subtitels ook goed zichtbaar zijn */
+  .planning-page h3, 
+  .planning-page h4 {
+    @apply text-black font-semibold;
+  }
+  
+}
+@layer components {
+  .section-label {
+    @apply text-sm font-bold uppercase tracking-wider text-black font-[Poppins];
+  }
+}
+

@@ -535,7 +535,7 @@ const CustomerDashboard = () => {
             <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">
               Goed dat je er bent, {customerName}!
             </h1>
-            <div className="max-w-2xl space-y-3 text-base text-slate-600">
+            <div className="max-w-2xl space-y-3 text-base text-black">
               <p>
                 Welkom {fullCustomerName}. Hier zie je in één oogopslag hoe jouw traject ervoor staat
                 {trajectName ? ` (${trajectName})` : ""}.
@@ -544,7 +544,7 @@ const CustomerDashboard = () => {
                 Werk stap voor stap je dossier bij. Zodra jij of je begeleider iets aanpast, verschijnt het direct op deze pagina.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3 text-sm text-slate-500">
+            <div className="flex flex-wrap gap-3 text-sm text-black">
               {highlightChips.map((chip) => (
                 <span
                   key={chip}
@@ -576,7 +576,7 @@ const CustomerDashboard = () => {
             </div>
           ) : statusRows.length > 0 ? (
             <table className="min-w-full divide-y divide-evc-blue-200 text-sm text-evc-blue-900">
-              <thead className="bg-evc-blue-100/60 text-left text-xs font-semibold uppercase tracking-[0.2em] text-evc-blue-700">
+              <thead className="bg-evc-blue-100/60 text-left text-xs font-[Poppins] font-semibold uppercase tracking-[0.2em] text-black ">
                 <tr>
                   <th scope="col" className="px-4 py-3">Wat?</th>
                   <th scope="col" className="px-4 py-3">Stand van zaken</th>
@@ -586,9 +586,9 @@ const CustomerDashboard = () => {
               <tbody>
                 {statusRows.map((row) => (
                   <tr key={row.label} className="odd:bg-white even:bg-evc-blue-50/50">
-                    <td className="whitespace-pre-wrap px-4 py-3 font-medium text-slate-800">{row.label}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.status}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.owner}</td>
+                    <td className="whitespace-pre-wrap px-4 py-3 font-medium text-black">{row.label}</td>
+                    <td className="px-4 py-3 text-black">{row.status}</td>
+                    <td className="px-4 py-3 text-black">{row.owner}</td>
                   </tr>
                 ))}
               </tbody>
