@@ -27,6 +27,7 @@ export function useResubscribingListener(subscribeFactory, deps = [], options = 
     if (import.meta?.env?.VITE_DEBUG_LISTENERS === "true") {
       // eslint-disable-next-line no-console
       console.log(`[fs:${name}] ${msg}`, ...args);
+      
     }
   };
 

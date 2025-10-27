@@ -1,4 +1,39 @@
 Handleiding voor de Assessor
+1.Inloggen
+1.1.Inloggen onder meerdere rollen tegelijk
+1.2.Pas op met in een tweede venster als een andere rol inloggen
+2.Mijn profiel
+2.1.Hoe vul ik mijn profiel aan?
+2.2.Wachtwoord wijzigen
+2.3.Voeg een pasfoto toe aan uw profiel!
+2.4.Welke fotobestanden zijn toegestaan?
+2.5.Dagoverzicht instellen
+3.Lopende trajecten
+3.1.Overzicht alle EVC-trajecten
+3.2.De kwalificatie inzien en als PDF-document downloaden
+4.Aantekeningen over kandidaten
+5.Portfolio van kandidaat
+5.1.Het Portfolio van de kandidaat bekijken
+5.2.Bijlagen uit het Portfolio downloaden
+5.3.Een ingepakt ZIP-bestand openen
+5.4.Video en geluidsbestanden in het Portfolio
+5.5.Vaststellen van de authenticiteit van de bewijsstukken
+5.6.Relevantie vaststellen﻿
+6.Loopbaandoel
+6.1.Aanpassen Loopbaandoel
+7.Criteriumgericht interview
+7.1.Criteriumgericht interview voorbereiden
+7.2.Criteriumgericht interview: datum en tijd invullen
+8.Werkplekbezoek
+8.1.Werkplekbezoek invullen
+9.Beoordelen
+9.1.Portfolio beoordelen
+9.2.Criteriumgericht interview  beoordelen
+9.3.Werkplekbezoek beoordelen
+9.4.Instrument niet van toepassing verklaren
+10.Rapportage
+10.1.Rapportage invullen
+10.2.Rapportage definitief maken
 1. Inloggen
 
 Als assessor logt u in met uw persoonlijke account. U kunt uw inloggegevens (gebruikersnaam en wachtwoord) altijd wijzigen naar iets dat u makkelijk kunt onthouden, maar zorg wel voor voldoende veiligheid. Deel uw login niet met anderen, want iemand met deze gegevens kan in uw persoonlijke account.

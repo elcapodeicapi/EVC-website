@@ -1,4 +1,34 @@
 Handleiding
+1.Inloggen
+1.1.Inloggen onder meerdere rollen tegelijk
+1.2.Pas op met in een tweede venster als een andere rol inloggen
+2.Mijn profiel
+2.1.Hoe vul ik mijn profiel aan?
+2.2.Wachtwoord wijzigen
+2.3.Voeg een pasfoto toe aan uw profiel!
+2.4.Welke fotobestanden zijn toegestaan?
+2.5.Dagoverzicht instellen
+3.Lopende trajecten
+3.1.Overzicht alle EVC-trajecten
+3.2.Instrumenten
+3.3.De kwalificatie inzien en als PDF-document downloaden
+4.Communiceren met de kandidaat
+4.1.Berichten van kandidaat lezen
+4.2.Bericht versturen aan kandidaat
+4.3.Een bericht aan meerdere kandidaten in één keer sturen
+5.Aantekeningen over kandidaten
+6.Portfolio van kandidaat
+6.1.Het Portfolio van de kandidaat bekijken
+6.2.Bijlagen uit het Portfolio downloaden
+6.3.Een ingepakt ZIP-bestand openen
+6.4.Video en geluidsbestanden in het Portfolio
+6.5.Vaststellen van de authenticiteit van de bewijsstukken
+6.6.Portfolio ingeleverd door kandidaat
+6.7.Portfolio gereed voor assessor
+7.Loopbaandoel
+7.1.Aanpassen Loopbaandoel
+
+
 1. Inloggen
 
 U kunt uw eigen inloggegevens aanpassen naar iets dat u zelf prettig vindt en goed kunt onthouden. Let er wel op dat uw gebruikersnaam en wachtwoord voldoende veilig zijn. Met deze gegevens zou een ander toegang kunnen krijgen tot uw account, dus houd ze geheim en deel ze niet met anderen!

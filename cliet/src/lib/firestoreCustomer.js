@@ -482,6 +482,73 @@ export async function uploadCustomerCertificateFile(userId, file, title) {
   };
 }
 
+// Upload a general/other supporting document and register it under the profile's overigeDocumenten array.
+// Fields: omschrijving (required), datum (optional string), toelichting (optional string), file (required)
+export async function uploadCustomerOtherDocument({ userId, file, omschrijving, datum, toelichting, trajectId }) {
+  if (!userId) throw new Error("Missing user id");
+  if (!file) throw new Error("Missing file");
+  const title = (omschrijving || file.name || "Document").trim();
+
+  const safeName = file.name || "document.pdf";
+  const storagePath = `user_uploads/${userId}/__other__/${Date.now()}-${safeName}`;
+  const fileRef = ref(storage, storagePath);
+  const metadata = file.type
+    ? { contentType: file.type, customMetadata: { originalName: safeName, type: "other" } }
+    : undefined;
+  await uploadBytes(fileRef, file, metadata);
+  const downloadURL = await getDownloadURL(fileRef);
+
+  // Create an uploads subdoc to align with evidence uploads, with competencyId null (unassigned)
+  const uploadsCollection = collection(db, "users", userId, "uploads");
+  const uploadDoc = await addDoc(uploadsCollection, {
+    name: title,
+    fileName: safeName,
+    downloadURL,
+    storagePath,
+    competencyId: null,
+    userId,
+    trajectId: trajectId || null,
+    uploadedAt: serverTimestamp(),
+    contentType: file.type || null,
+    size: typeof file.size === "number" ? file.size : null,
+    type: "other",
+  });
+
+  // Append to profiles/{uid}.overigeDocumenten using arrayUnion
+  const profileRef = doc(db, "profiles", userId);
+  const entry = {
+    id: uploadDoc.id,
+    omschrijving: title,
+    datum: typeof datum === "string" ? datum : datum ? String(datum) : "",
+    toelichting: typeof toelichting === "string" ? toelichting : "",
+    fileUrl: downloadURL,
+    storagePath,
+    createdAt: Timestamp.now(),
+  };
+  await updateDoc(profileRef, {
+    overigeDocumenten: arrayUnion(entry),
+  }).catch(async () => {
+    await setDoc(
+      profileRef,
+      {
+        overigeDocumenten: [entry],
+      },
+      { merge: true }
+    );
+  });
+
+  // Return a UI-friendly representation for immediate rendering
+  return {
+    id: uploadDoc.id,
+    omschrijving: title,
+    datum: typeof datum === "string" ? datum : datum ? String(datum) : "",
+    toelichting: typeof toelichting === "string" ? toelichting : "",
+    fileUrl: downloadURL,
+    storagePath,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 export function subscribeCustomerUploads(userId, observer) {
   if (!userId) {
     observer({ uploads: [], error: new Error("Missing user id") });

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { get, put } from "../../lib/api";
-import { subscribeCustomerProfileDetails, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile } from "../../lib/firestoreCustomer";
+import { subscribeCustomerProfileDetails, subscribeCustomerResume, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile, uploadCustomerOtherDocument } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 import ChangePasswordModal from "../../components/ChangePasswordModal";
@@ -22,6 +22,7 @@ const initialFormState = {
   educations: [],
   certificates: [],
   workExperience: [],
+  overigeDocumenten: [],
   photoURL: "",
 };
 
@@ -50,6 +51,10 @@ const CustomerProfile = () => {
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateStatus, setCertificateStatus] = useState(null);
   const [certificateInputKey, setCertificateInputKey] = useState(0);
+  const [otherDraft, setOtherDraft] = useState({ omschrijving: "", datum: "", toelichting: "", file: null });
+  const [otherUploading, setOtherUploading] = useState(false);
+  const [otherStatus, setOtherStatus] = useState(null);
+  const [otherInputKey, setOtherInputKey] = useState(0);
   const [evcDetails, setEvcDetails] = useState(initialEvcTrajectoryState);
   const [evcSnapshot, setEvcSnapshot] = useState(initialEvcTrajectoryState);
   const [evcLoading, setEvcLoading] = useState(true);
@@ -159,6 +164,25 @@ const CustomerProfile = () => {
     };
   }, []);
 
+  // Keep overigeDocumenten (and optionally other resume fields in future) in sync with Firestore like Mijn Portfolio
+  useEffect(() => {
+    if (!customerId) return () => {};
+    const unsubscribe = subscribeCustomerResume(customerId, ({ data }) => {
+      const safe = data || {};
+      const overige = Array.isArray(safe.overigeDocumenten) ? safe.overigeDocumenten : [];
+      setForm((prev) => {
+        // Only update if changed to avoid unnecessary rerenders
+        const prevList = Array.isArray(prev.overigeDocumenten) ? prev.overigeDocumenten : [];
+        const sameLength = prevList.length === overige.length;
+        const sameIds = sameLength && prevList.every((it, idx) => (it?.id || it?.fileUrl) === (overige[idx]?.id || overige[idx]?.fileUrl));
+        return sameIds ? prev : { ...prev, overigeDocumenten: overige };
+      });
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [customerId]);
+
   useEffect(() => {
     if (!customerId) {
       setEvcDetails(initialEvcTrajectoryState);
@@ -223,6 +247,14 @@ const CustomerProfile = () => {
           note,
         })),
         workExperience: form.workExperience || [],
+        overigeDocumenten: (form.overigeDocumenten || []).map(({ id, omschrijving, datum, toelichting, fileUrl, createdAt }) => ({
+          id,
+          omschrijving,
+          datum,
+          toelichting,
+          fileUrl,
+          createdAt,
+        })),
       };
 
       const data = await put("/customer/profile", payload);
@@ -376,6 +408,56 @@ const CustomerProfile = () => {
       setCertificateStatus({ type: "error", message: error?.data?.error || error?.message || "Upload mislukt" });
     } finally {
       setCertificateUploading(false);
+    }
+  };
+
+  const handleOtherFileChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setOtherDraft((prev) => ({ ...prev, file }));
+  };
+
+  const addOtherDocument = async () => {
+    const title = (otherDraft.omschrijving || "").trim();
+    if (!title) {
+      setOtherStatus({ type: "error", message: "Omschrijving/Titel is verplicht." });
+      return;
+    }
+    if (!otherDraft.file) {
+      setOtherStatus({ type: "error", message: "Kies eerst een bestand." });
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024; // 10 MB
+    if (otherDraft.file.size > maxSize) {
+      setOtherStatus({ type: "error", message: "Bestand is groter dan 10MB." });
+      return;
+    }
+    if (!customerId) {
+      setOtherStatus({ type: "error", message: "Kon je accountgegevens niet vinden." });
+      return;
+    }
+
+    setOtherUploading(true);
+    setOtherStatus(null);
+    try {
+      const payload = await uploadCustomerOtherDocument({
+        userId: customerId,
+        file: otherDraft.file,
+        omschrijving: title,
+        datum: otherDraft.datum || "",
+        toelichting: otherDraft.toelichting || "",
+      });
+      setForm((prev) => ({
+        ...prev,
+        overigeDocumenten: [...(prev.overigeDocumenten || []), payload],
+      }));
+      setOtherDraft({ omschrijving: "", datum: "", toelichting: "", file: null });
+      setOtherInputKey((v) => v + 1);
+      setOtherStatus({ type: "success", message: "Document toegevoegd" });
+    } catch (error) {
+      setOtherStatus({ type: "error", message: error?.data?.error || error?.message || "Upload mislukt" });
+    } finally {
+      setOtherUploading(false);
     }
   };
 
@@ -1007,6 +1089,98 @@ const CustomerProfile = () => {
                     </p>
                   ) : null}
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Overige informatie en documenten */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Overige informatie en documenten</h2>
+                <p className="mt-2 text-sm text-slate-500">Voeg overige bewijsstukken toe die niet onder de andere categorieën vallen.</p>
+              </div>
+              <div className="space-y-4">
+                {(form.overigeDocumenten || []).length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                    Nog geen overige informatie toegevoegd.
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {form.overigeDocumenten.map((doc) => (
+                      <li key={doc.id || doc.fileUrl} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-slate-900">{doc.omschrijving}</p>
+                            {doc.datum ? (
+                              <p className="text-xs uppercase tracking-wide text-slate-400">Datum: {doc.datum}</p>
+                            ) : null}
+                          </div>
+                          {doc.fileUrl ? (
+                            <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-600 transition hover:text-brand-500">
+                              Download
+                            </a>
+                          ) : null}
+                        </div>
+                        {doc.toelichting ? <p className="mt-2 text-sm text-slate-500">{doc.toelichting}</p> : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <h3 className="text-sm font-semibold text-slate-900">Nieuw item toevoegen</h3>
+              <div className="grid gap-3 text-sm">
+                <div className="grid gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Omschrijving/Titel <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={otherDraft.omschrijving}
+                    onChange={(e) => setOtherDraft((prev) => ({ ...prev, omschrijving: e.target.value }))}
+                    placeholder="Titel of omschrijving"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Datum bewijsstuk</label>
+                  <input
+                    type="date"
+                    value={otherDraft.datum}
+                    onChange={(e) => setOtherDraft((prev) => ({ ...prev, datum: e.target.value }))}
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Toelichting en reden van toevoegen</label>
+                  <textarea
+                    rows={3}
+                    value={otherDraft.toelichting}
+                    onChange={(e) => setOtherDraft((prev) => ({ ...prev, toelichting: e.target.value }))}
+                    placeholder="Korte toelichting"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Bestand uploaden</label>
+                  <input key={otherInputKey} type="file" onChange={handleOtherFileChange} className="text-sm" />
+                </div>
+                <button
+                  type="button"
+                  onClick={addOtherDocument}
+                  disabled={otherUploading}
+                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+                >
+                  {otherUploading ? "Bezig met uploaden..." : "Upload en voeg toe"}
+                </button>
+                {otherStatus ? (
+                  <p className={`text-xs ${otherStatus.type === "error" ? "text-red-500" : "text-emerald-600"}`}>
+                    {otherStatus.message}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>

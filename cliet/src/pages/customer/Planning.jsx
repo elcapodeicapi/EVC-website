@@ -31,7 +31,7 @@ const CustomerPlanning = () => {
   const [deletingUploadId, setDeletingUploadId] = useState(null);
   const [uploadNames, setUploadNames] = useState({});
   const [uploadNameErrors, setUploadNameErrors] = useState({});
-  const [resume, setResume] = useState({ educations: [], certificates: [], workExperience: [] });
+  const [resume, setResume] = useState({ educations: [], certificates: [], workExperience: [], overigeDocumenten: [] });
   const [resumeError, setResumeError] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const fileInputsRef = useRef({});
@@ -125,7 +125,7 @@ const CustomerPlanning = () => {
     if (!customerId) {
       setCustomerUploads([]);
       setUploadsError(null);
-      setResume({ educations: [], certificates: [], workExperience: [] });
+  setResume({ educations: [], certificates: [], workExperience: [], overigeDocumenten: [] });
       setResumeError(null);
       return undefined;
     }
@@ -150,6 +150,7 @@ const CustomerPlanning = () => {
         educations: Array.isArray(safe.educations) ? safe.educations : [],
         certificates: Array.isArray(safe.certificates) ? safe.certificates : [],
         workExperience: Array.isArray(safe.workExperience) ? safe.workExperience : [],
+        overigeDocumenten: Array.isArray(safe.overigeDocumenten) ? safe.overigeDocumenten : [],
       });
     });
 
@@ -541,37 +542,47 @@ const CustomerPlanning = () => {
         )}
       </section>
 
-      {/* Section 3: Overige info / documenten (incl. STARR) */}
+      
+
+      {/* Section 4: Overige informatie en documenten (profiel) */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <header className="mb-2">
           <h2 className="text-xl font-semibold text-slate-900">Overige informatie en documenten</h2>
-          <p className="text-sm text-slate-500">Algemene documenten die niet aan een specifieke competentie zijn gekoppeld.</p>
+          <p className="text-sm text-slate-500">Overige bewijsstukken uit je profiel.</p>
         </header>
-        {uploadsByCompetency["__unassigned__"] && uploadsByCompetency["__unassigned__"].length > 0 ? (
-          <ul className="space-y-2 text-sm text-slate-700">
-            {uploadsByCompetency["__unassigned__"].map((upload) => {
-              const key = upload.id || upload.storagePath || upload.fileName || upload.name;
-              const canDownload = Boolean(upload.downloadURL || upload.storagePath);
+        {(resume.overigeDocumenten || []).length === 0 ? (
+          <p className="text-sm text-slate-400">Nog geen overige informatie toegevoegd.</p>
+        ) : (
+          <ul className="space-y-2">
+            {resume.overigeDocumenten.map((doc) => {
+              const createdAt = (() => {
+                const raw = doc.createdAt;
+                try {
+                  if (!raw) return null;
+                  if (typeof raw.toDate === "function") return raw.toDate();
+                  const d = new Date(raw);
+                  return Number.isNaN(d.getTime()) ? null : d;
+                } catch (_) { return null; }
+              })();
               return (
-                <li key={key} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 shadow-sm">
-                  <Paperclip className="h-4 w-4 text-slate-400" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-slate-700">{upload.displayName || upload.name || upload.fileName}</p>
+                <li key={doc.id || doc.fileUrl} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-900">{doc.omschrijving}</p>
+                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
+                        {doc.datum ? <span>Datum bewijsstuk: {doc.datum}</span> : null}
+                        {createdAt ? <span>Toegevoegd: {createdAt.toLocaleDateString()}</span> : null}
+                      </div>
+                    </div>
+                    {doc.fileUrl ? (
+                      <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-600 hover:text-brand-500">Bekijk</a>
+                    ) : null}
                   </div>
-                  <button
-                    type="button"
-                    className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-[0.65rem] font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-                    onClick={() => handleDownload(upload)}
-                    disabled={!canDownload || downloadInProgress === key}
-                  >
-                    {downloadInProgress === key ? "Bezig..." : canDownload ? "Download" : "Niet beschikbaar"}
-                  </button>
+                  {doc.toelichting ? <p className="mt-2 text-sm text-slate-600">{doc.toelichting}</p> : null}
                 </li>
               );
             })}
           </ul>
-        ) : (
-          <p className="text-sm text-slate-400">Geen algemene documenten.</p>
         )}
       </section>
 
