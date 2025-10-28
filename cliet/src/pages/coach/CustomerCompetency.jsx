@@ -698,16 +698,20 @@ const CustomerTrajectOverview = () => {
   const competencies = progressData?.competencies || [];
 
   // Build linked items by competency from profile/resume arrays
-  const profileEducations = useMemo(() => {
-    const primary = Array.isArray(profileData?.educations) && profileData.educations.length > 0 ? profileData.educations : [];
-    const secondary = Array.isArray(resumeData?.educations) ? resumeData.educations : [];
-    return primary.length > 0 ? primary : secondary;
-  }, [profileData?.educations, resumeData?.educations]);
-  const profileCertificates = useMemo(() => {
-    const primary = Array.isArray(profileData?.certificates) && profileData.certificates.length > 0 ? profileData.certificates : [];
-    const secondary = Array.isArray(resumeData?.certificates) ? resumeData.certificates : [];
-    return primary.length > 0 ? primary : secondary;
-  }, [profileData?.certificates, resumeData?.certificates]);
+  const profileEducationItems = useMemo(() => {
+    const primary = Array.isArray(profileData?.educationItems) && profileData.educationItems.length > 0 ? profileData.educationItems : [];
+    const secondary = Array.isArray(resumeData?.educationItems) ? resumeData.educationItems : [];
+    // Fallback merge legacy arrays if unified list is empty
+    if (primary.length > 0 || secondary.length > 0) return primary.length > 0 ? primary : secondary;
+    const legacyEd = Array.isArray(profileData?.educations) && profileData.educations.length > 0 ? profileData.educations : Array.isArray(resumeData?.educations) ? resumeData.educations : [];
+    const legacyCt = Array.isArray(profileData?.certificates) && profileData.certificates.length > 0 ? profileData.certificates : Array.isArray(resumeData?.certificates) ? resumeData.certificates : [];
+    // Map legacy entries into a unified shape minimally
+    const mappedLegacy = [
+      ...legacyEd.map((ed) => ({ ...ed, title: ed.title || ed.name || "Opleiding", diplomaObtained: false })),
+      ...legacyCt.map((ct) => ({ ...ct, title: ct.title || ct.fileName || "Certificaat", diplomaObtained: true })),
+    ];
+    return mappedLegacy;
+  }, [profileData?.educationItems, resumeData?.educationItems, profileData?.educations, resumeData?.educations, profileData?.certificates, resumeData?.certificates]);
   const profileWork = useMemo(() => {
     const primary = Array.isArray(profileData?.workExperience) && profileData.workExperience.length > 0 ? profileData.workExperience : [];
     const secondary = Array.isArray(resumeData?.workExperience) ? resumeData.workExperience : [];
@@ -725,11 +729,10 @@ const CustomerTrajectOverview = () => {
         });
       });
     };
-    add("education", profileEducations);
-    add("certificate", profileCertificates);
+    add("educationItems", profileEducationItems);
     add("work", profileWork);
     return map;
-  }, [profileEducations, profileCertificates, profileWork]);
+  }, [profileEducationItems, profileWork]);
 
   const renderInstrumentEntries = () => (
     <div className="space-y-2">

@@ -482,6 +482,226 @@ export async function uploadCustomerCertificateFile(userId, file, title) {
   };
 }
 
+// Unified education item schema helper
+// educationItem: {
+//   id, title, year, diplomaObtained (boolean), type, note, attachments: [{ id,name,downloadURL,storagePath,contentType,size,uploadedAt }]
+// }
+const EDUCATION_TYPE_OPTIONS = [
+  "Algemeen onderwijs",
+  "Beroepsonderwijs",
+  "Hoger onderwijs",
+  "Cursus",
+  "Training",
+  "Anders",
+];
+
+const toYear = (value) => {
+  if (!value) return null;
+  if (typeof value === "number") {
+    const y = Math.trunc(value);
+    return y >= 1900 && y <= 2100 ? y : null;
+  }
+  const s = String(value);
+  const m = s.match(/(19\d{2}|20\d{2}|2100)/);
+  if (m) {
+    const y = parseInt(m[1], 10);
+    return y >= 1900 && y <= 2100 ? y : null;
+  }
+  try {
+    const d = new Date(s);
+    const y = d.getFullYear();
+    return Number.isFinite(y) && y >= 1900 && y <= 2100 ? y : null;
+  } catch (_) {
+    return null;
+  }
+};
+
+export async function migrateLegacyEducationProfile(userId) {
+  if (!userId) return { migrated: false };
+  const profileRef = doc(db, "profiles", userId);
+  const snap = await getDoc(profileRef).catch(() => null);
+  const data = snap?.exists() ? snap.data() || {} : {};
+  // If already migrated, skip
+  if (Array.isArray(data.educationItems) && data.educationItems.length > 0) {
+    return { migrated: false, already: true };
+  }
+  const educations = Array.isArray(data.educations) ? data.educations : [];
+  const certificates = Array.isArray(data.certificates) ? data.certificates : [];
+  const items = [];
+  const makeId = () => doc(collection(db, "profiles", userId, "_ids")).id;
+
+  educations.forEach((ed) => {
+    const id = ed.id || makeId();
+    const year = toYear(ed.endDate) || toYear(ed.startDate) || null;
+    items.push({
+      id,
+      title: ed.title || ed.name || "Opleiding",
+      year,
+      diplomaObtained: false,
+      type: EDUCATION_TYPE_OPTIONS.includes(ed.type) ? ed.type : "Anders",
+      note: ed.note || "",
+      attachments: [],
+      createdAt: ed.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  });
+
+  certificates.forEach((ct) => {
+    const id = ct.id || makeId();
+    const year = toYear(ct.uploadedAt) || null;
+    const attachment = {
+      id,
+      name: ct.fileName || ct.title || "bijlage",
+      downloadURL: ct.filePath || ct.downloadURL || null,
+      storagePath: ct.storagePath || null,
+      contentType: ct.contentType || null,
+      size: typeof ct.size === "number" ? ct.size : null,
+      uploadedAt: ct.uploadedAt || new Date().toISOString(),
+    };
+    items.push({
+      id,
+      title: ct.title || ct.fileName || "Certificaat of diploma",
+      year,
+      diplomaObtained: true,
+      type: "Anders",
+      note: ct.note || "",
+      attachments: attachment.downloadURL ? [attachment] : [],
+      createdAt: ct.uploadedAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  });
+
+  if (items.length === 0) return { migrated: false, empty: true };
+  await setDoc(profileRef, { educationItems: items, educationMigratedAt: serverTimestamp() }, { merge: true });
+  return { migrated: true, count: items.length };
+}
+
+export async function addEducationItem(userId, item) {
+  if (!userId) throw new Error("Missing user id");
+  const profileRef = doc(db, "profiles", userId);
+  const id = doc(collection(db, "profiles", userId, "_ids")).id;
+  const nowIso = new Date().toISOString();
+  const record = {
+    id,
+    title: (item.title || "").trim(),
+    year: toYear(item.year),
+    diplomaObtained: Boolean(item.diplomaObtained),
+    type: EDUCATION_TYPE_OPTIONS.includes(item.type) ? item.type : "Anders",
+    note: (item.note || "").trim(),
+    attachments: [],
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+  if (!record.title) throw new Error("Titel is verplicht");
+  if (!record.year) throw new Error("Jaar is verplicht");
+  await setDoc(profileRef, { educationItems: arrayUnion(record) }, { merge: true });
+  return record;
+}
+
+export async function addEducationItemAttachments(userId, educationItemId, files) {
+  if (!userId) throw new Error("Missing user id");
+  if (!educationItemId) throw new Error("Missing education item id");
+  if (!files || typeof files.length !== "number") return [];
+  const list = Array.from(files).filter(Boolean);
+  const uploadsCollection = collection(db, "users", userId, "uploads");
+  const profileRef = doc(db, "profiles", userId);
+  const uploaded = [];
+  for (let i = 0; i < list.length; i += 1) {
+    const file = list[i];
+    const safeName = file.name || `bijlage-${i}.dat`;
+    const storagePath = `educationItems/${userId}/${educationItemId}/${Date.now()}-${i}-${safeName}`;
+    const fileRef = ref(storage, storagePath);
+    const metadata = file.type
+      ? { contentType: file.type, customMetadata: { originalName: safeName, type: "education-attachment", educationItemId } }
+      : undefined;
+    await uploadBytes(fileRef, file, metadata);
+    const downloadURL = await getDownloadURL(fileRef);
+    const uploadDoc = await addDoc(uploadsCollection, {
+      name: safeName,
+      fileName: safeName,
+      downloadURL,
+      storagePath,
+      competencyId: null,
+      userId,
+      trajectId: null,
+      uploadedAt: serverTimestamp(),
+      contentType: file.type || null,
+      size: typeof file.size === "number" ? file.size : null,
+      type: "education-attachment",
+      educationItemId,
+    });
+    const att = {
+      id: uploadDoc.id,
+      name: safeName,
+      downloadURL,
+      storagePath,
+      contentType: file.type || null,
+      size: typeof file.size === "number" ? file.size : null,
+      uploadedAt: new Date().toISOString(),
+    };
+    uploaded.push(att);
+  }
+
+  // Append attachments into the correct item within educationItems array
+  const snap = await getDoc(profileRef).catch(() => null);
+  const data = snap?.exists() ? snap.data() || {} : {};
+  const items = Array.isArray(data.educationItems) ? [...data.educationItems] : [];
+  const idx = items.findIndex((it) => it && it.id === educationItemId);
+  if (idx !== -1) {
+    const current = items[idx];
+    const nextAtt = [...(Array.isArray(current.attachments) ? current.attachments : []), ...uploaded];
+    items[idx] = { ...current, attachments: nextAtt, updatedAt: new Date().toISOString() };
+    await setDoc(profileRef, { educationItems: items }, { merge: true });
+  }
+  return uploaded;
+}
+
+// Delete an education item and its attachments from the profile and Storage/Uploads.
+export async function deleteEducationItem(userId, educationItemId) {
+  if (!userId) throw new Error("Missing user id");
+  if (!educationItemId) throw new Error("Missing education item id");
+
+  const profileRef = doc(db, "profiles", userId);
+  const uploadsCol = collection(db, "users", userId, "uploads");
+
+  const snap = await getDoc(profileRef).catch(() => null);
+  const data = snap?.exists() ? snap.data() || {} : {};
+  const items = Array.isArray(data.educationItems) ? [...data.educationItems] : [];
+  const index = items.findIndex((it) => it && it.id === educationItemId);
+  if (index === -1) return { success: true, removed: false };
+
+  const item = items[index] || {};
+  const attachments = Array.isArray(item.attachments) ? item.attachments : [];
+
+  // Best-effort deletion of files and corresponding upload docs
+  for (let i = 0; i < attachments.length; i += 1) {
+    const att = attachments[i] || {};
+    const storagePath = att.storagePath || null;
+    if (storagePath) {
+      try {
+        await deleteObject(ref(storage, storagePath));
+      } catch (err) {
+        // ignore missing objects
+        if (!String(err?.code || "").includes("object-not-found")) {
+          // non-fatal: continue with other deletions
+        }
+      }
+    }
+    const uploadId = att.id || null;
+    if (uploadId) {
+      try {
+        await deleteDoc(doc(uploadsCol, uploadId));
+      } catch (_) {
+        // ignore
+      }
+    }
+  }
+
+  const nextItems = items.filter((it) => it && it.id !== educationItemId);
+  await setDoc(profileRef, { educationItems: nextItems }, { merge: true });
+  return { success: true, removed: true };
+}
+
 // Upload a general/other supporting document and register it under the profile's overigeDocumenten array.
 // Fields: omschrijving (required), datum (optional string), toelichting (optional string), file (required)
 export async function uploadCustomerOtherDocument({ userId, file, omschrijving, datum, toelichting, trajectId }) {
@@ -599,7 +819,7 @@ export function subscribeCustomerResume(userId, observer) {
 // sectionKey must be one of: "educations", "certificates", "workExperience".
 export async function linkProfileItemToCompetency({ userId, sectionKey, itemId, competencyId }) {
   if (!userId) throw new Error("userId is verplicht");
-  if (!sectionKey || !["educations", "certificates", "workExperience"].includes(sectionKey)) {
+  if (!sectionKey || !["educations", "certificates", "workExperience", "educationItems"].includes(sectionKey)) {
     throw new Error("sectionKey ongeldig");
   }
   if (!itemId) throw new Error("itemId is verplicht");
@@ -625,7 +845,7 @@ export async function linkProfileItemToCompetency({ userId, sectionKey, itemId, 
 // Unlink a competency from a profile entry
 export async function unlinkProfileItemFromCompetency({ userId, sectionKey, itemId, competencyId }) {
   if (!userId) throw new Error("userId is verplicht");
-  if (!sectionKey || !["educations", "certificates", "workExperience"].includes(sectionKey)) {
+  if (!sectionKey || !["educations", "certificates", "workExperience", "educationItems"].includes(sectionKey)) {
     throw new Error("sectionKey ongeldig");
   }
   if (!itemId) throw new Error("itemId is verplicht");

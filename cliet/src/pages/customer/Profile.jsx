@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { get, put } from "../../lib/api";
-import { subscribeCustomerProfileDetails, subscribeCustomerResume, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile, uploadCustomerOtherDocument } from "../../lib/firestoreCustomer";
+import { subscribeCustomerProfileDetails, subscribeCustomerResume, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile, uploadCustomerOtherDocument, migrateLegacyEducationProfile, addEducationItem, addEducationItemAttachments, deleteEducationItem } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 import ChangePasswordModal from "../../components/ChangePasswordModal";
@@ -21,6 +21,7 @@ const initialFormState = {
   name: "",
   educations: [],
   certificates: [],
+  educationItems: [],
   workExperience: [],
   overigeDocumenten: [],
   photoURL: "",
@@ -51,6 +52,10 @@ const CustomerProfile = () => {
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateStatus, setCertificateStatus] = useState(null);
   const [certificateInputKey, setCertificateInputKey] = useState(0);
+  const [eduItemDraft, setEduItemDraft] = useState({ title: "", year: "", diplomaObtained: false, type: "Anders", note: "", files: [] });
+  const [eduItemSaving, setEduItemSaving] = useState(false);
+  const [eduItemStatus, setEduItemStatus] = useState(null);
+  const [eduItemDeletingId, setEduItemDeletingId] = useState(null);
   const [otherDraft, setOtherDraft] = useState({ omschrijving: "", datum: "", toelichting: "", file: null });
   const [otherUploading, setOtherUploading] = useState(false);
   const [otherStatus, setOtherStatus] = useState(null);
@@ -167,15 +172,20 @@ const CustomerProfile = () => {
   // Keep overigeDocumenten (and optionally other resume fields in future) in sync with Firestore like Mijn Portfolio
   useEffect(() => {
     if (!customerId) return () => {};
+    // Trigger migration to unified education items if needed (no-op if already migrated)
+    migrateLegacyEducationProfile(customerId).catch(() => {});
     const unsubscribe = subscribeCustomerResume(customerId, ({ data }) => {
       const safe = data || {};
       const overige = Array.isArray(safe.overigeDocumenten) ? safe.overigeDocumenten : [];
+      const educationItems = Array.isArray(safe.educationItems) ? safe.educationItems : [];
       setForm((prev) => {
-        // Only update if changed to avoid unnecessary rerenders
+        // Only update overigeDocumenten if changed to avoid unnecessary rerenders
         const prevList = Array.isArray(prev.overigeDocumenten) ? prev.overigeDocumenten : [];
         const sameLength = prevList.length === overige.length;
         const sameIds = sameLength && prevList.every((it, idx) => (it?.id || it?.fileUrl) === (overige[idx]?.id || overige[idx]?.fileUrl));
-        return sameIds ? prev : { ...prev, overigeDocumenten: overige };
+        const base = sameIds ? prev : { ...prev, overigeDocumenten: overige };
+        // Always mirror educationItems, including empty arrays
+        return { ...base, educationItems };
       });
     });
     return () => {
@@ -366,6 +376,63 @@ const CustomerProfile = () => {
   const handleCertificateFileChange = (event) => {
     const file = event.target.files?.[0] || null;
     setCertificateDraft((prev) => ({ ...prev, file }));
+  };
+
+  const handleEduFilesChange = (event) => {
+    const list = event.target.files;
+    const selected = list && typeof list.length === "number" ? Array.from(list) : [];
+    setEduItemDraft((prev) => ({ ...prev, files: selected }));
+  };
+
+  const handleAddEducationItem = async () => {
+    if (!customerId) return;
+    const title = (eduItemDraft.title || "").trim();
+    const year = (eduItemDraft.year || "").toString().trim();
+    if (!title) {
+      setEduItemStatus({ type: "error", message: "Vul de titel in." });
+      return;
+    }
+    if (!year) {
+      setEduItemStatus({ type: "error", message: "Vul het jaar in." });
+      return;
+    }
+    setEduItemSaving(true);
+    setEduItemStatus(null);
+    try {
+      const created = await addEducationItem(customerId, {
+        title,
+        year,
+        diplomaObtained: Boolean(eduItemDraft.diplomaObtained),
+        type: eduItemDraft.type,
+        note: eduItemDraft.note || "",
+      });
+      if (Array.isArray(eduItemDraft.files) && eduItemDraft.files.length > 0) {
+        await addEducationItemAttachments(customerId, created.id, eduItemDraft.files);
+      }
+      // Do not mutate local list; subscribeCustomerResume will refresh with the authoritative array
+      setEduItemDraft({ title: "", year: "", diplomaObtained: false, type: "Anders", note: "", files: [] });
+      setEduItemStatus({ type: "success", message: "Item toegevoegd" });
+    } catch (err) {
+      setEduItemStatus({ type: "error", message: err?.message || "Toevoegen mislukt" });
+    } finally {
+      setEduItemSaving(false);
+    }
+  };
+
+  const handleDeleteEducationItem = async (itemId) => {
+    if (!customerId || !itemId) return;
+    if (!window.confirm("Weet je zeker dat je deze opleiding/cursus wilt verwijderen?")) return;
+    setEduItemStatus(null);
+    setEduItemDeletingId(itemId);
+    try {
+      await deleteEducationItem(customerId, itemId);
+      // Rely on subscription to refresh the list
+      setEduItemStatus({ type: "success", message: "Verwijderd" });
+    } catch (err) {
+      setEduItemStatus({ type: "error", message: err?.message || "Verwijderen mislukt" });
+    } finally {
+      setEduItemDeletingId(null);
+    }
   };
 
   const addCertificate = async () => {
@@ -901,195 +968,144 @@ const CustomerProfile = () => {
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-base font-semibold text-slate-900">Opleidingen</h2>
-                <p className="mt-2 text-sm text-slate-500">Leg je afgeronde of lopende opleidingen vast inclusief toelichting.</p>
-              </div>
-              <div className="space-y-4">
-                {(form.educations || []).length === 0 ? (
-                  <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                    Nog geen opleidingen toegevoegd.
-                  </p>
-                ) : (
-                  <ul className="space-y-3">
-                    {form.educations.map((education) => (
-                      <li
-                        key={education.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <p className="font-semibold text-slate-900">{education.title}</p>
-                            {education.institution ? (
-                              <p className="text-xs uppercase tracking-wide text-slate-400">{education.institution}</p>
-                            ) : null}
-                          </div>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">Opleiding of cursus</h2>
+              <p className="mt-2 text-sm text-slate-500">Beheer hier je opleidingen, cursussen en trainingen. Voeg toelichting en bijlagen toe.</p>
+            </div>
+            <div className="space-y-4">
+              {(form.educationItems || []).length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                  Nog geen opleiding of cursus toegevoegd.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {form.educationItems.map((it) => (
+                    <li key={it.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-900">{it.title}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">{it.year ? `Afgesloten in ${it.year}` : "Jaar onbekend"} • {it.diplomaObtained ? "Diploma/certificaat behaald" : "Geen diploma/certificaat"} • {it.type || "Anders"}</p>
+                          {it.note ? <p className="mt-2 text-sm text-slate-600">{it.note}</p> : null}
+                        </div>
+                        <div className="shrink-0">
                           <button
                             type="button"
-                            onClick={() => handleRemoveItem("educations", education.id)}
-                            className="text-xs font-semibold text-brand-600 transition hover:text-brand-500"
+                            onClick={() => handleDeleteEducationItem(it.id)}
+                            disabled={eduItemDeletingId === it.id}
+                            className="text-xs font-semibold text-red-600 transition hover:text-red-500 disabled:opacity-60"
                           >
-                            Verwijder
+                            {eduItemDeletingId === it.id ? "Verwijderen…" : "Verwijderen"}
                           </button>
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
-                          {education.startDate ? <span>Start: {education.startDate}</span> : null}
-                          {education.endDate ? <span>Einde: {education.endDate}</span> : null}
-                        </div>
-                        {education.note ? (
-                          <p className="mt-2 text-sm text-slate-500">{education.note}</p>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <h3 className="text-sm font-semibold text-slate-900">Nieuwe opleiding toevoegen</h3>
-                <div className="mt-3 grid gap-3 text-sm">
-                  <input
-                    type="text"
-                    value={educationDraft.title}
-                    onChange={(event) => setEducationDraft((prev) => ({ ...prev, title: event.target.value }))}
-                    placeholder="Naam opleiding"
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                  />
-                  <input
-                    type="text"
-                    value={educationDraft.institution}
-                    onChange={(event) => setEducationDraft((prev) => ({ ...prev, institution: event.target.value }))}
-                    placeholder="Onderwijsinstelling"
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                  />
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <input
-                      type="month"
-                      value={educationDraft.startDate}
-                      onChange={(event) => setEducationDraft((prev) => ({ ...prev, startDate: event.target.value }))}
-                      className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                    />
-                    <input
-                      type="month"
-                      value={educationDraft.endDate}
-                      onChange={(event) => setEducationDraft((prev) => ({ ...prev, endDate: event.target.value }))}
-                      className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-                  <textarea
-                    value={educationDraft.note}
-                    onChange={(event) => setEducationDraft((prev) => ({ ...prev, note: event.target.value }))}
-                    placeholder="Toelichting"
-                    rows={3}
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={addEducation}
-                    className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500"
-                  >
-                    Voeg opleiding toe
-                  </button>
-                </div>
-              </div>
+                      </div>
+                      {Array.isArray(it.attachments) && it.attachments.length > 0 ? (
+                        <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {it.attachments.map((att) => (
+                            <li key={att.id || att.storagePath}>
+                              <a href={att.downloadURL} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 shadow-sm hover:text-brand-600">
+                                <span aria-hidden>📎</span>
+                                <span className="truncate">{att.name || "bijlage"}</span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-base font-semibold text-slate-900">Certificaten &amp; diploma&apos;s</h2>
-                <p className="mt-2 text-sm text-slate-500">Upload officiële documenten en voeg een toelichting toe.</p>
-              </div>
-              <div className="space-y-4">
-                {(form.certificates || []).length === 0 ? (
-                  <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                    Nog geen certificaten geüpload.
-                  </p>
-                ) : (
-                  <ul className="space-y-3">
-                    {form.certificates.map((certificate) => (
-                      <li
-                        key={certificate.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <p className="font-semibold text-slate-900">{certificate.title}</p>
-                            <p className="text-xs uppercase tracking-wide text-slate-400">
-                              {certificate.fileName}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={certificate.filePath}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs font-semibold text-brand-600 transition hover:text-brand-500"
-                            >
-                              Bekijk
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem("certificates", certificate.id)}
-                              className="text-xs font-semibold text-brand-600 transition hover:text-brand-500"
-                            >
-                              Verwijder
-                            </button>
-                          </div>
-                        </div>
-                        {certificate.note ? (
-                          <p className="mt-2 text-sm text-slate-500">{certificate.note}</p>
-                        ) : null}
-                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
-                          {certificate.uploadedAt ? <span>Geüpload: {new Date(certificate.uploadedAt).toLocaleDateString()}</span> : null}
-                          {certificate.size ? <span>{(certificate.size / (1024 * 1024)).toFixed(2)} MB</span> : null}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <h3 className="text-sm font-semibold text-slate-900">Nieuw certificaat toevoegen</h3>
-                <div className="mt-3 grid gap-3 text-sm">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <h3 className="text-sm font-semibold text-slate-900">Nieuw item toevoegen</h3>
+              <div className="mt-3 grid gap-3 text-sm">
+                <div className="grid gap-2 md:grid-cols-2">
                   <input
                     type="text"
-                    value={certificateDraft.title}
-                    onChange={(event) => setCertificateDraft((prev) => ({ ...prev, title: event.target.value }))}
-                    placeholder="Titel certificaat of diploma"
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                  />
-                  <textarea
-                    value={certificateDraft.note}
-                    onChange={(event) => setCertificateDraft((prev) => ({ ...prev, note: event.target.value }))}
-                    placeholder="Toelichting"
-                    rows={3}
+                    value={eduItemDraft.title}
+                    onChange={(e) => setEduItemDraft((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Opleiding of cursus"
                     className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                   <input
-                    key={certificateInputKey}
-                    type="file"
-                    onChange={handleCertificateFileChange}
-                    className="text-sm"
+                    type="number"
+                    inputMode="numeric"
+                    pattern="\\d*"
+                    value={eduItemDraft.year}
+                    onChange={(e) => setEduItemDraft((prev) => ({ ...prev, year: e.target.value }))}
+                    placeholder="Afgesloten in (jaar)"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <select
+                    value={eduItemDraft.diplomaObtained ? "yes" : "no"}
+                    onChange={(e) => setEduItemDraft((prev) => ({ ...prev, diplomaObtained: e.target.value === "yes" }))}
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  >
+                    <option value="yes">Diploma/certificaat behaald</option>
+                    <option value="no">Geen diploma/certificaat</option>
+                  </select>
+                  <select
+                    value={eduItemDraft.type}
+                    onChange={(e) => setEduItemDraft((prev) => ({ ...prev, type: e.target.value }))}
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  >
+                    {[
+                      "Algemeen onderwijs",
+                      "Beroepsonderwijs",
+                      "Hoger onderwijs",
+                      "Cursus",
+                      "Training",
+                      "Anders",
+                    ].map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+                <textarea
+                  value={eduItemDraft.note}
+                  onChange={(e) => setEduItemDraft((prev) => ({ ...prev, note: e.target.value }))}
+                  placeholder="Toelichting / onderbouwing"
+                  rows={3}
+                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-300 hover:text-brand-600">
+                    <span aria-hidden>📎</span>
+                    <span>Bijlage(n) toevoegen</span>
+                    <input type="file" multiple className="hidden" onChange={handleEduFilesChange} />
+                  </label>
+                  {Array.isArray(eduItemDraft.files) && eduItemDraft.files.length > 0 ? (
+                    <span className="text-sm text-slate-500">Geselecteerd: {eduItemDraft.files.length === 1 ? eduItemDraft.files[0].name : `${eduItemDraft.files.length} bestanden`}</span>
+                  ) : null}
+                  <div className="flex-1" />
                   <button
                     type="button"
-                    onClick={addCertificate}
-                    disabled={certificateUploading}
+                    onClick={handleAddEducationItem}
+                    disabled={eduItemSaving}
                     className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
                   >
-                    {certificateUploading ? "Bezig met uploaden..." : "Upload en voeg toe"}
+                    {eduItemSaving ? "Opslaan..." : "Toevoegen"}
                   </button>
-                  {certificateStatus ? (
+                </div>
+                    {eduItemStatus ? (
                     <p
-                      className={`text-xs ${
-                        certificateStatus.type === "error" ? "text-red-500" : "text-emerald-600"
+                      className={`mt-2 flex items-center gap-2 text-sm font-semibold ${
+                        eduItemStatus.type === "error"
+                          ? "text-red-600"
+                          : "text-emerald-600"
                       }`}
                     >
-                      {certificateStatus.message}
+                      {eduItemStatus.type === "error" ? (
+                        <span aria-hidden="true" className="text-lg font-bold">❌</span>
+                      ) : (
+                        <span aria-hidden="true" className="text-lg font-bold">✅</span>
+                      )}
+                      {eduItemStatus.message}
                     </p>
                   ) : null}
-                </div>
               </div>
             </div>
           </div>

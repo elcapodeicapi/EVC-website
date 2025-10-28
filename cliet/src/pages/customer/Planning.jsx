@@ -14,6 +14,7 @@ import {
   unlinkProfileItemFromCompetency,
   uploadCustomerEvidence,
 } from "../../lib/firestoreCustomer";
+import { migrateLegacyEducationProfile } from "../../lib/firestoreCustomer";
 
 const CustomerPlanning = () => {
   const { customer, coach } = useOutletContext();
@@ -31,7 +32,7 @@ const CustomerPlanning = () => {
   const [deletingUploadId, setDeletingUploadId] = useState(null);
   const [uploadNames, setUploadNames] = useState({});
   const [uploadNameErrors, setUploadNameErrors] = useState({});
-  const [resume, setResume] = useState({ educations: [], certificates: [], workExperience: [], overigeDocumenten: [] });
+  const [resume, setResume] = useState({ educationItems: [], educations: [], certificates: [], workExperience: [], overigeDocumenten: [] });
   const [resumeError, setResumeError] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const fileInputsRef = useRef({});
@@ -125,7 +126,7 @@ const CustomerPlanning = () => {
     if (!customerId) {
       setCustomerUploads([]);
       setUploadsError(null);
-  setResume({ educations: [], certificates: [], workExperience: [], overigeDocumenten: [] });
+  setResume({ educationItems: [], educations: [], certificates: [], workExperience: [], overigeDocumenten: [] });
       setResumeError(null);
       return undefined;
     }
@@ -139,6 +140,8 @@ const CustomerPlanning = () => {
       setCustomerUploads(Array.isArray(uploads) ? uploads : []);
     });
 
+    // Ensure unified education data is available
+    migrateLegacyEducationProfile(customerId).catch(() => {});
     const unsubscribeResume = subscribeCustomerResume(customerId, ({ data, error }) => {
       if (error) {
         setResumeError(error);
@@ -147,6 +150,7 @@ const CustomerPlanning = () => {
       setResumeError(null);
       const safe = data || {};
       setResume({
+        educationItems: Array.isArray(safe.educationItems) ? safe.educationItems : [],
         educations: Array.isArray(safe.educations) ? safe.educations : [],
         certificates: Array.isArray(safe.certificates) ? safe.certificates : [],
         workExperience: Array.isArray(safe.workExperience) ? safe.workExperience : [],
@@ -348,18 +352,25 @@ const CustomerPlanning = () => {
         });
       });
     };
+    add("educationItems", resume.educationItems);
     add("education", resume.educations);
     add("certificate", resume.certificates);
     add("work", resume.workExperience);
     return map;
-  }, [resume.educations, resume.certificates, resume.workExperience]);
+  }, [resume.educationItems, resume.educations, resume.certificates, resume.workExperience]);
 
   const [linkSelections, setLinkSelections] = useState({});
   const handleLinkSelect = async (competencyKey, value) => {
     // value format: section|itemId
     if (!value) return;
     const [section, itemId] = value.split("|");
-    const sectionKey = section === "education" ? "educations" : section === "certificate" ? "certificates" : "workExperience";
+    const sectionKey = section === "education"
+      ? "educations"
+      : section === "certificate"
+      ? "certificates"
+      : section === "educationItems"
+      ? "educationItems"
+      : "workExperience";
     try {
       setLinkSelections((prev) => ({ ...prev, [competencyKey]: "linking" }));
       await linkProfileItemToCompetency({
@@ -478,52 +489,36 @@ const CustomerPlanning = () => {
         {resumeError ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Kon profiel niet laden: {resumeError.message}</div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Opleidingen</h3>
-              {(resume.educations || []).length === 0 ? (
-                <p className="mt-2 text-sm text-slate-400">Nog geen opleidingen geregistreerd.</p>
-              ) : (
-                <ul className="mt-2 space-y-2">
-                  {resume.educations.map((ed) => (
-                    <li key={ed.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                      <p className="font-semibold text-slate-900">{ed.title}</p>
-                      <p className="text-xs uppercase tracking-wide text-slate-400">{ed.institution || ""}</p>
-                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
-                        {ed.startDate ? <span>Start: {ed.startDate}</span> : null}
-                        {ed.endDate ? <span>Einde: {ed.endDate}</span> : null}
+          <div>
+            {(resume.educationItems || []).length === 0 ? (
+              <p className="mt-2 text-sm text-slate-400">Nog geen opleiding of cursus geregistreerd.</p>
+            ) : (
+              <ul className="mt-2 space-y-2">
+                {resume.educationItems.map((it) => (
+                  <li key={it.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-900">{it.title}</p>
+                        <p className="text-xs text-slate-500">{it.year ? `Afgesloten in ${it.year}` : "Jaar onbekend"} • {it.diplomaObtained ? "Diploma/certificaat behaald" : "Geen diploma/certificaat"} • {it.type || "Anders"}</p>
                       </div>
-                      {ed.note ? <p className="mt-2 text-sm text-slate-600">{ed.note}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Certificaten & diploma's</h3>
-              {(resume.certificates || []).length === 0 ? (
-                <p className="mt-2 text-sm text-slate-400">Nog geen certificaten geüpload.</p>
-              ) : (
-                <ul className="mt-2 space-y-2">
-                  {resume.certificates.map((cert) => (
-                    <li key={cert.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-slate-900">{cert.title}</p>
-                          {cert.fileName ? (
-                            <p className="text-xs uppercase tracking-wide text-slate-400">{cert.fileName}</p>
-                          ) : null}
-                        </div>
-                        {cert.filePath ? (
-                          <a href={cert.filePath} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-600 hover:text-brand-500">Bekijk</a>
-                        ) : null}
-                      </div>
-                      {cert.note ? <p className="mt-2 text-sm text-slate-600">{cert.note}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                    </div>
+                    {it.note ? <p className="mt-2 text-sm text-slate-600">{it.note}</p> : null}
+                    {Array.isArray(it.attachments) && it.attachments.length > 0 ? (
+                      <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {it.attachments.map((att) => (
+                          <li key={att.id || att.storagePath}>
+                            <a href={att.downloadURL} target="_blank" rel="noreferrer" className="inline-flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 shadow-sm hover:text-brand-600">
+                              <span aria-hidden>📎</span>
+                              <span className="truncate">{att.name || "bijlage"}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </section>
@@ -1025,11 +1020,8 @@ const CustomerPlanning = () => {
                               onChange={(e) => handleLinkSelect(key, e.target.value)}
                             >
                               <option value="">Koppel item uit profiel…</option>
-                              {(resume.educations || []).map((ed) => (
-                                <option key={`ed-${ed.id}`} value={`education|${ed.id}`}>Opleiding: {ed.title}</option>
-                              ))}
-                              {(resume.certificates || []).map((ct) => (
-                                <option key={`ct-${ct.id}`} value={`certificate|${ct.id}`}>Certificaat: {ct.title}</option>
+                              {(resume.educationItems || []).map((ed) => (
+                                <option key={`edi-${ed.id}`} value={`educationItems|${ed.id}`}>Opleiding/cursus: {ed.title}</option>
                               ))}
                               {(resume.workExperience || []).map((we) => (
                                 <option key={`we-${we.id}`} value={`work|${we.id}`}>Werkervaring: {we.role || we.organisation || we.id}</option>

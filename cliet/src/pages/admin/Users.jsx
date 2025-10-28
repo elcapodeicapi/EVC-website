@@ -218,15 +218,17 @@ const AdminUsers = () => {
       };
     }, []);
 
-    const isAdmin = useMemo(() => {
+    const { isAdmin, currentUid } = useMemo(() => {
       try {
         const raw = localStorage.getItem("user");
-        if (!raw) return false;
+        if (!raw) return { isAdmin: false, currentUid: null };
         const u = JSON.parse(raw);
         const role = (u?.role || "").toString().toLowerCase();
-        return role === "admin" || Boolean(u?.isAdmin) || Boolean(u?.admin === true);
+        const admin = role === "admin" || Boolean(u?.isAdmin) || Boolean(u?.admin === true);
+        const uid = u?.uid || u?.firebaseUid || u?.id || null;
+        return { isAdmin: admin, currentUid: uid };
       } catch (_) {
-        return false;
+        return { isAdmin: false, currentUid: null };
       }
     }, []);
 
@@ -380,13 +382,15 @@ const AdminUsers = () => {
       handleImpersonate(row, "/profiel");
     };
 
-    const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
     const [deletePending, setDeletePending] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
+  const [ackAdminDelete, setAckAdminDelete] = useState(false);
 
     const handleDeleteUser = (row) => {
       setDeleteTarget(row);
       setDeleteError(null);
+      setAckAdminDelete(false);
     };
 
     const confirmDelete = async () => {
@@ -629,6 +633,9 @@ const AdminUsers = () => {
                             {isAdmin && (
                               <ActionButton icon={Pencil} label="Bewerk" onClick={() => handleEditUser(row)} tone="brand" />
                             )}
+                            {isAdmin && (
+                              <ActionButton icon={Trash2} label="Verwijder" onClick={() => handleDeleteUser(row)} tone="danger" />
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -682,7 +689,7 @@ const AdminUsers = () => {
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  disabled={deletePending}
+                  disabled={deletePending || ((deleteTarget?.roleKey === "admin" || deleteTarget?.id === currentUid) && !ackAdminDelete)}
                   className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {deletePending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Verwijderen…</>) : "Verwijderen"}
@@ -690,10 +697,28 @@ const AdminUsers = () => {
               </>
             }
           >
+            {(deleteTarget?.roleKey === "admin" || deleteTarget?.id === currentUid) ? (
+              <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Waarschuwing: je verwijdert een beheerder of mogelijk je eigen account. Dit kan toegang tot het systeem beïnvloeden.
+                Vink de bevestiging hieronder aan om door te gaan.
+              </div>
+            ) : null}
             {deleteError ? (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {deleteError}
               </div>
+            ) : null}
+            {(deleteTarget?.roleKey === "admin" || deleteTarget?.id === currentUid) ? (
+              <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
+                  checked={ackAdminDelete}
+                  onChange={(e) => setAckAdminDelete(e.target.checked)}
+                  disabled={deletePending}
+                />
+                <span>Ik begrijp dat dit een beheerder of mijn eigen account kan verwijderen</span>
+              </label>
             ) : null}
           </ModalForm>
         ) : null}
