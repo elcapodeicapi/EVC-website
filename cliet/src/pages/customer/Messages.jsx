@@ -44,7 +44,7 @@ const CustomerMessages = () => {
   const [error, setError] = useState(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -155,11 +155,11 @@ const CustomerMessages = () => {
   receiverName: coach?.name || coach?.email || "Begeleider",
         messageTitle: trimmedTitle,
         messageText: trimmedBody,
-        file,
+        files,
       });
       setTitle("");
       setBody("");
-      setFile(null);
+      setFiles([]);
     } catch (err) {
       setError(err.message || "Verzenden mislukt");
     } finally {
@@ -168,8 +168,9 @@ const CustomerMessages = () => {
   };
 
   const handleFileChange = (event) => {
-    const selected = event.target.files?.[0] || null;
-    setFile(selected);
+    const list = event.target.files;
+    const selected = list && typeof list.length === "number" ? Array.from(list) : [];
+    setFiles(selected);
   };
 
   return (
@@ -236,7 +237,23 @@ const CustomerMessages = () => {
                       {message.messageText ? (
                         <p className="whitespace-pre-line text-sm text-slate-700">{message.messageText}</p>
                       ) : null}
-                      {message.fileUrl ? (
+                      {Array.isArray(message.attachments) && message.attachments.length > 0 ? (
+                        <ul className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {message.attachments.map((att, idx) => (
+                            <li key={`${message.id}-att-${idx}`}>
+                              <a
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-evc-blue-700 shadow-sm hover:text-evc-blue-600"
+                              >
+                                <span aria-hidden>📎</span>
+                                <span className="truncate">{att.name || "bijlage"}</span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : message.fileUrl ? (
                         <a
                           href={message.fileUrl}
                           target="_blank"
@@ -286,10 +303,12 @@ const CustomerMessages = () => {
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-evc-blue-300 hover:text-evc-blue-600">
                   <span aria-hidden>📎</span>
                   <span>Voeg bijlage toe</span>
-                  <input type="file" className="hidden" onChange={handleFileChange} />
+                  <input type="file" multiple className="hidden" onChange={handleFileChange} />
                 </label>
-                {file ? (
-                  <span className="text-sm text-slate-500">Geselecteerd: {file.name}</span>
+                {files && files.length > 0 ? (
+                  <span className="text-sm text-slate-500">
+                    Geselecteerd: {files.length === 1 ? files[0].name : `${files.length} bestanden`}
+                  </span>
                 ) : null}
                 <div className="flex-1" />
                 <button

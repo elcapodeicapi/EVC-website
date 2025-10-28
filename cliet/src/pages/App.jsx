@@ -1389,7 +1389,7 @@ const CustomerLayout = () => {
 								Laatste activiteit: {activityLabel}
 							</span>
 							{resolvedCoach ? (
-								<span className="hidden rounded-full bg-white px-3 py-1 font-medium text-evc-blue-600 sm:inline">
+								<span className="hidden rounded-full bg-white px-3 py-1 font-medium !text-black sm:inline">
 									Begeleider {resolvedCoach.name}
 								</span>
 							) : null}

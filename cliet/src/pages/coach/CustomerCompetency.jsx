@@ -275,7 +275,7 @@ const CustomerTrajectOverview = () => {
   const [chatError, setChatError] = useState(null);
   const [chatTitle, setChatTitle] = useState("");
   const [chatBody, setChatBody] = useState("");
-  const [chatFile, setChatFile] = useState(null);
+  const [chatFiles, setChatFiles] = useState([]);
   const [chatSending, setChatSending] = useState(false);
 
   useEffect(() => {
@@ -406,11 +406,11 @@ const CustomerTrajectOverview = () => {
         receiverName: customer?.name || customer?.email || "Kandidaat",
         messageTitle: trimmedTitle,
         messageText: trimmedBody,
-        file: chatFile,
+        files: chatFiles,
       });
       setChatTitle("");
       setChatBody("");
-      setChatFile(null);
+      setChatFiles([]);
     } catch (err) {
       setChatError(err);
     } finally {
@@ -419,8 +419,9 @@ const CustomerTrajectOverview = () => {
   };
 
   const handleChatFileChange = (event) => {
-    const selected = event.target.files?.[0] || null;
-    setChatFile(selected);
+    const list = event.target.files;
+    const selected = list && typeof list.length === "number" ? Array.from(list) : [];
+    setChatFiles(selected);
   };
 
   useEffect(() => {
@@ -1022,7 +1023,23 @@ const CustomerTrajectOverview = () => {
                               {message.messageText ? (
                                 <p className="whitespace-pre-line text-sm text-slate-700">{message.messageText}</p>
                               ) : null}
-                              {message.fileUrl ? (
+                              {Array.isArray(message.attachments) && message.attachments.length > 0 ? (
+                                <ul className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  {message.attachments.map((att, idx) => (
+                                    <li key={`${message.id}-att-${idx}`}>
+                                      <a
+                                        href={att.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-evc-blue-700 shadow-sm hover:text-evc-blue-600"
+                                      >
+                                        <span aria-hidden>📎</span>
+                                        <span className="truncate">{att.name || "bijlage"}</span>
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : message.fileUrl ? (
                                 <a
                                   href={message.fileUrl}
                                   target="_blank"
@@ -1065,10 +1082,12 @@ const CustomerTrajectOverview = () => {
                         <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-evc-blue-300 hover:text-evc-blue-600">
                           <span aria-hidden>📎</span>
                           <span>Voeg bijlage toe</span>
-                          <input type="file" className="hidden" onChange={handleChatFileChange} />
+                          <input type="file" multiple className="hidden" onChange={handleChatFileChange} />
                         </label>
-                        {chatFile ? (
-                          <span className="text-sm text-slate-500">Geselecteerd: {chatFile.name}</span>
+                        {Array.isArray(chatFiles) && chatFiles.length > 0 ? (
+                          <span className="text-sm text-slate-500">
+                            Geselecteerd: {chatFiles.length === 1 ? chatFiles[0].name : `${chatFiles.length} bestanden`}
+                          </span>
                         ) : null}
                         <div className="flex-1" />
                         <button

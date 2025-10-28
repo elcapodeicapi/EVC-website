@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Trash2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { signInWithCustomToken } from "firebase/auth";
 import { subscribeAssignments, subscribeTrajects, subscribeUsers } from "../../lib/firestoreAdmin";
 import { post } from "../../lib/api";
@@ -329,19 +329,7 @@ const AdminDashboard = () => {
     [navigate]
   );
 
-  const handleEdit = useCallback(
-    (customerId) => {
-      if (!customerId) return;
-      navigate(`/admin/users?focus=${customerId}`);
-    },
-    [navigate]
-  );
-
-  const handleDelete = useCallback((customerId) => {
-    if (!customerId) return;
-    // Placeholder until backend deletion flow exists
-  alert("Verwijderen van kandidaten is nog niet beschikbaar in deze omgeving.");
-  }, []);
+  // Verwijderen en Wijzigen acties verwijderd van het dashboard (niet zichtbaar of bruikbaar)
 
   return (
     <div className="space-y-8">
@@ -429,7 +417,6 @@ const AdminDashboard = () => {
               <TableHeader>Dagen actief</TableHeader>
               <TableHeader>Laatste login</TableHeader>
               <TableHeader>Status</TableHeader>
-              <TableHeader className="text-right">Acties</TableHeader>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 text-sm text-slate-600">
@@ -494,16 +481,7 @@ const AdminDashboard = () => {
                   <td className="px-4 py-3">
                     <StatusBadge status={row.statusValue} label={row.status} />
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-3">
-                      <ActionButton
-                        icon={Pencil}
-                        title="Bewerk kandidaat"
-                        onClick={() => handleEdit(row.id)}
-                      />
-                      <ActionButton icon={Trash2} title="Verwijder kandidaat" onClick={() => handleDelete(row.id)} />
-                    </div>
-                  </td>
+                  {/* Actieknoppen verwijderd */}
                 </tr>
               ))
             )}
@@ -533,23 +511,7 @@ const TableHeader = ({ children, className = "" }) => (
   </th>
 );
 
-const ActionButton = ({ icon: Icon, title, onClick, disabled, loading }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    title={title}
-    className={`flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 ${
-      disabled ? "cursor-not-allowed opacity-60" : ""
-    }`}
-  >
-    {loading ? (
-      <span className="text-xs font-semibold">...</span>
-    ) : (
-      <Icon className="h-4 w-4" aria-hidden />
-    )}
-  </button>
-);
+// Actieknopcomponent verwijderd omdat acties op dashboard niet meer beschikbaar zijn
 
 const StatusBadge = ({ status, label }) => {
   const meta = getTrajectStatusMeta(status);

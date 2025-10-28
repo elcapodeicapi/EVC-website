@@ -175,6 +175,27 @@ const mapMessageDoc = (docSnap) => {
     timestamp: normalizeDate(data.timestamp) || normalizeDate(data.createdAt) || new Date(),
     fileUrl: data.fileUrl || null,
     fileName: data.fileName || null,
+    attachments: Array.isArray(data.attachments)
+      ? data.attachments
+          .map((a) => ({
+            url: a?.url || null,
+            name: a?.name || a?.fileName || null,
+            contentType: a?.contentType || null,
+            size: typeof a?.size === "number" ? a.size : null,
+            path: a?.path || a?.storagePath || null,
+          }))
+          .filter((a) => a.url && a.name)
+      : data.fileUrl && data.fileName
+      ? [
+          {
+            url: data.fileUrl,
+            name: data.fileName,
+            contentType: null,
+            size: null,
+            path: null,
+          },
+        ]
+      : [],
     isReadByCoach:
       data.isReadByCoach !== undefined
         ? Boolean(data.isReadByCoach)
@@ -224,6 +245,7 @@ export async function sendThreadMessage({
   messageTitle,
   messageText,
   file,
+  files,
 }) {
   if (!threadId) throw new Error("threadId ontbreekt");
   if (!senderId) throw new Error("senderId ontbreekt");
@@ -234,14 +256,34 @@ export async function sendThreadMessage({
   const messagesCollection = collection(db, "threads", threadId, "messages");
   const messageRef = doc(messagesCollection);
 
-  let fileUrl = null;
-  let fileName = null;
-  if (file) {
-    fileName = file.name;
-    const storageRef = ref(storage, `messages/${threadId}/${messageRef.id}/${file.name}`);
-    await uploadBytes(storageRef, file);
-    fileUrl = await getDownloadURL(storageRef);
+  // Normalize files: support FileList, array, or single 'file'
+  let normalizedFiles = [];
+  if (Array.isArray(files)) {
+    normalizedFiles = files.filter(Boolean);
+  } else if (files && typeof files.length === "number") {
+    normalizedFiles = Array.from(files).filter(Boolean);
+  } else if (file) {
+    normalizedFiles = [file];
   }
+
+  const attachments = [];
+  for (let i = 0; i < normalizedFiles.length; i += 1) {
+    const f = normalizedFiles[i];
+    if (!f) continue;
+    const safeName = f.name || `bestand-${i}`;
+    const storageRef = ref(storage, `messages/${threadId}/${messageRef.id}/${i}-${safeName}`);
+    await uploadBytes(storageRef, f);
+    const url = await getDownloadURL(storageRef);
+    attachments.push({
+      url,
+      name: safeName,
+      contentType: f.type || null,
+      size: typeof f.size === "number" ? f.size : null,
+      path: `messages/${threadId}/${messageRef.id}/${i}-${safeName}`,
+    });
+  }
+
+  const legacyFirst = attachments[0] || null;
 
   await setDoc(messageRef, {
     threadId,
@@ -252,8 +294,9 @@ export async function sendThreadMessage({
     receiverName: receiverName || "",
     messageTitle: title,
     messageText: text,
-    fileUrl,
-    fileName,
+    fileUrl: legacyFirst ? legacyFirst.url : null,
+    fileName: legacyFirst ? legacyFirst.name : null,
+    attachments,
     timestamp: serverTimestamp(),
     createdAt: serverTimestamp(),
     isReadByCoach: (senderRole || "").toLowerCase() === "coach",
