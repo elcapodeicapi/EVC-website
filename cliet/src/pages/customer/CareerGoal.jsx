@@ -98,9 +98,8 @@ const CustomerCareerGoal = () => {
   return (
     <div className="space-y-8">
       <header className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-evc-blue-600">Mijn loopbaandoel</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Jouw ambitie in kaart</h1>
-        <div className="max-w-2xl space-y-4 text-sm text-slate-500">
+        <h1 className="text-3xl font-semibold text-slate-900">Loopbaandoel van {displayName}</h1>
+        <div className="max-w-2xl space-y-4 text-sm text-black">
           {instructionSections.map((section) => (
             <div key={section.title} className="space-y-1">
               <p className="font-semibold text-slate-700">{section.title}</p>
@@ -115,10 +114,8 @@ const CustomerCareerGoal = () => {
 
       <section className="space-y-6">
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <label htmlFor="careerGoal" className="block text-sm font-semibold text-slate-800">
-            Loopbaandoel van {displayName}
-          </label>
-          <p className="mt-2 text-sm text-slate-500">
+ 
+          <p className="mt-0.1 text-base font-semibold text-slate-500">
             Beschrijf je ambitie: welke stappen wil je zetten binnen je loopbaan en waarom past dit traject bij jou?
           </p>
           {loading ? (

@@ -469,7 +469,6 @@ const CustomerProfile = () => {
     <div className="space-y-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-500">Mijn profiel</p>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">Profiel {customerName}</h1>
           <p className="mt-3 max-w-2xl text-sm text-slate-500">
             Dit is de pagina waar je jouw persoonlijke gegevens kunt inzien en eventueel aanpassen.
@@ -503,7 +502,7 @@ const CustomerProfile = () => {
           <div className="flex flex-col gap-2 text-sm sm:items-end">
             <label
               htmlFor="profile-photo-upload"
-              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold text-white shadow-sm transition ${
+              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold !text-white shadow-sm transition ${
                 photoUploading ? "bg-slate-400" : "bg-brand-600 hover:bg-brand-500"
               }`}
             >
@@ -659,7 +658,9 @@ const CustomerProfile = () => {
                   checked={Boolean(evcDetails.voluntaryParticipation)}
                   onChange={handleParticipationChange}
                 />
-                <span>Ik neem vrijwillig deel aan dit EVC-traject</span>
+                <span className="!font-bold !text-black">
+                  Ik neem vrijwillig deel aan dit EVC-traject
+                  </span>
               </label>
             </div>
           ) : (
@@ -687,7 +688,7 @@ const CustomerProfile = () => {
                   Nummer: {evcSnapshot.qualification?.number || "-"} • Geldig tot: {evcSnapshot.qualification?.validity || "-"}
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-black">
                 {evcSnapshot.voluntaryParticipation
                   ? "Je neemt vrijwillig deel aan dit EVC-traject."
                   : "Je hebt nog niet bevestigd dat je vrijwillig deelneemt aan dit EVC-traject."}

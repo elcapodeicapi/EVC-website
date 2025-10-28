@@ -4,20 +4,20 @@ import clsx from "clsx";
 
 const tonePalettes = {
   light: {
-    container: "bg-white text-slate-900 shadow-lg",
+    container: "bg-white text-slate-900 shadow-lg text-base",
     headerBorder: "border-slate-100",
     navActive: "bg-brand-50 text-brand-700",
-    navInactive: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-    iconIdle: "text-slate-400",
+    navInactive: "text-slate-700 hover:bg-slate-100 hover:text-slate-900 text-base",
+    iconIdle: "text-slate-500",
     iconActive: "text-brand-600",
     badge: "bg-brand-100 text-brand-700",
     footerBorder: "border-slate-100",
   },
   dark: {
-    container: "bg-slate-950 text-white shadow-xl",
+    container: "bg-slate-950 text-white shadow-xl text-base",
     headerBorder: "border-white/10",
-    navActive: "bg-white/10 text-white",
-    navInactive: "text-white/70 hover:bg-white/5 hover:text-white",
+    navActive: "bg-white/10 text-white text-base",
+    navInactive: "text-white/80 hover:bg-white/5 hover:text-white text-base",
     iconIdle: "text-white/50",
     iconActive: "text-white",
     badge: "bg-white/10 text-white",
@@ -29,7 +29,7 @@ const Sidebar = ({ header, navItems = [], footer, onNavigate, tone = "light" }) 
   const palette = tonePalettes[tone] || tonePalettes.light;
 
   return (
-    <aside className={clsx("flex h-full w-80 max-w-full flex-col lg:h-screen", palette.container)}>
+    <aside className={clsx("flex h-full w-96 max-w-full flex-col lg:h-screen", palette.container)}>
       <div className={clsx("border-b px-6 pb-4 pt-6", palette.headerBorder)}>
         {header || (
           <div className="text-current">
@@ -38,8 +38,8 @@ const Sidebar = ({ header, navItems = [], footer, onNavigate, tone = "light" }) 
           </div>
         )}
       </div>
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="flex flex-col gap-1">
+      <nav className="flex-1 overflow-y-auto px-6 py-6">
+        <ul className="flex flex-col gap-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -50,7 +50,7 @@ const Sidebar = ({ header, navItems = [], footer, onNavigate, tone = "light" }) 
                   onClick={() => onNavigate?.(item)}
                   className={({ isActive }) =>
                     clsx(
-                      "group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "group flex items-center rounded-lg px-4 py-3 text-sm font-semibold transition-colors",
                       isActive ? palette.navActive : palette.navInactive
                     )
                   }

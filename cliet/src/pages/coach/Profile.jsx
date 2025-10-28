@@ -233,7 +233,7 @@ const CoachProfile = () => {
           <div className="flex flex-col gap-2 text-sm sm:items-end">
             <label
               htmlFor="coach-profile-photo-upload"
-              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold text-white shadow-sm transition ${
+              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold !text-white shadow-sm transition ${
                 photoUploading ? "bg-slate-400" : "bg-brand-600 hover:bg-brand-500"
               }`}
             >
@@ -261,7 +261,7 @@ const CoachProfile = () => {
   <p className="text-sm uppercase tracking-[0.35em] text-white/70">Begeleidersprofiel</p>
         <div className="mt-4 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
-            <h2 className="text-3xl font-semibold">{coach?.name || coach?.email || "Begeleider"}</h2>
+            <h2 className="text-3xl font-semibold text-white">{coach?.name || coach?.email || "Begeleider"}</h2>
             <p className="mt-2 text-white/80">{coach?.role || "EVC Begeleider"}</p>
             <p className="mt-3 max-w-2xl text-sm text-white/70">{coach?.bio || "Je begeleidt professionals in hun EVC-traject en geeft richting met gerichte feedback."}</p>
           </div>
@@ -355,7 +355,7 @@ const CoachProfile = () => {
                   <button
                     type="button"
                     onClick={() => setPasswordOpen(true)}
-                    className="text-sm font-semibold text-brand-600 transition hover:text-brand-500"
+                    className="text-lg font-semibold text-brand-600 transition hover:text-brand-500"
                   >
                     Wachtwoord wijzigen
                   </button>
