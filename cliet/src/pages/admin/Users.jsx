@@ -218,6 +218,18 @@ const AdminUsers = () => {
       };
     }, []);
 
+    const isAdmin = useMemo(() => {
+      try {
+        const raw = localStorage.getItem("user");
+        if (!raw) return false;
+        const u = JSON.parse(raw);
+        const role = (u?.role || "").toString().toLowerCase();
+        return role === "admin" || Boolean(u?.isAdmin) || Boolean(u?.admin === true);
+      } catch (_) {
+        return false;
+      }
+    }, []);
+
     const trajectNameById = useMemo(() => {
       const map = new Map();
       trajects.forEach((traject) => {
@@ -361,8 +373,11 @@ const AdminUsers = () => {
       navigate(`/admin/users?focus=${row.id}`);
     };
 
+    // NOTE: 'Bewerken' for admins now impersonates the user and redirects to their profile.
+    // This keeps the admin's session in `localStorage.impersonationBackup` so they can return.
     const handleEditUser = (row) => {
-      window.alert(`Bewerken van ${row.name} is nog niet beschikbaar in deze omgeving.`);
+      // Reuse impersonation flow but force redirect to /profiel
+      handleImpersonate(row, "/profiel");
     };
 
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -410,7 +425,7 @@ const AdminUsers = () => {
       }
     };
 
-    const handleImpersonate = async (row) => {
+    const handleImpersonate = async (row, redirectOverride = null) => {
       if (!row) return;
       const targetId = row.id || row.firebaseUid;
       if (!targetId) return;
@@ -448,7 +463,7 @@ const AdminUsers = () => {
         }
         try { await post("/auth/track-login", {}); } catch (_) { /* best-effort */ }
 
-        const redirectPath = response?.redirectPath || resolveRedirectPath(role);
+        const redirectPath = redirectOverride || response?.redirectPath || resolveRedirectPath(role);
         navigate(redirectPath, { replace: true });
       } catch (err) {
         const message = err?.data?.error || err?.message || "Kon account niet openen";
@@ -608,11 +623,12 @@ const AdminUsers = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
-                            {(["customer", "user", "coach", "kwaliteitscoordinator", "assessor"].includes(row.roleKey)) && (
+                            {isAdmin && (["customer", "user", "coach", "kwaliteitscoordinator", "assessor"].includes(row.roleKey)) && (
                               <ActionButton icon={Eye} label="Open als gebruiker" onClick={() => handleImpersonate(row)} />
                             )}
-                            <ActionButton icon={Pencil} label="Bewerk" onClick={() => handleEditUser(row)} tone="brand" />
-                            <ActionButton icon={Trash2} label="Verwijder" onClick={() => handleDeleteUser(row)} tone="danger" />
+                            {isAdmin && (
+                              <ActionButton icon={Pencil} label="Bewerk" onClick={() => handleEditUser(row)} tone="brand" />
+                            )}
                           </div>
                         </td>
                       </tr>

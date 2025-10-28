@@ -43,6 +43,11 @@ function generateTempPassword(length = 12) {
   return Array.from(bytes, (b) => chars[b % chars.length]).join("");
 }
 
+// Small helper to retry async operations
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 
 function shouldSend(user, data) {
   if (!user.email) return false;
@@ -87,24 +92,56 @@ export const sendWelcomeEmail = functions
       return;
     }
 
-    // Always generate a fresh temporary password and set it for the user
-    let password;
+    // Generate a fresh temporary password and store it immediately in Firestore
+    const temp = generateTempPassword();
+    const generatedAt = new Date().toISOString();
     try {
-      const temp = generateTempPassword();
-      await auth.updateUser(uid, { password: temp });
       await db.collection("users").doc(uid).set(
         {
           temporaryPassword: temp,
-          passwordGeneratedAt: new Date().toISOString(),
+          passwordGeneratedAt: generatedAt,
+          temporaryPasswordSet: false,
         },
         { merge: true }
       );
-      password = temp;
     } catch (err) {
-      functions.logger.error("Could not set temporary password for new user", err);
-      // As a last resort, keep instructions to use password reset
-      password = "(stel je wachtwoord in via 'Wachtwoord vergeten')";
+      functions.logger.warn("Failed to persist temporaryPassword metadata early", {
+        uid,
+        error: err?.message || err,
+      });
     }
+
+    // Try up to 5 times to set the password in Firebase Auth (800ms * attempt backoff)
+    let passwordSet = false;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        await auth.updateUser(uid, { password: temp });
+        passwordSet = true;
+        // Mark as applied
+        try {
+          await db.collection("users").doc(uid).set(
+            {
+              temporaryPasswordSet: true,
+              temporaryPasswordAppliedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } catch (err) {
+          functions.logger.warn("Failed to update temporaryPasswordSet flag", {
+            uid,
+            error: err?.message || err,
+          });
+        }
+        break;
+      } catch (err) {
+        functions.logger.warn(`Attempt ${attempt} to set temp password failed`, {
+          uid,
+          error: err?.message || err,
+        });
+        await sleep(800 * attempt);
+      }
+    }
+    const password = temp; // Always use the initially generated password in the email
 
     const name =
       userData?.name ||
@@ -112,7 +149,8 @@ export const sendWelcomeEmail = functions
       email.split("@")[0] ||
       "deelnemer";
 
-    const body = [
+    const loginUrl = `${String(websiteUrl).replace(/\/$/, "")}/login`;
+    const lines = [
       `Beste ${name},`,
       "",
       `Je kunt op ${websiteUrl} inloggen met de volgende gegevens:`,
@@ -120,17 +158,27 @@ export const sendWelcomeEmail = functions
       `E-mail: ${email}`,
       `Wachtwoord: ${password}`,
       "",
+      "",
       'Wij adviseren je om het wachtwoord direct te wijzigen onder "Mijn profiel".',
       "",
       "Met vriendelijke groet,",
       "Team EVC GO",
-    ].join("\n");
+    ];
+    const body = lines.join("\n");
 
     const msg = {
       to: email,
       from: mailFrom,
       subject: "Welkom bij jouw EVC-traject",
       text: body,
+      html: [
+        `<p>Beste ${name},</p>`,
+        `<p>Je kunt op <a href="${websiteUrl}" target="_blank" rel="noopener noreferrer">${websiteUrl}</a> inloggen met de volgende gegevens:</p>`,
+        `<p><strong>E-mail:</strong> ${email}<br/><strong>Wachtwoord:</strong> ${password}</p>`,
+        `<p>Of <a href="${loginUrl}" target="_blank" rel="noopener noreferrer">log direct in op jouw portaal</a>.</p>`,
+        `<p>Wij adviseren je om het wachtwoord direct te wijzigen onder "Mijn profiel".</p>`,
+        `<p>Met vriendelijke groet,<br/>Team EVC GO</p>`,
+      ].join("")
     };
 
     try {
