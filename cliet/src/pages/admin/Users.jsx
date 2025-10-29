@@ -375,11 +375,10 @@ const AdminUsers = () => {
       navigate(`/admin/users?focus=${row.id}`);
     };
 
-    // NOTE: 'Bewerken' for admins now impersonates the user and redirects to their profile.
-    // This keeps the admin's session in `localStorage.impersonationBackup` so they can return.
+    // Admin edit now navigates to a dedicated edit page instead of impersonation
     const handleEditUser = (row) => {
-      // Reuse impersonation flow but force redirect to /profiel
-      handleImpersonate(row, "/profiel");
+      if (!row?.id) return;
+      navigate(`/admin/edit-user/${row.id}`);
     };
 
   const [deleteTarget, setDeleteTarget] = useState(null);

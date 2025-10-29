@@ -15,6 +15,8 @@ import {
   uploadCustomerEvidence,
 } from "../../lib/firestoreCustomer";
 import { migrateLegacyEducationProfile } from "../../lib/firestoreCustomer";
+import { storage } from "../../firebase";
+import { getDownloadURL, ref as storageRef } from "firebase/storage";
 
 const CustomerPlanning = () => {
   const { customer, coach } = useOutletContext();
@@ -35,6 +37,7 @@ const CustomerPlanning = () => {
   const [resume, setResume] = useState({ educationItems: [], educations: [], certificates: [], workExperience: [], overigeDocumenten: [] });
   const [resumeError, setResumeError] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [materials, setMaterials] = useState({ starr: null, vraak: null, auth: null });
   const fileInputsRef = useRef({});
   const [storedUser] = useState(() => {
     try {
@@ -255,6 +258,37 @@ const CustomerPlanning = () => {
   const toggleInstructions = () => {
     setShowInstructions((previous) => !previous);
   };
+
+  // Resolve Firebase Storage download URLs for public materials
+  useEffect(() => {
+    let cancelled = false;
+    const paths = {
+      starr: ["public-docs/STARR-formulier.docx"],
+      vraak: ["public-docs/VRAAK-criteria PBMZ.pdf"],
+      auth: ["public-docs/Authenticiteit verklaring.pdf"],
+    };
+
+    const loadAll = async () => {
+      const next = { starr: null, vraak: null, auth: null };
+      for (const key of Object.keys(paths)) {
+        const candidates = paths[key];
+        for (let i = 0; i < candidates.length; i += 1) {
+          try {
+            const url = await getDownloadURL(storageRef(storage, candidates[i]));
+            next[key] = url;
+            break;
+          } catch (_) {
+            // try next candidate
+          }
+        }
+      }
+      if (!cancelled) setMaterials(next);
+    };
+    loadAll();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setExpandedIds((previous) => {
@@ -675,12 +709,40 @@ const CustomerPlanning = () => {
                 </p>
                 <ul className="list-disc space-y-1 pl-5 text-black marker:text-evc-blue-700">
                   <li>Omschrijf per competentie wat je hebt gedaan en lever <strong>minimaal één bewijsstuk</strong> aan dat aantoont dat je die competentie beheerst.</li>
-                  <li>Werk bij voorkeur met <strong>STARR-verslagen</strong> (Situatie, Taak, Actie, Resultaat, Reflectie). Gebruik het STARR-formulier.</li>
+                  <li>
+                    Werk bij voorkeur met <strong>STARR-verslagen</strong> (Situatie, Taak, Actie, Resultaat, Reflectie). Gebruik het STARR-formulier.
+                    {' '}
+                    {materials.starr ? (
+                      <a
+                        href={materials.starr}
+                        target ="_blank"
+                        rel ="noopener noreferrer"
+                        download="STARR-formulier.pdf"
+                        className="text-brand-600 font-semibold cursor-pointer hover:underline"
+                      >
+                        Download STARR-formulier
+                      </a>
+                    ) : null}
+                  </li>
                   <li>Upload verslagen en bewijzen bij een <strong>relevante competentie</strong>. Heb je een algemeen document? Plaats dit bij <strong>‘Overige informatie en documenten’</strong>.</li>
                   <li>Vul daarnaast je relevante opleidingen, diploma’s, certificaten en werkervaring aan in je profiel en/of portfolio.</li>
                 </ul>
                 <div className="mt-2 pl-4 text-[15px] text-slate-700">
-                  <p>Raadpleeg ook het document ‘VRAAK-Criteria’ voor voorbeelden van toelaatbare bewijsstukken. Vraag dit document op via Berichten als je het niet kunt vinden.</p>
+                  <p>
+                    Raadpleeg ook het document ‘VRAAK-Criteria’ voor voorbeelden van toelaatbare bewijsstukken. Vraag dit document op via Berichten als je het niet kunt vinden.
+                    {' '}
+                    {materials.vraak ? (
+                      <a
+                        href={materials.vraak}
+                        target ="_blank"
+                        rel ="noopener noreferrer"                        
+                        download="VRAAK-criteria-PBMZ.pdf"
+                        className="text-brand-600 font-semibold cursor-pointer hover:underline"
+                      >
+                        Download VRAAK-criteria bestand
+                      </a>
+                    ) : null}
+                  </p>
                 </div>
               </div>
 
@@ -731,7 +793,21 @@ const CustomerPlanning = () => {
                   <li>Zorg dat de titels op de verklaring exact overeenkomen met de titels van je uploads in dit portfolio.</li>
                 </ul>
                 <div className="mt-2 pl-4 text-[15px] text-slate-700">
-                  <p>Je kunt de authenticiteitsverklaring downloaden via de materialen van je traject of opvragen via Berichten (Contact).</p>
+                  <p>
+                    Je kunt de authenticiteitsverklaring downloaden via de materialen van je traject of opvragen via Berichten (Contact).
+                    {' '}
+                    {materials.auth ? (
+                      <a
+                        href={materials.auth}
+                        target ="_blank"
+                        rel ="noopener noreferrer"
+                        download="Authenticiteitsverklaring.pdf"
+                        className="text-brand-600 font-semibold cursor-pointer hover:underline"
+                      >
+                        Download Authenticiteitsverklaring
+                      </a>
+                    ) : null}
+                  </p>
                 </div>
               </div>
 

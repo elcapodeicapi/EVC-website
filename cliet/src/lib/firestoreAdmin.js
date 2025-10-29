@@ -538,6 +538,50 @@ export async function updateAdminProfile(uid, payload = {}) {
   await Promise.all(operations);
 }
 
+// Update core customer profile fields in profiles/{uid} so the customer-facing profile shows them
+export async function updateCustomerResumeCore(uid, payload = {}) {
+  if (!uid) throw new Error("Missing uid");
+
+  const hasOwn = Object.prototype.hasOwnProperty;
+  const normalizeString = (v) => (typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim());
+  const pick = (key) => (hasOwn.call(payload, key) ? normalizeString(payload[key]) : undefined);
+
+  const dateRaw = pick("dateOfBirth");
+  const dateOfBirth = dateRaw === undefined ? undefined : dateRaw || "";
+  if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+    throw new Error("Geboortedatum moet YYYY-MM-DD zijn");
+  }
+
+  const placeOfBirth = pick("placeOfBirth");
+  const nationality = pick("nationality");
+  const phoneFixed = pick("phoneFixed");
+  const phoneMobile = pick("phoneMobile");
+  const street = pick("street");
+  const houseNumber = pick("houseNumber");
+  const addition = pick("addition");
+  const postalCode = pick("postalCode");
+  const city = pick("city");
+
+  const update = {};
+  const setIfDefined = (k, v) => {
+    if (v !== undefined) update[k] = v || null; // empty string -> null for consistency with backend
+  };
+  setIfDefined("dateOfBirth", dateOfBirth || null);
+  setIfDefined("placeOfBirth", placeOfBirth);
+  setIfDefined("nationality", nationality);
+  setIfDefined("phoneFixed", phoneFixed);
+  setIfDefined("phoneMobile", phoneMobile);
+  setIfDefined("street", street);
+  setIfDefined("houseNumber", houseNumber);
+  setIfDefined("addition", addition);
+  setIfDefined("postalCode", postalCode);
+  setIfDefined("city", city);
+
+  if (Object.keys(update).length === 0) return;
+
+  await setDoc(doc(db, "profiles", uid), update, { merge: true });
+}
+
 export async function fetchUserDoc(uid) {
   if (!uid) return null;
   const docRef = doc(db, "users", uid);
