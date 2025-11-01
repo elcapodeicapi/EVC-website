@@ -25,6 +25,10 @@
   "hosting": {
     "public": "cliet/dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "redirects": [
+      { "source": "/login", "destination": "/", "type": 301 },
+      { "source": "/Login.html", "destination": "/", "type": 301 }
+    ],
     "rewrites": [
       {
         "source": "/api/**",
