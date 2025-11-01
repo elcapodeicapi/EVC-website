@@ -1,5 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { onInit } from "firebase-functions/v2/core";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 
 let appInstance;
 let createAppFactory;
@@ -32,3 +33,41 @@ export const ping = onRequest({ region: "europe-west1" }, (_req, res) => {
 
 // Export the auth trigger directly so Firebase can discover it for the emulator/deploy manifest
 export { sendWelcomeEmail } from "./email/sendWelcomeEmail.mjs";
+
+// --- Firestore -> Auth custom claims sync ---
+// Keep roles in Firebase Auth custom claims in sync with Firestore users/{uid}.role
+export const syncUserRoleClaims = onDocumentWritten(
+  { document: "users/{uid}", region: "europe-west1" },
+  async (event) => {
+    const uid = event?.params?.uid;
+    const after = event?.data?.after?.data();
+    if (!uid) {
+      console.log("[claims] Missing uid param; skipping.");
+      return;
+    }
+    if (!after) {
+      // Deleted or missing doc; do not change claims (explicitly).
+      console.log(`[claims] users/${uid} deleted or missing; no claim update.`);
+      return;
+    }
+
+    const rawRole = (after.role ?? after.Role ?? after.userRole ?? "").toString().trim().toLowerCase();
+    // Map legacy aliases
+    const role = rawRole === "user" ? "customer" : rawRole;
+    if (!role) {
+      console.log(`[claims] users/${uid} has empty role; skipping claims update.`);
+      return;
+    }
+    const allowed = new Set(["admin", "coach", "assessor", "kwaliteitscoordinator", "customer"]);
+    const claimRole = allowed.has(role) ? role : "customer";
+
+    try {
+      const adminSdk = await import("./firebase.js");
+      const auth = adminSdk.getAuth();
+      await auth.setCustomUserClaims(uid, { role: claimRole });
+      console.log(`[claims] Set custom claims for ${uid} => { role: "${claimRole}" }`);
+    } catch (error) {
+      console.error(`[claims] Failed to set claims for ${uid}:`, error?.message || error);
+    }
+  }
+);

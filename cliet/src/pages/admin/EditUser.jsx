@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Loader2, Save, ArrowLeft, UserCircle2, Image as ImageIcon, Trash2 } from "lucide-react";
-import { fetchAdminProfile, updateAdminProfile, updateCustomerResumeCore, fetchUserDoc } from "../../lib/firestoreAdmin";
+import { Loader2, Save, ArrowLeft, UserCircle2, Image as ImageIcon } from "lucide-react";
+import ModalForm from "../../components/ModalForm";
+import { fetchAdminProfile, updateAdminProfile, updateCustomerResumeCore, fetchUserDoc, fetchUsersByRole } from "../../lib/firestoreAdmin";
 import { subscribeCustomerResume, uploadCustomerProfilePhoto } from "../../lib/firestoreCustomer";
+import { subscribeAssignmentByCustomerId } from "../../lib/firestoreCoach";
+import { TRAJECT_STATUS, normalizeTrajectStatus } from "../../lib/trajectStatus";
+import { updateAssignmentStatus } from "../../lib/assignmentWorkflow";
 
 function Field({ label, children, required }) {
   return (
@@ -23,6 +27,18 @@ export default function AdminEditUser() {
   const [error, setError] = useState(null);
   const [profile, setProfile] = useState(null);
   const [resume, setResume] = useState({});
+  const { isAdmin } = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (!raw) return { isAdmin: false };
+      const u = JSON.parse(raw);
+      const role = (u?.role || "").toString().toLowerCase();
+      const admin = role === "admin" || Boolean(u?.isAdmin) || Boolean(u?.admin === true);
+      return { isAdmin: admin };
+    } catch (_) {
+      return { isAdmin: false };
+    }
+  }, []);
 
   // Local editable state
   const [form, setForm] = useState({
@@ -39,6 +55,17 @@ export default function AdminEditUser() {
     postalCode: "",
     city: "",
   });
+
+  // Assignment-related state (status and assessor)
+  const [assignment, setAssignment] = useState(null);
+  const [statusValue, setStatusValue] = useState(TRAJECT_STATUS.COLLECTING);
+  const [initialStatus, setInitialStatus] = useState(TRAJECT_STATUS.COLLECTING);
+  const [assessorId, setAssessorId] = useState("");
+  const [initialAssessorId, setInitialAssessorId] = useState("");
+  const [assessors, setAssessors] = useState([]);
+  const [assessorsLoading, setAssessorsLoading] = useState(false);
+  const [assessorsError, setAssessorsError] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -88,6 +115,46 @@ export default function AdminEditUser() {
     };
   }, [userId]);
 
+  // Subscribe to the candidate's assignment to reflect current status and assessor
+  useEffect(() => {
+    if (!userId) return () => {};
+    const unsubscribe = subscribeAssignmentByCustomerId(userId, ({ data }) => {
+      if (data) {
+        setAssignment(data);
+        const s = normalizeTrajectStatus(data.status) || TRAJECT_STATUS.COLLECTING;
+        setStatusValue(s);
+        setInitialStatus(s);
+        const aId = data.assessorId || "";
+        setAssessorId(aId || "");
+        setInitialAssessorId(aId || "");
+      } else {
+        setAssignment(null);
+        setStatusValue(TRAJECT_STATUS.COLLECTING);
+        setInitialStatus(TRAJECT_STATUS.COLLECTING);
+        setAssessorId("");
+        setInitialAssessorId("");
+      }
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [userId]);
+
+  const maybeLoadAssessors = async () => {
+    if (!isAdmin) return;
+    if (assessorsLoading) return;
+    setAssessorsLoading(true);
+    setAssessorsError(null);
+    try {
+      const list = await fetchUsersByRole("assessor");
+      setAssessors(Array.isArray(list) ? list : []);
+    } catch (e) {
+      setAssessorsError(e?.message || "Kon assessoren niet laden");
+    } finally {
+      setAssessorsLoading(false);
+    }
+  };
+
   const photoURL = profile?.photoURL || resume?.photoURL || "";
 
   const handleChange = (key) => (e) => {
@@ -113,19 +180,37 @@ export default function AdminEditUser() {
       setError(issues.join("\n"));
       return;
     }
+    // If admin is changing status/assessor, confirm before applying
+    const statusChanged = isAdmin && (statusValue !== initialStatus || (assessorId || "") !== (initialAssessorId || ""));
+    if (statusChanged) {
+      setConfirmOpen(true);
+      return;
+    }
+    await performSave(false);
+  };
+
+  const performSave = async (applyStatusChange = false) => {
     setSaving(true);
     setError(null);
     setStatus(null);
     try {
-      // Update admin profile overlay and base user fields (name/phone) via updateAdminProfile
+      // Profile + resume core fields
       await updateAdminProfile(userId, form);
-      // Also write core resume fields to profiles/{uid} so candidate profile shows it
       await updateCustomerResumeCore(userId, form);
-      setStatus({ type: "success", message: "Gegevens opgeslagen" });
+      // Optional status update
+      if (applyStatusChange && isAdmin) {
+        await updateAssignmentStatus({ customerId: userId, status: statusValue, assessorId: assessorId || undefined });
+        setInitialStatus(statusValue);
+        setInitialAssessorId(assessorId || "");
+        setStatus({ type: "success", message: "Status en assessor succesvol bijgewerkt." });
+      } else {
+        setStatus({ type: "success", message: "Gegevens opgeslagen" });
+      }
     } catch (e) {
-      setError(e?.message || "Opslaan mislukt");
+      setError(e?.data?.error || e?.message || "Opslaan mislukt");
     } finally {
       setSaving(false);
+      setConfirmOpen(false);
     }
   };
 
@@ -233,9 +318,78 @@ export default function AdminEditUser() {
                 </label>
               </div>
             </div>
+
+            {isAdmin ? (
+              <div className="mt-4 space-y-3">
+                <Field label="Trajectstatus">
+                  <select
+                    value={statusValue}
+                    onChange={(e) => setStatusValue(normalizeTrajectStatus(e.target.value))}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  >
+                    <option value={TRAJECT_STATUS.COLLECTING}>Bewijzen verzamelen</option>
+                    <option value={TRAJECT_STATUS.REVIEW}>Ter beoordeling</option>
+                    <option value={TRAJECT_STATUS.QUALITY}>Ter goedkeuring</option>
+                    <option value={TRAJECT_STATUS.COMPLETE}>Afgerond</option>
+                  </select>
+                </Field>
+
+                {(statusValue === TRAJECT_STATUS.REVIEW || statusValue === TRAJECT_STATUS.QUALITY) ? (
+                  <Field label="Kies assessor">
+                    <select
+                      value={assessorId}
+                      onChange={(e) => setAssessorId(e.target.value)}
+                      onFocus={maybeLoadAssessors}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    >
+                      <option value="">{assessorsLoading ? "Laden..." : "Kies een assessor"}</option>
+                      {assessors.map((a) => (
+                        <option key={a.id} value={a.id}>{a.name || a.email || a.id}</option>
+                      ))}
+                    </select>
+                    {assessorsError ? (
+                      <div className="mt-1 text-xs text-red-600">{assessorsError}</div>
+                    ) : null}
+                  </Field>
+                ) : null}
+
+                {assignment?.assessorId ? (
+                  <div className="text-xs text-slate-500">Huidig toegewezen aan: {assignment.assessorName || assignment.assessorEmail || assignment.assessorId}</div>
+                ) : null}
+              </div>
+            ) : null}
           </aside>
         </div>
       )}
+
+      {confirmOpen ? (
+        <ModalForm
+          open={true}
+          title="Status wijzigen"
+          description="Weet je zeker dat je de status wilt wijzigen?"
+          onClose={() => (!saving ? setConfirmOpen(false) : null)}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                disabled={saving}
+                className="rounded-full border border-slate-200 px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 disabled:opacity-60"
+              >
+                Annuleren
+              </button>
+              <button
+                type="button"
+                onClick={() => performSave(true)}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:opacity-60"
+              >
+                {saving ? (<><Loader2 className="h-4 w-4 animate-spin" /> Opslaan…</>) : "Bevestigen"}
+              </button>
+            </>
+          }
+        />
+      ) : null}
     </div>
   );
 }

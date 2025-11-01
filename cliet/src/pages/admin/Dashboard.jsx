@@ -5,6 +5,8 @@ import { signInWithCustomToken } from "firebase/auth";
 import { subscribeAssignments, subscribeTrajects, subscribeUsers } from "../../lib/firestoreAdmin";
 import { post } from "../../lib/api";
 import { auth } from "../../firebase";
+import { getAuth, onAuthStateChanged, getIdTokenResult } from "firebase/auth";
+
 import {
   getTrajectStatusLabel,
   getTrajectStatusMeta,
@@ -69,6 +71,22 @@ const AdminDashboard = () => {
 
   const [impersonationTarget, setImpersonationTarget] = useState(null);
   const [impersonationError, setImpersonationError] = useState(null);
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        console.log("No user logged in yet");
+        return;
+      }
+
+      const token = await getIdTokenResult(user);
+      console.log("UID:", user.uid);
+      console.log("Custom claims:", token.claims);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     setUsersLoading(true);
@@ -524,5 +542,6 @@ const StatusBadge = ({ status, label }) => {
     </span>
   );
 };
+
 
 export default AdminDashboard;

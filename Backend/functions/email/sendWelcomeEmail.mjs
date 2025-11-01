@@ -175,7 +175,6 @@ export const sendWelcomeEmail = functions
         `<p>Beste ${name},</p>`,
         `<p>Je kunt op <a href="${websiteUrl}" target="_blank" rel="noopener noreferrer">${websiteUrl}</a> inloggen met de volgende gegevens:</p>`,
         `<p><strong>E-mail:</strong> ${email}<br/><strong>Wachtwoord:</strong> ${password}</p>`,
-        `<p>Of <a href="${loginUrl}" target="_blank" rel="noopener noreferrer">log direct in op jouw portaal</a>.</p>`,
         `<p>Wij adviseren je om het wachtwoord direct te wijzigen onder "Mijn profiel".</p>`,
         `<p>Met vriendelijke groet,<br/>Team EVC GO</p>`,
       ].join("")

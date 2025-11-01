@@ -17,9 +17,10 @@ import {
 import { migrateLegacyEducationProfile } from "../../lib/firestoreCustomer";
 import { storage } from "../../firebase";
 import { getDownloadURL, ref as storageRef } from "firebase/storage";
+import { isCollectingStatus } from "../../lib/trajectStatus";
 
 const CustomerPlanning = () => {
-  const { customer, coach } = useOutletContext();
+  const { customer, coach, assignment } = useOutletContext();
   const [traject, setTraject] = useState(null);
   const [competencies, setCompetencies] = useState([]);
   const [expandedIds, setExpandedIds] = useState([]);
@@ -48,6 +49,7 @@ const CustomerPlanning = () => {
   });
   const customerId = customer?.id || null;
   const participantName = customer?.name || "kandidaat";
+  const isEditable = isCollectingStatus(assignment?.status);
 
   const loadPlanning = useCallback(async () => {
     setLoadingApi(true);
@@ -174,6 +176,10 @@ const CustomerPlanning = () => {
   const isLoading = loadingApi || loadingFirestore;
 
   const handleTriggerUpload = (key) => {
+    if (!isEditable) {
+      setError("Je traject bevindt zich in de beoordelingsfase. Aanpassingen zijn tijdelijk niet mogelijk.");
+      return;
+    }
     const desiredName = (uploadNames[key] || "").trim();
     if (!desiredName) {
       setUploadNameErrors((previous) => ({ ...previous, [key]: "Geef een naam op voor je upload." }));
@@ -197,6 +203,11 @@ const CustomerPlanning = () => {
     const file = event.target.files?.[0];
     if (!file) return;
     event.target.value = "";
+
+    if (!isEditable) {
+      setError("Je traject bevindt zich in de beoordelingsfase. Aanpassingen zijn tijdelijk niet mogelijk.");
+      return;
+    }
 
     const trajectId = derivedTrajectId;
     if (!trajectId) {
@@ -397,6 +408,10 @@ const CustomerPlanning = () => {
   const handleLinkSelect = async (competencyKey, value) => {
     // value format: section|itemId
     if (!value) return;
+    if (!isEditable) {
+      setError("Je traject bevindt zich in de beoordelingsfase. Aanpassingen zijn tijdelijk niet mogelijk.");
+      return;
+    }
     const [section, itemId] = value.split("|");
     const sectionKey = section === "education"
       ? "educations"
@@ -421,6 +436,10 @@ const CustomerPlanning = () => {
   };
 
   const handleUnlink = async (competencyKey, entry) => {
+    if (!isEditable) {
+      setError("Je traject bevindt zich in de beoordelingsfase. Aanpassingen zijn tijdelijk niet mogelijk.");
+      return;
+    }
     const sectionKey = entry.__section === "education" ? "educations" : entry.__section === "certificate" ? "certificates" : "workExperience";
     try {
       await unlinkProfileItemFromCompetency({
@@ -464,6 +483,10 @@ const CustomerPlanning = () => {
 
   const handleDeleteUpload = async (upload) => {
     if (!upload || !upload.id) return;
+    if (!isEditable) {
+      setError("Je traject bevindt zich in de beoordelingsfase. Aanpassingen zijn tijdelijk niet mogelijk.");
+      return;
+    }
     if (!customerId) {
       setError("Kon je accountgegevens niet vinden. Probeer opnieuw in te loggen.");
       return;
@@ -485,6 +508,11 @@ const CustomerPlanning = () => {
 
   return (
     <div className="planning-page space-y-10">
+      {!isEditable ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          🔒 Je traject bevindt zich in de beoordelingsfase. Aanpassingen aan bewijsstukken zijn tijdelijk niet mogelijk.
+        </div>
+      ) : null}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         
         <h1 className="mt-2 text-3xl font-semibold text-slate-900">Portfolio {participantName}</h1>
@@ -989,6 +1017,7 @@ const CustomerPlanning = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleUnlink(key, entry)}
+                                    disabled={!isEditable}
                                     className="rounded-full border border-slate-200 px-3 py-1 text-[0.65rem] font-semibold text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                                   >
                                     Ontkoppel
@@ -1039,7 +1068,7 @@ const CustomerPlanning = () => {
                                     <button
                                       type="button"
                                       onClick={() => handleDeleteUpload(upload)}
-                                      disabled={deletingUploadId === upload.id}
+                                      disabled={!isEditable || deletingUploadId === upload.id}
                                       className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 text-red-500 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
                                       aria-label="Verwijder upload"
                                     >
@@ -1094,6 +1123,7 @@ const CustomerPlanning = () => {
                               className="w-full rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700 focus:border-brand-400 focus:outline-none"
                               value={linkSelections[key] || ""}
                               onChange={(e) => handleLinkSelect(key, e.target.value)}
+                              disabled={!isEditable}
                             >
                               <option value="">Koppel item uit profiel…</option>
                               {(resume.educationItems || []).map((ed) => (
@@ -1106,7 +1136,7 @@ const CustomerPlanning = () => {
                             <button
                               type="button"
                               onClick={() => handleTriggerUpload(key)}
-                              disabled={uploading === (item.id || item.code || key)}
+                              disabled={!isEditable || uploading === (item.id || item.code || key)}
                               className="inline-flex items-center gap-2 rounded-full border border-dashed border-brand-300 px-3 py-2 text-[0.7rem] font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                             >
                               <Paperclip className="h-4 w-4" />

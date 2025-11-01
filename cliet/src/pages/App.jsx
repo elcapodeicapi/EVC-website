@@ -1337,7 +1337,7 @@ const CustomerLayout = () => {
 			// If returning to admin failed, fall back to fresh login.
 			localStorage.removeItem("user");
 			setSqlUser(null);
-			navigate("/login", { replace: true });
+			navigate("/", { replace: true });
 			return;
 		}
 		navigate("/admin", { replace: true });
@@ -1419,7 +1419,7 @@ const App = () => {
 		<BrowserRouter>
 			<Routes>
 				<Route path="/" element={<Home />} />
-				<Route path="/login" element={<Login />} />
+				{/* <Route path="/login" element={<Login />} /> */}
 				<Route path="/testing/create-account" element={<TestCreateAccount />} />
 				<Route path="/admin" element={<AdminLayout />}>
 					<Route index element={<AdminDashboard />} />
@@ -1483,7 +1483,7 @@ const App = () => {
 				</Route>
 
 				{/* Backward-compat: old .html paths */}
-				<Route path="/Login.html" element={<Navigate to="/login" replace />} />
+				{/* <Route path="/Login.html" element={<Navigate to="/login" replace />} /> */}
 				<Route path="/Dashboard.html" element={<Navigate to="/admin" replace />} />
 				<Route path="/Profile.html" element={<Navigate to="/customer/profile" replace />} />
 				<Route path="/Planning.html" element={<Navigate to="/customer/portfolio" replace />} />

@@ -1,18 +1,66 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user has admin role (custom claim)
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    // Check if a candidate is in "Bewijzen verzamelen" phase
+    function isCollecting(uid) {
+      return exists(/databases/$(database)/documents/assignments/$(uid)) &&
+             get(/databases/$(database)/documents/assignments/$(uid)).data.status == "Bewijzen verzamelen";
+    }
+
+    // Allow general reads for authenticated users (UI lists, context, etc.)
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 11, 7);
+      allow read: if isSignedIn();
+    }
+
+    // Candidate uploads collection
+    match /users/{uid}/uploads/{uploadId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if (isSignedIn() && request.auth.uid == uid && isCollecting(uid)) || isAdmin();
+    }
+
+    // Base user record: allow admin to manage user fields (name, phone, links)
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Admin overlay profile for staff-managed fields
+    match /adminProfiles/{uid} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Candidate profile root doc (educationItems, links, overigeDocumenten, etc.)
+    match /profiles/{uid} {
+      allow read: if isSignedIn();
+
+      // Allow the candidate to update their own profile only when collecting
+      // Allow admin full write access at all times
+      allow create, update, delete: if (isSignedIn() && request.auth.uid == uid && isCollecting(uid)) || isAdmin();
+    }
+
+    // Candidate assignments (used for traject status)
+    match /assignments/{uid} {
+      allow read: if isSignedIn();
+
+      // Candidate can’t modify their own status — only admin can update or create
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Public trajectory data (read-only for everyone)
+    match /trajects/{id} {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }

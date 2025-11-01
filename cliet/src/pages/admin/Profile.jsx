@@ -303,7 +303,7 @@ const AdminProfile = () => {
           <div className="mt-4"><StatusBanner state={photoStatus} /></div>
         ) : null}
       </section>
-      <section className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 px-8 py-10 text-white shadow-card">
+      <section className="rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-10 text-white shadow-card">
         <p className="text-sm uppercase tracking-[0.35em] text-white/60">Profiel</p>
         <div className="mt-4 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div className="flex items-start gap-4">
@@ -313,7 +313,7 @@ const AdminProfile = () => {
               </div>
             </div>
             <div>
-              <h2 className="text-3xl font-semibold">{displayName}</h2>
+              <h2 className="text-3xl !text-white font-semibold">{displayName}</h2>
               <p className="mt-2 text-white/80">{displayRole}</p>
               <p className="mt-3 max-w-2xl text-sm text-white/70">{profile?.bio || "Nog geen biografie toegevoegd."}</p>
             </div>

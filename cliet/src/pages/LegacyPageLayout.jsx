@@ -1,5 +1,4 @@
 import React from "react";
-import Navbar from "./Navbar";
 
 const LegacyPageLayout = ({
 	title,
@@ -8,11 +7,10 @@ const LegacyPageLayout = ({
 	actions,
 	children,
 	showHeader = true,
-	showNavbar = true,
+	showNavbar = false,
 }) => {
 	return (
 		<div className="min-h-screen bg-white">
-			{showNavbar ? <Navbar /> : null}
 			<main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
 				{showHeader && (title || description || kicker || actions) ? (
 					<div className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-200 pb-8">

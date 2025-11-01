@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { get, put } from "../../lib/api";
+import { isCollectingStatus } from "../../lib/trajectStatus";
 import { subscribeCustomerProfileDetails, subscribeCustomerResume, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile, uploadCustomerOtherDocument, migrateLegacyEducationProfile, addEducationItem, addEducationItemAttachments, deleteEducationItem } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
@@ -41,7 +42,8 @@ const initialEvcTrajectoryState = {
 };
 
 const CustomerProfile = () => {
-  const { customer, coach } = useOutletContext();
+  const { customer, coach, assignment } = useOutletContext();
+  const isEditable = isCollectingStatus(assignment?.status);
   const [form, setForm] = useState(initialFormState);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -296,6 +298,11 @@ const CustomerProfile = () => {
   const handlePhotoUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (!isEditable) {
+      setPhotoStatus({ type: "error", message: "Je traject bevindt zich in de beoordelingsfase. Aanpassingen zijn tijdelijk niet mogelijk." });
+      setPhotoInputKey((value) => value + 1);
+      return;
+    }
     if (!file.type?.startsWith("image/")) {
       setPhotoStatus({ type: "error", message: "Kies een geldig afbeeldingsbestand (PNG of JPG)." });
       setPhotoInputKey((value) => value + 1);
@@ -386,6 +393,10 @@ const CustomerProfile = () => {
 
   const handleAddEducationItem = async () => {
     if (!customerId) return;
+    if (!isEditable) {
+      setEduItemStatus({ type: "error", message: "Je traject is vergrendeld. Aanpassingen zijn tijdelijk niet mogelijk." });
+      return;
+    }
     const title = (eduItemDraft.title || "").trim();
     const year = (eduItemDraft.year || "").toString().trim();
     if (!title) {
@@ -421,6 +432,10 @@ const CustomerProfile = () => {
 
   const handleDeleteEducationItem = async (itemId) => {
     if (!customerId || !itemId) return;
+    if (!isEditable) {
+      setEduItemStatus({ type: "error", message: "Je traject is vergrendeld. Aanpassingen zijn tijdelijk niet mogelijk." });
+      return;
+    }
     if (!window.confirm("Weet je zeker dat je deze opleiding/cursus wilt verwijderen?")) return;
     setEduItemStatus(null);
     setEduItemDeletingId(itemId);
@@ -436,6 +451,10 @@ const CustomerProfile = () => {
   };
 
   const addCertificate = async () => {
+    if (!isEditable) {
+      setCertificateStatus({ type: "error", message: "Je traject is vergrendeld. Aanpassingen zijn tijdelijk niet mogelijk." });
+      return;
+    }
     if (!certificateDraft.file) {
       setCertificateStatus({ type: "error", message: "Kies eerst een bestand." });
       return;
@@ -484,6 +503,10 @@ const CustomerProfile = () => {
   };
 
   const addOtherDocument = async () => {
+    if (!isEditable) {
+      setOtherStatus({ type: "error", message: "Je traject is vergrendeld. Aanpassingen zijn tijdelijk niet mogelijk." });
+      return;
+    }
     const title = (otherDraft.omschrijving || "").trim();
     if (!title) {
       setOtherStatus({ type: "error", message: "Omschrijving/Titel is verplicht." });
@@ -534,6 +557,11 @@ const CustomerProfile = () => {
 
   return (
     <div className="space-y-8">
+      {!isEditable ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          🔒 Je traject bevindt zich in de beoordelingsfase. Aanpassingen aan bewijsstukken zijn tijdelijk niet mogelijk.
+        </div>
+      ) : null}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">Profiel {customerName}</h1>
@@ -567,20 +595,20 @@ const CustomerProfile = () => {
             </div>
           </div>
           <div className="flex flex-col gap-2 text-sm sm:items-end">
-            <label
+              <label
               htmlFor="profile-photo-upload"
               className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold !text-white shadow-sm transition ${
-                photoUploading ? "bg-slate-400" : "bg-brand-600 hover:bg-brand-500"
+                photoUploading ? "bg-slate-400" : isEditable ? "bg-brand-600 hover:bg-brand-500" : "bg-slate-300 cursor-not-allowed"
               }`}
             >
-              {photoUploading ? "Uploaden..." : "Nieuwe foto kiezen"}
+              {photoUploading ? "Uploaden..." : isEditable ? "Nieuwe foto kiezen" : "Vergrendeld"}
               <input
                 key={photoInputKey}
                 id="profile-photo-upload"
                 type="file"
                 accept="image/*"
                 onChange={handlePhotoUpload}
-                disabled={photoUploading}
+                disabled={photoUploading || !isEditable}
                 className="hidden"
               />
             </label>
@@ -1072,10 +1100,10 @@ const CustomerProfile = () => {
                   className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                 />
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-300 hover:text-brand-600">
+                  <label className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${isEditable ? "cursor-pointer border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-600" : "cursor-not-allowed border-slate-200 text-slate-400"}`}>
                     <span aria-hidden>📎</span>
                     <span>Bijlage(n) toevoegen</span>
-                    <input type="file" multiple className="hidden" onChange={handleEduFilesChange} />
+                    <input type="file" multiple className="hidden" onChange={handleEduFilesChange} disabled={!isEditable} />
                   </label>
                   {Array.isArray(eduItemDraft.files) && eduItemDraft.files.length > 0 ? (
                     <span className="text-sm text-slate-500">Geselecteerd: {eduItemDraft.files.length === 1 ? eduItemDraft.files[0].name : `${eduItemDraft.files.length} bestanden`}</span>
@@ -1084,10 +1112,10 @@ const CustomerProfile = () => {
                   <button
                     type="button"
                     onClick={handleAddEducationItem}
-                    disabled={eduItemSaving}
+                    disabled={!isEditable || eduItemSaving}
                     className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
                   >
-                    {eduItemSaving ? "Opslaan..." : "Toevoegen"}
+                    {eduItemSaving ? "Opslaan..." : isEditable ? "Toevoegen" : "Vergrendeld"}
                   </button>
                 </div>
                     {eduItemStatus ? (
@@ -1183,15 +1211,15 @@ const CustomerProfile = () => {
                 </div>
                 <div className="grid gap-1.5">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Bestand uploaden</label>
-                  <input key={otherInputKey} type="file" onChange={handleOtherFileChange} className="text-sm" />
+                  <input key={otherInputKey} type="file" onChange={handleOtherFileChange} className="text-sm" disabled={!isEditable} />
                 </div>
                 <button
                   type="button"
                   onClick={addOtherDocument}
-                  disabled={otherUploading}
+                  disabled={!isEditable || otherUploading}
                   className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
                 >
-                  {otherUploading ? "Bezig met uploaden..." : "Upload en voeg toe"}
+                  {otherUploading ? "Bezig met uploaden..." : isEditable ? "Upload en voeg toe" : "Vergrendeld"}
                 </button>
                 {otherStatus ? (
                   <p className={`text-xs ${otherStatus.type === "error" ? "text-red-500" : "text-emerald-600"}`}>

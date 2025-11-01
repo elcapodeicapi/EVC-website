@@ -1,8 +1,33 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // Mirror Firestore assignment status check
+    function isCollecting(uid) {
+      return firestore.exists(/databases/(default)/documents/assignments/$(uid)) &&
+             firestore.get(/databases/(default)/documents/assignments/$(uid)).data.status == "Bewijzen verzamelen";
+    }
+
+    // Public reads are allowed for now (documents, materials), tighten if needed
     match /{allPaths=**} {
-      allow read, write: if true; // 👈 allow all locally
+      allow read: if true;
+    }
+
+    // Evidence uploads and other user-owned files: writes only while collecting
+    match /user_uploads/{uid}/{rest=**} {
+      allow write: if isSignedIn() && request.auth.uid == uid && isCollecting(uid);
+    }
+    match /educationItems/{uid}/{rest=**} {
+      allow write: if isSignedIn() && request.auth.uid == uid && isCollecting(uid);
+    }
+    match /certificates/{uid}/{rest=**} {
+      allow write: if isSignedIn() && request.auth.uid == uid && isCollecting(uid);
+    }
+    match /profilePhotos/{uid}/{rest=**} {
+      // Profile photo changes are also locked outside collecting
+      allow write: if isSignedIn() && request.auth.uid == uid && isCollecting(uid);
     }
   }
 }

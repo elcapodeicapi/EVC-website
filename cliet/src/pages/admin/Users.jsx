@@ -12,9 +12,11 @@ import {
   Trash2,
   Loader2,
   UserCog,
+  Table,
 } from "lucide-react";
 import ModalForm from "../../components/ModalForm";
-import { subscribeTrajects, subscribeUsers } from "../../lib/firestoreAdmin";
+import { subscribeTrajects, subscribeUsers, subscribeAssignments } from "../../lib/firestoreAdmin";
+import { getTrajectStatusBadgeClass, getTrajectStatusLabel } from "../../lib/trajectStatus";
 import { post, del as apiDelete } from "../../lib/api";
 import { auth } from "../../firebase";
 import { signInWithCustomToken } from "firebase/auth";
@@ -178,6 +180,15 @@ const AdminUsers = () => {
     const [sortState, setSortState] = useState(DEFAULT_SORT);
     const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
     const [page, setPage] = useState(1);
+    // Assignments state (status per candidate)
+    const [assignments, setAssignments] = useState([]);
+    const assignmentsByCustomer = useMemo(() => {
+      const map = new Map();
+      (assignments || []).forEach((a) => {
+        if (a && a.customerId) map.set(a.customerId, a);
+      });
+      return map;
+    }, [assignments]);
 
   const [impersonationError, setImpersonationError] = useState(null);
   const [impersonationTarget, setImpersonationTarget] = useState(null);
@@ -194,6 +205,19 @@ const AdminUsers = () => {
         setUsers(Array.isArray(data) ? data : []);
         setUsersError(null);
         setUsersLoading(false);
+      });
+      return () => {
+        if (typeof unsubscribe === "function") unsubscribe();
+      };
+    }, []);
+
+    useEffect(() => {
+      const unsubscribe = subscribeAssignments(({ data, error }) => {
+        if (error) {
+          setAssignments([]);
+          return;
+        }
+        setAssignments(Array.isArray(data) ? data : []);
       });
       return () => {
         if (typeof unsubscribe === "function") unsubscribe();
@@ -264,6 +288,7 @@ const AdminUsers = () => {
         const trajectId = user.trajectId || user.currentTrajectId || user.traject?.id || null;
         const trajectName = trajectId ? trajectNameById.get(trajectId) || user.trajectName || "Traject onbekend" : "—";
         const coachCount = roleKey === "coach" ? customerCountsByCoach.get(user.id) || 0 : null;
+        const assignment = (roleKey === "customer" || roleKey === "user") ? assignmentsByCustomer.get(user.id) : null;
 
         return {
           id: user.id,
@@ -277,10 +302,11 @@ const AdminUsers = () => {
           lastLoggedInLabel: lastLoggedIn ? formatDateTime(lastLoggedIn) : "—",
           coachCount,
           trajectName,
+          assignment,
           raw: user,
         };
       });
-    }, [customerCountsByCoach, trajectNameById, users]);
+    }, [assignmentsByCustomer, customerCountsByCoach, trajectNameById, users]);
 
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -576,6 +602,7 @@ const AdminUsers = () => {
                     <TableHeaderButton label="E-mail" sortKey="email" sortState={sortState} onSort={handleSort} />
                     <TableHeaderButton label="Rol" sortKey="roleLabel" sortState={sortState} onSort={handleSort} />
                     <TableHeaderButton label="Traject" sortKey="trajectName" sortState={sortState} onSort={handleSort} />
+                    <TableHeaderButton label="Status" sortKey="status" sortState={sortState} onSort={handleSort} />
                     <TableHeaderButton label="Account aangemaakt" sortKey="createdAt" sortState={sortState} onSort={handleSort} />
                     <TableHeaderButton label="Laatste login" sortKey="lastLoggedIn" sortState={sortState} onSort={handleSort} />
                     <TableHeaderButton
@@ -615,6 +642,25 @@ const AdminUsers = () => {
                           <RoleBadge role={row.roleKey} />
                         </td>
                         <td className="px-4 py-3 text-slate-600">{row.trajectName}</td>
+                        <td className="px-4 py-3">
+                          {(row.roleKey === "customer" || row.roleKey === "user") && row.assignment ? (
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getTrajectStatusBadgeClass(row.assignment.status)}`}>
+                                {getTrajectStatusLabel(row.assignment.status)}
+                              </span>
+                              {isAdmin && (
+                                <ActionButton icon={Pencil} label="Status bewerken" onClick={() => handleEditUser(row)} tone="brand" />
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                          {row.assignment?.assessorId ? (
+                            <div className="mt-1 text-xs text-slate-500">
+                              Toegewezen aan: {users.find((u) => u.id === row.assignment.assessorId)?.name || users.find((u) => u.id === row.assignment.assessorId)?.email || row.assignment.assessorId}
+                            </div>
+                          ) : null}
+                        </td>
                         <td className="px-4 py-3 text-slate-600">{row.createdAtLabel}</td>
                         <td className="px-4 py-3 text-slate-600">{row.lastLoggedInLabel}</td>
                         <td className="px-4 py-3 text-right text-slate-600">
