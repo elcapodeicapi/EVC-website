@@ -581,6 +581,7 @@ export async function addEducationItem(userId, item) {
   const profileRef = doc(db, "profiles", userId);
   const id = doc(collection(db, "profiles", userId, "_ids")).id;
   const nowIso = new Date().toISOString();
+  const currentYear = new Date().getFullYear();
   const record = {
     id,
     title: (item.title || "").trim(),
@@ -594,6 +595,9 @@ export async function addEducationItem(userId, item) {
   };
   if (!record.title) throw new Error("Titel is verplicht");
   if (!record.year) throw new Error("Jaar is verplicht");
+  if (record.year < 1965 || record.year > currentYear) {
+    throw new Error(`Kies een jaar tussen 1965 en ${currentYear}`);
+  }
   await setDoc(profileRef, { educationItems: arrayUnion(record) }, { merge: true });
   return record;
 }
@@ -767,6 +771,55 @@ export async function uploadCustomerOtherDocument({ userId, file, omschrijving, 
     storagePath,
     createdAt: new Date().toISOString(),
   };
+}
+
+// Batch upload multiple "overige documenten" at once. Returns list of entries as created.
+export async function uploadCustomerOtherDocumentsBatch({ userId, files, omschrijving, datum, toelichting, trajectId }) {
+  if (!userId) throw new Error("Missing user id");
+  if (!files || typeof files.length !== "number" || files.length === 0) throw new Error("Geen bestanden geselecteerd");
+  const results = [];
+  for (let i = 0; i < files.length; i += 1) {
+    const file = files[i];
+    const title = (omschrijving || file.name || "Document").trim();
+    // Reuse single-upload helper per file
+    // eslint-disable-next-line no-await-in-loop
+    const entry = await uploadCustomerOtherDocument({ userId, file, omschrijving: title, datum, toelichting, trajectId });
+    results.push(entry);
+  }
+  return results;
+}
+
+// Delete an overigeDocumenten entry: remove Storage object, remove uploads subdoc, and update profiles array
+export async function deleteCustomerOtherDocument({ userId, entryId, storagePath }) {
+  if (!userId) throw new Error("Missing user id");
+  if (!entryId) throw new Error("Missing entry id");
+
+  // Best-effort delete of storage object
+  if (storagePath) {
+    try {
+      await deleteObject(ref(storage, storagePath));
+    } catch (err) {
+      if (!String(err?.code || "").includes("object-not-found")) {
+        // ignore other errors to avoid blocking UI
+      }
+    }
+  }
+
+  // Remove matching upload doc
+  try {
+    await deleteDoc(doc(db, "users", userId, "uploads", entryId));
+  } catch (_) {
+    // ignore if not found
+  }
+
+  // Remove from profiles/{uid}.overigeDocumenten array
+  const profileRef = doc(db, "profiles", userId);
+  const snap = await getDoc(profileRef).catch(() => null);
+  const data = snap?.exists() ? snap.data() || {} : {};
+  const current = Array.isArray(data.overigeDocumenten) ? [...data.overigeDocumenten] : [];
+  const next = current.filter((it) => it && (it.id !== entryId));
+  await setDoc(profileRef, { overigeDocumenten: next }, { merge: true });
+  return { success: true };
 }
 
 export function subscribeCustomerUploads(userId, observer) {

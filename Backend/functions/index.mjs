@@ -33,6 +33,8 @@ export const ping = onRequest({ region: "europe-west1" }, (_req, res) => {
 
 // Export the auth trigger directly so Firebase can discover it for the emulator/deploy manifest
 export { sendWelcomeEmail } from "./email/sendWelcomeEmail.mjs";
+// Scheduled: warn candidates 2 weeks before 3-month end
+export { sendTrajectoryWarningEmail } from "./email/sendTrajectoryWarning.mjs";
 
 // --- Firestore -> Auth custom claims sync ---
 // Keep roles in Firebase Auth custom claims in sync with Firestore users/{uid}.role

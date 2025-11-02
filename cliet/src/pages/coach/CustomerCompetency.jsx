@@ -777,7 +777,12 @@ const CustomerTrajectOverview = () => {
       <div className="space-y-6">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            const normalizedBase = basePath.startsWith("/")
+              ? basePath.replace(/\/$/, "")
+              : `/${basePath.replace(/\/$/, "")}`;
+            navigate(`${normalizedBase}/customers`);
+          }}
           className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-500"
         >
           <ArrowLeft className="h-4 w-4" /> Terug naar kandidaten
@@ -1445,7 +1450,12 @@ const CustomerTrajectOverview = () => {
     <div className="space-y-6">
       <button
         type="button"
-        onClick={() => navigate(-1)}
+        onClick={() => {
+          const normalizedBase = basePath.startsWith("/")
+            ? basePath.replace(/\/$/, "")
+            : `/${basePath.replace(/\/$/, "")}`;
+          navigate(`${normalizedBase}/customers`);
+        }}
         className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-500"
       >
         <ArrowLeft className="h-4 w-4" /> Terug naar kandidaten
@@ -1508,7 +1518,14 @@ const CustomerTrajectOverview = () => {
                   key={option.key}
                   type="button"
                   onClick={() => {
-                    setActiveSection(option.key);
+                    if (option.key === "candidate-profile") {
+                      const normalizedBase = basePath.startsWith("/")
+                        ? basePath.replace(/\/$/, "")
+                        : `/${basePath.replace(/\/$/, "")}`;
+                      navigate(`${normalizedBase}/customers/${customerId}/profile`);
+                    } else {
+                      setActiveSection(option.key);
+                    }
                     setOpenDropdown(null);
                   }}
                   className={clsx(

@@ -18,7 +18,6 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BrandLogo from "../components/BrandLogo";
-import Login from "./Login";
 import Home from "./Home";
 import AdminDashboard from "./admin/Dashboard";
 import AdminAssignments from "./admin/Assignments";
@@ -41,6 +40,7 @@ import CustomerVragenlijst from "./customer/Vragenlijst";
 import CoachDashboard from "./coach/Dashboard";
 import CoachCustomers from "./coach/Customers";
 import CoachCustomerCompetency from "./coach/CustomerCompetency";
+import CoachCustomerProfileView from "./coach/CustomerProfileView";
 import CoachMessages from "./coach/Messages";
 import CoachNotes from "./coach/AantekeningenOverzicht";
 import CoachProfile from "./coach/Profile";
@@ -1436,6 +1436,7 @@ const App = () => {
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
+					<Route path="customers/:customerId/profile" element={<CoachCustomerProfileView />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
 					<Route path="manual" element={<CustomerManual />} />
@@ -1449,6 +1450,7 @@ const App = () => {
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
+					<Route path="customers/:customerId/profile" element={<CoachCustomerProfileView />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
 					<Route path="manual" element={<CustomerManual />} />
@@ -1462,6 +1464,7 @@ const App = () => {
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
+					<Route path="customers/:customerId/profile" element={<CoachCustomerProfileView />} />
 					<Route path="aantekeningen" element={<CoachNotes />} />
 					<Route path="messages" element={<CoachMessages />} />
 					<Route path="manual" element={<CustomerManual />} />

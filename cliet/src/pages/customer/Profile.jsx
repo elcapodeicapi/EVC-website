@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { get, put } from "../../lib/api";
 import { isCollectingStatus } from "../../lib/trajectStatus";
-import { subscribeCustomerProfileDetails, subscribeCustomerResume, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile, uploadCustomerOtherDocument, migrateLegacyEducationProfile, addEducationItem, addEducationItemAttachments, deleteEducationItem } from "../../lib/firestoreCustomer";
+import { subscribeCustomerProfileDetails, subscribeCustomerResume, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile, uploadCustomerOtherDocumentsBatch, deleteCustomerOtherDocument, migrateLegacyEducationProfile, addEducationItem, addEducationItemAttachments, deleteEducationItem } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 import ChangePasswordModal from "../../components/ChangePasswordModal";
@@ -58,10 +58,11 @@ const CustomerProfile = () => {
   const [eduItemSaving, setEduItemSaving] = useState(false);
   const [eduItemStatus, setEduItemStatus] = useState(null);
   const [eduItemDeletingId, setEduItemDeletingId] = useState(null);
-  const [otherDraft, setOtherDraft] = useState({ omschrijving: "", datum: "", toelichting: "", file: null });
+  const [otherDraft, setOtherDraft] = useState({ omschrijving: "", datum: "", toelichting: "", files: [] });
   const [otherUploading, setOtherUploading] = useState(false);
   const [otherStatus, setOtherStatus] = useState(null);
   const [otherInputKey, setOtherInputKey] = useState(0);
+  const [otherDeletingId, setOtherDeletingId] = useState(null);
   const [evcDetails, setEvcDetails] = useState(initialEvcTrajectoryState);
   const [evcSnapshot, setEvcSnapshot] = useState(initialEvcTrajectoryState);
   const [evcLoading, setEvcLoading] = useState(true);
@@ -398,13 +399,19 @@ const CustomerProfile = () => {
       return;
     }
     const title = (eduItemDraft.title || "").trim();
-    const year = (eduItemDraft.year || "").toString().trim();
+    const yearStr = (eduItemDraft.year || "").toString().trim();
     if (!title) {
       setEduItemStatus({ type: "error", message: "Vul de titel in." });
       return;
     }
-    if (!year) {
+    if (!yearStr) {
       setEduItemStatus({ type: "error", message: "Vul het jaar in." });
+      return;
+    }
+    const currentYear = new Date().getFullYear();
+    const yearNum = parseInt(yearStr, 10);
+    if (!Number.isFinite(yearNum) || yearNum < 1965 || yearNum > currentYear) {
+      setEduItemStatus({ type: "error", message: `Kies een jaar tussen 1965 en ${currentYear}` });
       return;
     }
     setEduItemSaving(true);
@@ -412,7 +419,7 @@ const CustomerProfile = () => {
     try {
       const created = await addEducationItem(customerId, {
         title,
-        year,
+        year: yearNum,
         diplomaObtained: Boolean(eduItemDraft.diplomaObtained),
         type: eduItemDraft.type,
         note: eduItemDraft.note || "",
@@ -497,9 +504,10 @@ const CustomerProfile = () => {
     }
   };
 
-  const handleOtherFileChange = (event) => {
-    const file = event.target.files?.[0] || null;
-    setOtherDraft((prev) => ({ ...prev, file }));
+  const handleOtherFilesChange = (event) => {
+    const list = event.target.files;
+    const selected = list && typeof list.length === "number" ? Array.from(list) : [];
+    setOtherDraft((prev) => ({ ...prev, files: selected }));
   };
 
   const addOtherDocument = async () => {
@@ -512,14 +520,14 @@ const CustomerProfile = () => {
       setOtherStatus({ type: "error", message: "Omschrijving/Titel is verplicht." });
       return;
     }
-    if (!otherDraft.file) {
-      setOtherStatus({ type: "error", message: "Kies eerst een bestand." });
+    if (!Array.isArray(otherDraft.files) || otherDraft.files.length === 0) {
+      setOtherStatus({ type: "error", message: "Kies eerst één of meer bestanden." });
       return;
     }
-
-    const maxSize = 10 * 1024 * 1024; // 10 MB
-    if (otherDraft.file.size > maxSize) {
-      setOtherStatus({ type: "error", message: "Bestand is groter dan 10MB." });
+    const maxSize = 10 * 1024 * 1024; // 10 MB per bestand
+    const oversize = otherDraft.files.find((f) => f && f.size > maxSize);
+    if (oversize) {
+      setOtherStatus({ type: "error", message: "Een of meer bestanden zijn groter dan 10MB." });
       return;
     }
     if (!customerId) {
@@ -530,24 +538,50 @@ const CustomerProfile = () => {
     setOtherUploading(true);
     setOtherStatus(null);
     try {
-      const payload = await uploadCustomerOtherDocument({
+      const created = await uploadCustomerOtherDocumentsBatch({
         userId: customerId,
-        file: otherDraft.file,
+        files: otherDraft.files,
         omschrijving: title,
         datum: otherDraft.datum || "",
         toelichting: otherDraft.toelichting || "",
       });
+      // Optimistic UI update; subscription will reconcile
       setForm((prev) => ({
         ...prev,
-        overigeDocumenten: [...(prev.overigeDocumenten || []), payload],
+        overigeDocumenten: [...(prev.overigeDocumenten || []), ...created],
       }));
-      setOtherDraft({ omschrijving: "", datum: "", toelichting: "", file: null });
+      setOtherDraft({ omschrijving: "", datum: "", toelichting: "", files: [] });
       setOtherInputKey((v) => v + 1);
-      setOtherStatus({ type: "success", message: "Document toegevoegd" });
+      setOtherStatus({ type: "success", message: created.length === 1 ? "Document toegevoegd" : `${created.length} documenten toegevoegd` });
     } catch (error) {
       setOtherStatus({ type: "error", message: error?.data?.error || error?.message || "Upload mislukt" });
     } finally {
       setOtherUploading(false);
+    }
+  };
+
+  const handleDeleteOtherDocument = async (entry) => {
+    if (!customerId || !entry?.id) return;
+    if (!isEditable) {
+      setOtherStatus({ type: "error", message: "Je traject is vergrendeld. Aanpassingen zijn tijdelijk niet mogelijk." });
+      return;
+    }
+    const confirmed = window.confirm("Weet je zeker dat je dit document wilt verwijderen?");
+    if (!confirmed) return;
+    setOtherStatus(null);
+    setOtherDeletingId(entry.id);
+    try {
+      await deleteCustomerOtherDocument({ userId: customerId, entryId: entry.id, storagePath: entry.storagePath });
+      // Subscription will refresh; optionally remove locally
+      setForm((prev) => ({
+        ...prev,
+        overigeDocumenten: (prev.overigeDocumenten || []).filter((d) => (d?.id || d?.fileUrl) !== (entry.id || entry.fileUrl)),
+      }));
+      setOtherStatus({ type: "success", message: "Document verwijderd" });
+    } catch (err) {
+      setOtherStatus({ type: "error", message: err?.message || "Verwijderen mislukt" });
+    } finally {
+      setOtherDeletingId(null);
     }
   };
 
@@ -1063,6 +1097,8 @@ const CustomerProfile = () => {
                     value={eduItemDraft.year}
                     onChange={(e) => setEduItemDraft((prev) => ({ ...prev, year: e.target.value }))}
                     placeholder="Afgesloten in (jaar)"
+                    min={1965}
+                    max={new Date().getFullYear()}
                     className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
@@ -1163,11 +1199,21 @@ const CustomerProfile = () => {
                               <p className="text-xs uppercase tracking-wide text-slate-400">Datum: {doc.datum}</p>
                             ) : null}
                           </div>
-                          {doc.fileUrl ? (
-                            <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-600 transition hover:text-brand-500">
-                              Download
-                            </a>
-                          ) : null}
+                          <div className="flex items-center gap-3">
+                            {doc.fileUrl ? (
+                              <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-600 transition hover:text-brand-500">
+                                Download
+                              </a>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOtherDocument(doc)}
+                              disabled={otherDeletingId === (doc.id || "")}
+                              className="text-xs font-semibold text-red-600 transition hover:text-red-500 disabled:opacity-60"
+                            >
+                              {otherDeletingId === (doc.id || "") ? "Verwijderen…" : "Verwijderen"}
+                            </button>
+                          </div>
                         </div>
                         {doc.toelichting ? <p className="mt-2 text-sm text-slate-500">{doc.toelichting}</p> : null}
                       </li>
@@ -1211,7 +1257,10 @@ const CustomerProfile = () => {
                 </div>
                 <div className="grid gap-1.5">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Bestand uploaden</label>
-                  <input key={otherInputKey} type="file" onChange={handleOtherFileChange} className="text-sm" disabled={!isEditable} />
+                  <input key={otherInputKey} type="file" multiple onChange={handleOtherFilesChange} className="text-sm" disabled={!isEditable} />
+                  {Array.isArray(otherDraft.files) && otherDraft.files.length > 0 ? (
+                    <p className="text-xs text-slate-500">Geselecteerd: {otherDraft.files.length === 1 ? otherDraft.files[0].name : `${otherDraft.files.length} bestanden`}</p>
+                  ) : null}
                 </div>
                 <button
                   type="button"

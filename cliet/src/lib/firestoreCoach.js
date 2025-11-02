@@ -324,6 +324,7 @@ const mapCoachProfileResumeDoc = (snapshot) => {
     addition: toStringSafe(data.addition),
     postalCode: toStringSafe(data.postalCode),
     city: toStringSafe(data.city),
+    overigeDocumenten: normalizeEntries(data.overigeDocumenten),
     educationItems: normalizeEntries(data.educationItems),
     educations: normalizeEntries(data.educations),
     certificates: normalizeEntries(data.certificates),
