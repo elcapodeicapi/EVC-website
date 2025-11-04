@@ -24,6 +24,7 @@ import AdminAssignments from "./admin/Assignments";
 import AdminTrajects from "./admin/Trajects";
 import AdminProfile from "./admin/Profile";
 import AdminUsers from "./admin/Users";
+import AdminTrajectEdit from "./admin/TrajectEdit";
 import AdminEditUser from "./admin/EditUser";
 import AdminCreateUser from "./admin/CreateUser";
 import TestCreateAccount from "./TestCreateAccount";
@@ -1429,6 +1430,7 @@ const App = () => {
 					<Route path="manual" element={<CustomerManual />} />
 					<Route path="users" element={<AdminUsers />} />
 					<Route path="edit-user/:id" element={<AdminEditUser />} />
+					<Route path="traject-wijzigen/:userId" element={<AdminTrajectEdit />} />
 					<Route path="users/create" element={<AdminCreateUser />} />
 				</Route>
 

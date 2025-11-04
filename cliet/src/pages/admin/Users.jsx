@@ -641,11 +641,26 @@ const AdminUsers = () => {
                         <td className="px-4 py-3">
                           <RoleBadge role={row.roleKey} />
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{row.trajectName}</td>
+                        <td className="px-4 py-3 text-black">
+                          <div className="flex items-center gap-2">
+                            <span>{row.trajectName}</span>
+                            {isAdmin && (row.roleKey === "customer" || row.roleKey === "user") ? (
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/admin/traject-wijzigen/${row.id}`)}
+                                title="EVC-traject wijzigen"
+                                className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-200 text-brand-600 transition hover:border-brand-300 hover:bg-brand-50"
+
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           {(row.roleKey === "customer" || row.roleKey === "user") && row.assignment ? (
                             <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getTrajectStatusBadgeClass(row.assignment.status)}`}>
+                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs  font-semibold uppercase tracking-wide ${getTrajectStatusBadgeClass(row.assignment.status)} `}>
                                 {getTrajectStatusLabel(row.assignment.status)}
                               </span>
                               {isAdmin && (

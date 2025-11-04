@@ -613,3 +613,88 @@ export async function getUsersIndex() {
   });
   return map;
 }
+
+// Update EVC-traject core fields for a customer from the admin UI.
+// Writes:
+// - users/{uid}: evcStartDate (Timestamp), evcEndDate (Timestamp), optional coachId sync
+// - users/{uid}/profile/details: evcTrajectory.startDate (YYYY-MM-DD), endDate (YYYY-MM-DD), role links
+// - Optionally links coach via assignments (create/update) when coachId is provided and changed
+export async function updateCustomerTrajectory(uid, payload = {}) {
+  if (!uid) throw new Error("Missing uid");
+
+  const hasOwn = Object.prototype.hasOwnProperty;
+  const normalizeId = (v) => (typeof v === "string" ? v.trim() : v || null);
+  const coachId = hasOwn.call(payload, "coachId") ? normalizeId(payload.coachId) : undefined;
+  const assessorId = hasOwn.call(payload, "assessorId") ? normalizeId(payload.assessorId) : undefined;
+  const kwaliteitscoordinatorId = hasOwn.call(payload, "kwaliteitscoordinatorId") ? normalizeId(payload.kwaliteitscoordinatorId) : undefined;
+
+  const normalizeYMD = (value) => {
+    if (value == null || value === "") return "";
+    const s = String(value).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      throw new Error("Datum moet het formaat YYYY-MM-DD hebben");
+    }
+    return s;
+  };
+
+  const startDateYmd = hasOwn.call(payload, "startDate") ? normalizeYMD(payload.startDate) : undefined;
+  const endDateYmd = hasOwn.call(payload, "endDate") ? normalizeYMD(payload.endDate) : undefined;
+
+  // Build updates
+  const nowTs = Timestamp.now();
+  const usersUpdate = { updatedAt: nowTs };
+  const detailsUpdate = { updatedAt: nowTs };
+
+  if (startDateYmd !== undefined) {
+    detailsUpdate.evcTrajectory = { ...(detailsUpdate.evcTrajectory || {}), startDate: startDateYmd };
+    if (startDateYmd) {
+      const d = new Date(`${startDateYmd}T00:00:00.000Z`);
+      usersUpdate.evcStartDate = Timestamp.fromDate(d);
+    } else {
+      usersUpdate.evcStartDate = null;
+    }
+  }
+  if (endDateYmd !== undefined) {
+    detailsUpdate.evcTrajectory = { ...(detailsUpdate.evcTrajectory || {}), endDate: endDateYmd };
+    if (endDateYmd) {
+      const d = new Date(`${endDateYmd}T00:00:00.000Z`);
+      usersUpdate.evcEndDate = Timestamp.fromDate(d);
+    } else {
+      usersUpdate.evcEndDate = null;
+    }
+  }
+  if (coachId !== undefined) {
+    detailsUpdate.evcTrajectory = { ...(detailsUpdate.evcTrajectory || {}), coachId };
+  }
+  if (assessorId !== undefined) {
+    detailsUpdate.evcTrajectory = { ...(detailsUpdate.evcTrajectory || {}), assessorId };
+  }
+  if (kwaliteitscoordinatorId !== undefined) {
+    detailsUpdate.evcTrajectory = { ...(detailsUpdate.evcTrajectory || {}), kwaliteitscoordinatorId };
+  }
+
+  // Persist updates
+  const userRef = doc(db, "users", uid);
+  const detailsRef = doc(db, "users", uid, "profile", "details");
+
+  const ops = [];
+  ops.push(setDoc(userRef, usersUpdate, { merge: true }));
+  const detailsPayload = detailsUpdate.evcTrajectory
+    ? { evcTrajectory: detailsUpdate.evcTrajectory, updatedAt: nowTs }
+    : { updatedAt: nowTs };
+  ops.push(setDoc(detailsRef, detailsPayload, { merge: true }));
+
+  // If coachId changed, link via assignments and mirror to users/{uid}.coachId
+  if (coachId !== undefined) {
+    const currentSnap = await getDoc(userRef).catch(() => null);
+    const currentCoachId = currentSnap?.exists() ? (currentSnap.data()?.coachId || null) : null;
+    if (coachId && coachId !== currentCoachId) {
+      await createAssignment({ customerId: uid, coachId });
+    } else if (coachId !== currentCoachId) {
+      // If cleared, still mirror
+      ops.push(setDoc(userRef, { coachId: null }, { merge: true }));
+    }
+  }
+
+  await Promise.all(ops);
+}

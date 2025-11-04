@@ -1,6 +1,6 @@
 /**
  * sendTrajectoryWarning.mjs
- * Scheduled function to email candidates 2 weeks before trajectory end (3 months from account creation).
+ * Scheduled function to email candidates 2 weeks before EVC-traject einddatum.
  */
 
 import sgMail from "@sendgrid/mail";
@@ -60,6 +60,27 @@ function isWithinWindow(date, start, endExclusive) {
   return t >= start.getTime() && t < endExclusive.getTime();
 }
 
+function toYMD(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function amsterdamMidnight(date = new Date()) {
+  // Compute the 00:00:00 time of the given date in Europe/Amsterdam, represented as a JS Date
+  const fmt = new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit" });
+  const parts = fmt.formatToParts(date);
+  const get = (t) => parts.find((p) => p.type === t)?.value;
+  const y = parseInt(get("year"), 10);
+  const m = parseInt(get("month"), 10);
+  const d = parseInt(get("day"), 10);
+  // Construct a Date in Amsterdam local midnight by creating a Date from components, then adjusting using the same TZ offset
+  // Simpler: create using Date.UTC and let comparisons be in UTC since we convert to Firestore Timestamps
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+}
+
 function renderEmail({ name, fromEmail, toEmail }) {
   const subject = "Let op: jouw EVC-traject sluit over 2 weken";
   const greetingName = name || (toEmail ? String(toEmail).split("@")[0] : "deelnemer");
@@ -95,19 +116,21 @@ export const sendTrajectoryWarningEmail = functions
     const config = functions.config?.() || {};
     const fromEmail = config?.evc?.from_email || process.env.MAIL_FROM || "info@mijnevcgo.nl";
 
-    const now = new Date();
-    // Window for accounts created around 76 days ago (2.5 months approx.)
-    const windowEnd = addDays(now, -76); // createdAt < windowEnd
-    const windowStart = addDays(now, -77); // createdAt >= windowStart
+    const todayAms = amsterdamMidnight(new Date());
+    const targetDayStart = addDays(todayAms, 14); // 14 days from today
+    const targetDayEnd = addDays(targetDayStart, 1);
 
-    // Helper to fetch candidates for a given role within createdAt window
+    const admin = require("firebase-admin");
+    const tsStart = admin.firestore.Timestamp.fromDate(targetDayStart);
+    const tsEnd = admin.firestore.Timestamp.fromDate(targetDayEnd);
+
     async function fetchRole(role) {
       try {
         const snap = await db
           .collection("users")
           .where("role", "==", role)
-          .where("createdAt", ">=", windowStart)
-          .where("createdAt", "<", windowEnd)
+          .where("evcEndDate", ">=", tsStart)
+          .where("evcEndDate", "<", tsEnd)
           .get();
         return snap.docs || [];
       } catch (err) {
@@ -128,15 +151,18 @@ export const sendTrajectoryWarningEmail = functions
     for (const doc of allDocs) {
       try {
         const data = doc.data() || {};
-        if (data.warningEmailSent === true) {
-          continue; // already sent
+        const endDate = asDate(data.evcEndDate);
+        if (!endDate) continue;
+        // Check not already sent for this endDate (allows reschedule if end date changes)
+        const lastFor = data.warningEmailForEndDate || null;
+        const endYmd = toYMD(endDate);
+        if (lastFor && String(lastFor) === endYmd) {
+          continue;
         }
         const email = data.email || data.mail || null;
         if (!email) continue;
-        const createdAt = asDate(data.createdAt);
-        if (!createdAt) continue;
-        // Double-check window guard in case createdAt type was not query-filterable
-        if (!isWithinWindow(createdAt, windowStart, windowEnd)) continue;
+        // Double-check the endDate falls within the target 1-day window
+        if (!isWithinWindow(endDate, targetDayStart, targetDayEnd)) continue;
 
         const msg = renderEmail({ name: data.name, fromEmail, toEmail: email });
         if (sendgridConfigured) {
@@ -148,7 +174,7 @@ export const sendTrajectoryWarningEmail = functions
 
         await doc.ref.set(
           {
-            warningEmailSent: true,
+            warningEmailForEndDate: endYmd,
             warningEmailSentAt: new Date().toISOString(),
           },
           { merge: true }
@@ -162,6 +188,6 @@ export const sendTrajectoryWarningEmail = functions
       }
     }
 
-    functions.logger.info("Trajectory warning emails processed.", { candidatesChecked: allDocs.length, sent });
+    functions.logger.info("Trajectory warning emails processed.", { candidatesChecked: allDocs.length, sent, targetDay: targetDayStart.toISOString().slice(0,10) });
     return null;
   });
