@@ -13,6 +13,7 @@ import {
   linkProfileItemToCompetency,
   unlinkProfileItemFromCompetency,
   uploadCustomerEvidence,
+  unlinkUploadFromCompetency,
 } from "../../lib/firestoreCustomer";
 import { migrateLegacyEducationProfile } from "../../lib/firestoreCustomer";
 import { storage } from "../../firebase";
@@ -32,6 +33,7 @@ const CustomerPlanning = () => {
   const [customerUploads, setCustomerUploads] = useState([]);
   const [uploadsError, setUploadsError] = useState(null);
   const [downloadInProgress, setDownloadInProgress] = useState(null);
+  const [unlinkingUploadId, setUnlinkingUploadId] = useState(null);
   const [deletingUploadId, setDeletingUploadId] = useState(null);
   const [uploadNames, setUploadNames] = useState({});
   const [uploadNameErrors, setUploadNameErrors] = useState({});
@@ -440,7 +442,15 @@ const CustomerPlanning = () => {
       setError("Je traject bevindt zich in de beoordelingsfase. Aanpassingen zijn tijdelijk niet mogelijk.");
       return;
     }
-    const sectionKey = entry.__section === "education" ? "educations" : entry.__section === "certificate" ? "certificates" : "workExperience";
+    // Map the entry source section to the correct profiles/{uid} array key
+    const sectionKey =
+      entry.__section === "education"
+        ? "educations"
+        : entry.__section === "certificate"
+        ? "certificates"
+        : entry.__section === "educationItems"
+        ? "educationItems"
+        : "workExperience";
     try {
       await unlinkProfileItemFromCompetency({
         userId: customerId,
@@ -449,6 +459,7 @@ const CustomerPlanning = () => {
         competencyId: competencyKey,
       });
     } catch (err) {
+      console.error("Unlink profile item failed", err);
       setError(err?.message || "Ontkoppelen mislukt");
     }
   };
@@ -503,6 +514,29 @@ const CustomerPlanning = () => {
       setError(err?.message || "Verwijderen mislukt");
     } finally {
       setDeletingUploadId(null);
+    }
+  };
+
+  const handleUnlinkUpload = async (upload) => {
+    if (!upload || !upload.id) return;
+    if (!isEditable) {
+      setError("Je traject bevindt zich in de beoordelingsfase. Aanpassingen zijn tijdelijk niet mogelijk.");
+      return;
+    }
+    if (!customerId) {
+      setError("Kon je accountgegevens niet vinden. Probeer opnieuw in te loggen.");
+      return;
+    }
+
+    setUnlinkingUploadId(upload.id);
+    try {
+      await unlinkUploadFromCompetency({ userId: customerId, uploadId: upload.id });
+      // Firestore onSnapshot will update UI; no manual state change needed
+    } catch (err) {
+      console.error("Unlink upload failed", err);
+      setError(err?.message || "Ontkoppelen mislukt");
+    } finally {
+      setUnlinkingUploadId(null);
     }
   };
 
@@ -1053,6 +1087,14 @@ const CustomerPlanning = () => {
                                     ) : null}
                                   </div>
                                   <div className="ml-auto flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUnlinkUpload(upload)}
+                                      disabled={!isEditable || unlinkingUploadId === upload.id}
+                                      className="whitespace-nowrap rounded-full border border-amber-200 px-3 py-1 text-[0.65rem] font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                                    >
+                                      {unlinkingUploadId === upload.id ? "Bezig..." : "Ontkoppel"}
+                                    </button>
                                     <button
                                       type="button"
                                       className="whitespace-nowrap rounded-full border border-brand-200 px-3 py-1 text-[0.65rem] font-semibold text-brand-600 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"

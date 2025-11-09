@@ -4,6 +4,7 @@ const STATUS_LABELS = {
   QUALITY: "Ter kwaliteitscontrole",
   ASSESSMENT: "Ter beoordeling assessor",
   COMPLETE: "Beoordeling gereed",
+  ARCHIVED: "In archief",
 };
 
 export const TRAJECT_STATUS = Object.freeze({
@@ -12,6 +13,7 @@ export const TRAJECT_STATUS = Object.freeze({
   QUALITY: STATUS_LABELS.QUALITY,
   ASSESSMENT: STATUS_LABELS.ASSESSMENT,
   COMPLETE: STATUS_LABELS.COMPLETE,
+  ARCHIVED: STATUS_LABELS.ARCHIVED,
   APPROVAL: STATUS_LABELS.QUALITY,
 });
 
@@ -21,6 +23,7 @@ export const TRAJECT_STATUS_SEQUENCE = [
   TRAJECT_STATUS.QUALITY,
   TRAJECT_STATUS.ASSESSMENT,
   TRAJECT_STATUS.COMPLETE,
+  TRAJECT_STATUS.ARCHIVED,
 ];
 
 export const DEFAULT_TRAJECT_STATUS = TRAJECT_STATUS.COLLECTING;
@@ -54,7 +57,10 @@ const LEGACY_STATUS_MAP = new Map([
   ["done", TRAJECT_STATUS.COMPLETE],
   ["finished", TRAJECT_STATUS.COMPLETE],
   ["approved", TRAJECT_STATUS.COMPLETE],
-  ["archived", TRAJECT_STATUS.COMPLETE],
+  ["archived", TRAJECT_STATUS.ARCHIVED],
+  ["in archief", TRAJECT_STATUS.ARCHIVED],
+  ["in_archief", TRAJECT_STATUS.ARCHIVED],
+  ["archief", TRAJECT_STATUS.ARCHIVED],
   ["gereed", TRAJECT_STATUS.COMPLETE],
   ["afgerond", TRAJECT_STATUS.COMPLETE],
 ]);
@@ -65,6 +71,7 @@ const STATUS_BADGE_CLASSES = {
   [TRAJECT_STATUS.QUALITY]: "bg-violet-100 text-violet-700 border border-violet-200",
   [TRAJECT_STATUS.ASSESSMENT]: "bg-indigo-100 text-indigo-700 border border-indigo-200",
   [TRAJECT_STATUS.COMPLETE]: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+  [TRAJECT_STATUS.ARCHIVED]: "bg-slate-100 text-slate-600 border border-slate-200",
 };
 
 export const TRAJECT_STATUS_PIPELINE = [
@@ -73,6 +80,8 @@ export const TRAJECT_STATUS_PIPELINE = [
   { status: TRAJECT_STATUS.QUALITY, ownerRoles: ["kwaliteitscoordinator"] },
   { status: TRAJECT_STATUS.ASSESSMENT, ownerRoles: ["assessor"] },
   { status: TRAJECT_STATUS.COMPLETE, ownerRoles: ["assessor"] },
+  // Archived is terminal; not assigned to regular owner roles. Admin can always transition.
+  { status: TRAJECT_STATUS.ARCHIVED, ownerRoles: ["admin"] },
 ];
 
 export function normalizeTrajectStatus(value) {

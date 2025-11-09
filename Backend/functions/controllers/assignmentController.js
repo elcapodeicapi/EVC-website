@@ -131,7 +131,7 @@ exports.updateAssignmentStatus = async (req, res) => {
     const db = getDb();
     const assignmentRef = db.collection("assignments").doc(customerId);
 
-    await db.runTransaction(async (tx) => {
+  await db.runTransaction(async (tx) => {
       const snapshot = await tx.get(assignmentRef);
       const existing = snapshot.exists ? snapshot.data() || {} : {};
       const currentStatus = normalizeTrajectStatus(existing.status) || DEFAULT_TRAJECT_STATUS;
@@ -170,6 +170,13 @@ exports.updateAssignmentStatus = async (req, res) => {
         statusHistory: storedHistory,
       };
 
+      // If admin archives the traject manually, mirror scheduler semantics
+      let archivedAtIso = null;
+      if (targetStatus === "In archief") {
+        archivedAtIso = new Date().toISOString();
+        payload.archivedAt = archivedAtIso;
+      }
+
       if (!existing.createdAt) {
         payload.createdAt = now;
       }
@@ -205,18 +212,20 @@ exports.updateAssignmentStatus = async (req, res) => {
       if (coachId) {
         payload.coachId = coachId;
         const coachAssignmentRef = db.collection("assignmentsByCoach").doc(coachId).collection("customers").doc(customerId);
+        const coachDocPayload = {
+          customerId,
+          coachId,
+          status: targetStatus,
+          statusUpdatedAt: now,
+          statusUpdatedBy: actorId || null,
+          statusUpdatedByRole: actorRole,
+          updatedAt: now,
+          statusHistory: storedHistory,
+        };
+        if (archivedAtIso) coachDocPayload.archivedAt = archivedAtIso;
         tx.set(
           coachAssignmentRef,
-          {
-            customerId,
-            coachId,
-            status: targetStatus,
-            statusUpdatedAt: now,
-            statusUpdatedBy: actorId || null,
-            statusUpdatedByRole: actorRole,
-            updatedAt: now,
-            statusHistory: storedHistory,
-          },
+          coachDocPayload,
           { merge: true }
         );
       }
@@ -230,18 +239,20 @@ exports.updateAssignmentStatus = async (req, res) => {
           { merge: true }
         );
         const coordAssignmentRef = db.collection("assignmentsByCoordinator").doc(coordinatorId).collection("customers").doc(customerId);
+        const coordDocPayload = {
+          customerId,
+          kwaliteitscoordinatorId: coordinatorId,
+          status: targetStatus,
+          statusUpdatedAt: now,
+          statusUpdatedBy: actorId || null,
+          statusUpdatedByRole: actorRole,
+          updatedAt: now,
+          statusHistory: storedHistory,
+        };
+        if (archivedAtIso) coordDocPayload.archivedAt = archivedAtIso;
         tx.set(
           coordAssignmentRef,
-          {
-            customerId,
-            kwaliteitscoordinatorId: coordinatorId,
-            status: targetStatus,
-            statusUpdatedAt: now,
-            statusUpdatedBy: actorId || null,
-            statusUpdatedByRole: actorRole,
-            updatedAt: now,
-            statusHistory: storedHistory,
-          },
+          coordDocPayload,
           { merge: true }
         );
       }
@@ -251,18 +262,20 @@ exports.updateAssignmentStatus = async (req, res) => {
         const userRef = db.collection("users").doc(customerId);
         tx.set(userRef, { assessorId: validatedAssessorId, assessorLinkedAt: now }, { merge: true });
         const assessorAssignmentRef = db.collection("assignmentsByAssessor").doc(validatedAssessorId).collection("customers").doc(customerId);
+        const assessorDocPayload = {
+          customerId,
+          assessorId: validatedAssessorId,
+          status: targetStatus,
+          statusUpdatedAt: now,
+          statusUpdatedBy: actorId || null,
+          statusUpdatedByRole: actorRole,
+          updatedAt: now,
+          statusHistory: storedHistory,
+        };
+        if (archivedAtIso) assessorDocPayload.archivedAt = archivedAtIso;
         tx.set(
           assessorAssignmentRef,
-          {
-            customerId,
-            assessorId: validatedAssessorId,
-            status: targetStatus,
-            statusUpdatedAt: now,
-            statusUpdatedBy: actorId || null,
-            statusUpdatedByRole: actorRole,
-            updatedAt: now,
-            statusHistory: storedHistory,
-          },
+          assessorDocPayload,
           { merge: true }
         );
       }

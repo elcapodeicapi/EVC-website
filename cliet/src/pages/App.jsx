@@ -45,6 +45,7 @@ import CoachCustomerProfileView from "./coach/CustomerProfileView";
 import CoachMessages from "./coach/Messages";
 import CoachNotes from "./coach/AantekeningenOverzicht";
 import CoachProfile from "./coach/Profile";
+import AccountDeactivated from "./AccountDeactivated";
 import {
 	LayoutDashboard,
 	Users as UsersIcon,
@@ -1206,6 +1207,17 @@ const CustomerLayout = () => {
 		[assignmentDoc?.status]
 	);
 
+	// Redirect archived candidates to the deactivated page unless admin is impersonating
+	useEffect(() => {
+		if (!assignmentDoc) return;
+		const isImpersonating = Boolean(impersonationBackup);
+		if (isImpersonating) return;
+		const isArchived = normalizeTrajectStatus(assignmentDoc.status) === TRAJECT_STATUS.ARCHIVED;
+		if (isArchived && location.pathname !== "/account-deactivated") {
+			navigate("/account-deactivated", { replace: true });
+		}
+	}, [assignmentDoc, impersonationBackup, location.pathname, navigate]);
+
 	const customerNavItems = useMemo(() => {
 		const items = [...BASE_CUSTOMER_NAV_ITEMS];
 		if (isCollectingStatus(normalizedAssignmentStatus)) {
@@ -1486,6 +1498,9 @@ const App = () => {
 					<Route path="contact" element={<CustomerMessages />} />
 					<Route path="manual" element={<CustomerManual />} />
 				</Route>
+
+					{/* Deactivated account page */}
+					<Route path="/account-deactivated" element={<AccountDeactivated />} />
 
 				{/* Backward-compat: old .html paths */}
 				{/* <Route path="/Login.html" element={<Navigate to="/login" replace />} /> */}

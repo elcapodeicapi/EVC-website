@@ -17,6 +17,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
+import { put } from "./api"; // Added for updateUserEmail endpoint call
 import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
 import { uid as createId } from "./utils";
 
@@ -357,6 +358,62 @@ export async function createAssignment({ customerId, coachId, status = DEFAULT_T
   }
 }
 
+// Unlink a coach from a candidate everywhere consistently.
+// - Deletes assignments/{customerId}
+// - Deletes assignmentsByCoach/{coachId}/customers/{customerId}
+// - Clears users/{customerId}.coachId and coachLinkedAt; sets coachUnlinkedAt
+// - Clears users/{customerId}/profile/details.evcTrajectory.coachId
+export async function unlinkCoachFromCandidate({ customerId }) {
+  if (!customerId) throw new Error("customerId is verplicht");
+
+  const userRef = doc(db, "users", customerId);
+  const assignmentRef = doc(db, "assignments", customerId);
+
+  const [userSnap, assignmentSnap] = await Promise.all([
+    getDoc(userRef).catch(() => null),
+    getDoc(assignmentRef).catch(() => null),
+  ]);
+
+  const coachIdFromUser = userSnap?.exists() ? (userSnap.data()?.coachId || null) : null;
+  const coachIdFromAssignment = assignmentSnap?.exists() ? (assignmentSnap.data()?.coachId || null) : null;
+  const coachId = coachIdFromAssignment || coachIdFromUser || null;
+
+  const batch = writeBatch(db);
+
+  // Clear user link flags
+  batch.set(
+    userRef,
+    {
+      coachId: null,
+      coachLinkedAt: null,
+      coachUnlinkedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  );
+
+  // Also clear evcTrajectory.coachId in profile details if present
+  const detailsRef = doc(db, "users", customerId, "profile", "details");
+  batch.set(
+    detailsRef,
+    { evcTrajectory: { coachId: null }, updatedAt: Timestamp.now() },
+    { merge: true }
+  );
+
+  // Remove assignment doc (coach will no longer see candidate in assignments or messages filter)
+  if (assignmentSnap?.exists()) {
+    batch.delete(assignmentRef);
+  }
+
+  // Remove reverse lookup under assignmentsByCoach
+  if (coachId) {
+    const coachLinkRef = doc(db, "assignmentsByCoach", coachId, "customers", customerId);
+    batch.delete(coachLinkRef);
+  }
+
+  await batch.commit();
+}
+
 export function subscribeAdminProfile(uid, observer) {
   if (!uid) {
     observer({ data: null, error: new Error("Missing uid") });
@@ -538,6 +595,15 @@ export async function updateAdminProfile(uid, payload = {}) {
   await Promise.all(operations);
 }
 
+// Update a user's email via backend (admin) ensuring Auth + Firestore sync
+export async function updateUserEmail(uid, email) {
+  if (!uid) throw new Error("Missing uid");
+  const value = typeof email === "string" ? email.trim() : String(email || "").trim();
+  if (!value) throw new Error("E-mail is verplicht");
+  const data = await put(`/auth/admin/users/${uid}/email`, { email: value });
+  return data;
+}
+
 // Update core customer profile fields in profiles/{uid} so the customer-facing profile shows them
 export async function updateCustomerResumeCore(uid, payload = {}) {
   if (!uid) throw new Error("Missing uid");
@@ -663,7 +729,7 @@ export async function updateCustomerTrajectory(uid, payload = {}) {
       usersUpdate.evcEndDate = null;
     }
   }
-  if (coachId !== undefined) {
+  if (coachId !== undefined && coachId) {
     detailsUpdate.evcTrajectory = { ...(detailsUpdate.evcTrajectory || {}), coachId };
   }
   if (assessorId !== undefined) {
@@ -690,9 +756,9 @@ export async function updateCustomerTrajectory(uid, payload = {}) {
     const currentCoachId = currentSnap?.exists() ? (currentSnap.data()?.coachId || null) : null;
     if (coachId && coachId !== currentCoachId) {
       await createAssignment({ customerId: uid, coachId });
-    } else if (coachId !== currentCoachId) {
-      // If cleared, still mirror
-      ops.push(setDoc(userRef, { coachId: null }, { merge: true }));
+    } else if (!coachId && currentCoachId) {
+      // Fully unlink when coachId cleared
+      await unlinkCoachFromCandidate({ customerId: uid });
     }
   }
 

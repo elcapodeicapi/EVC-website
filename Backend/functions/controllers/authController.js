@@ -237,7 +237,7 @@ exports.trackLogin = async (req, res) => {
 // POST /auth/admin/users
 exports.adminCreateUser = async (req, res) => {
   try {
-  const { email, password, role = "customer", name = "", trajectId = null } = req.body;
+  const { email, password, role = "customer", name = "", trajectId = null, startDate, endDate } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
@@ -251,6 +251,31 @@ exports.adminCreateUser = async (req, res) => {
       return res.status(400).json({ error: "trajectId is required for customer accounts" });
     }
 
+    // If creating a candidate, require valid start/end dates
+    const isCandidate = normalizedRole === "customer" || normalizedRole === "user";
+    const normalizeYMD = (value) => {
+      if (value == null || value === "") return null;
+      const s = String(value).trim();
+      return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+    };
+    let startYmd = null;
+    let endYmd = null;
+    if (isCandidate) {
+      startYmd = normalizeYMD(startDate);
+      endYmd = normalizeYMD(endDate);
+      if (!startYmd || !endYmd) {
+        return res.status(400).json({ error: "startDate en endDate zijn verplicht in formaat YYYY-MM-DD" });
+      }
+      const start = new Date(`${startYmd}T00:00:00.000Z`);
+      const end = new Date(`${endYmd}T00:00:00.000Z`);
+      if (!(start instanceof Date) || Number.isNaN(start.getTime()) || !(end instanceof Date) || Number.isNaN(end.getTime())) {
+        return res.status(400).json({ error: "startDate en endDate ongeldig" });
+      }
+      if (end.getTime() <= start.getTime()) {
+        return res.status(400).json({ error: "Einddatum moet later zijn dan startdatum" });
+      }
+    }
+
     // Prevent duplicates (Firestore)
   const existingSnap = await getDb().collection("users").where("email", "==", email).limit(1).get();
     if (!existingSnap.empty) return res.status(409).json({ error: "User already exists" });
@@ -261,14 +286,70 @@ exports.adminCreateUser = async (req, res) => {
       displayName: name,
     });
 
-  await getDb().collection("users").doc(userRecord.uid).set({
+  const db = getDb();
+  const userRef = db.collection("users").doc(userRecord.uid);
+  const baseUserPayload = {
       name,
       email,
       role: normalizedRole,
       createdAt: new Date(),
       trajectId: normalizedRole === "customer" ? trajectId : null,
       createdByAdminId: req.user?.uid ?? null,
-    });
+    };
+
+    // Apply candidate-specific fields
+    if (isCandidate) {
+      const start = new Date(`${startYmd}T00:00:00.000Z`);
+      const end = new Date(`${endYmd}T00:00:00.000Z`);
+      const TS = admin.firestore.Timestamp;
+      baseUserPayload.evcStartDate = TS.fromDate(start);
+      baseUserPayload.evcEndDate = TS.fromDate(end);
+    }
+
+    await userRef.set(baseUserPayload, { merge: true });
+
+    // Mirror dates into profile details for trajectory page parity
+    if (isCandidate) {
+      const detailsRef = userRef.collection("profile").doc("details");
+      const detailsPayload = {
+        updatedAt: new Date(),
+        evcTrajectory: {
+          startDate: startYmd,
+          endDate: endYmd,
+        },
+      };
+      await detailsRef.set(detailsPayload, { merge: true });
+    }
+
+    // Create initial assignment to unlock collecting-phase permissions
+    if (isCandidate) {
+      const assignmentsRef = db.collection("assignments").doc(userRecord.uid);
+      const now = new Date();
+      const status = "Bewijzen verzamelen"; // DEFAULT_TRAJECT_STATUS
+      await assignmentsRef.set(
+        {
+          customerId: userRecord.uid,
+          status,
+          createdAt: now,
+          updatedAt: now,
+          statusUpdatedAt: now,
+          statusUpdatedBy: req.user?.uid || null,
+          statusUpdatedByRole: "admin",
+          // Mirror EVC traject dates for reference
+          evcStartDate: admin.firestore.Timestamp.fromDate(new Date(`${startYmd}T00:00:00.000Z`)),
+          evcEndDate: admin.firestore.Timestamp.fromDate(new Date(`${endYmd}T00:00:00.000Z`)),
+          statusHistory: [
+            {
+              status,
+              changedAt: admin.firestore.Timestamp.now(),
+              changedBy: req.user?.uid || null,
+              changedByRole: "admin",
+            },
+          ],
+        },
+        { merge: true }
+      );
+    }
 
     return res.status(201).json({
       message: "User account created",
@@ -278,6 +359,8 @@ exports.adminCreateUser = async (req, res) => {
         name,
         trajectId: normalizedRole === "customer" ? trajectId : null,
         firebaseUid: userRecord.uid,
+        evcStartDate: isCandidate ? startYmd : null,
+        evcEndDate: isCandidate ? endYmd : null,
       },
     });
   } catch (err) {
@@ -415,5 +498,72 @@ exports.adminDeleteUser = async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Failed to delete user" });
+  }
+};
+
+// PUT /auth/admin/users/:uid/email
+// Body: { email: string }
+// Updates the user's email in Firebase Auth and Firestore atomically with rollback on failure
+exports.adminUpdateUserEmail = async (req, res) => {
+  try {
+    const { uid } = req.params || {};
+    const { email: newEmailRaw } = req.body || {};
+    if (!uid) return res.status(400).json({ error: "uid is required" });
+    const newEmail = (newEmailRaw || "").toString().trim();
+    if (!newEmail) return res.status(400).json({ error: "email is required" });
+
+    const db = getDb();
+    const auth = getAuth();
+    const userRef = db.collection("users").doc(uid);
+
+    // Load current email (prefer Auth for source of truth)
+    let oldEmail = null;
+    try {
+      const userRecord = await auth.getUser(uid);
+      oldEmail = userRecord?.email || null;
+    } catch (_) {
+      // If user doesn't exist in Auth, we'll rely on Firestore
+      const snap = await userRef.get();
+      oldEmail = snap.exists ? (snap.data()?.email || null) : null;
+    }
+
+    if (oldEmail && oldEmail.toLowerCase() === newEmail.toLowerCase()) {
+      // No change necessary
+      return res.json({ uid, email: oldEmail, unchanged: true });
+    }
+
+    // Prevent duplicate email in Firestore index (best-effort check)
+    const dupSnap = await db.collection("users").where("email", "==", newEmail).limit(1).get();
+    if (!dupSnap.empty) {
+      const doc = dupSnap.docs[0];
+      if (doc.id !== uid) {
+        return res.status(409).json({ error: "Email is al in gebruik" });
+      }
+    }
+
+    // Try updating Auth first
+    await auth.updateUser(uid, { email: newEmail });
+
+    // Then update Firestore. If this fails, rollback Auth.
+    try {
+      const serverTsFn = admin?.firestore?.FieldValue?.serverTimestamp;
+      const updatedAt = typeof serverTsFn === "function" ? serverTsFn() : new Date();
+      await userRef.set({ email: newEmail, updatedAt }, { merge: true });
+    } catch (firestoreErr) {
+      // Roll back Auth change to previous email if we had one
+      if (oldEmail) {
+        try {
+          await auth.updateUser(uid, { email: oldEmail });
+        } catch (rollbackErr) {
+          // Best-effort rollback failed; log for diagnostics (avoid throwing to not mask original error)
+          console.error("Email rollback failed for uid", uid, rollbackErr);
+        }
+      }
+      return res.status(500).json({ error: firestoreErr?.message || "Kon Firestore e-mail niet bijwerken" });
+    }
+
+    return res.json({ uid, email: newEmail });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || "E-mail bijwerken mislukt" });
   }
 };

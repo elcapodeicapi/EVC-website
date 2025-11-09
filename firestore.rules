@@ -17,6 +17,12 @@ service cloud.firestore {
              get(/databases/$(database)/documents/assignments/$(uid)).data.status == "Bewijzen verzamelen";
     }
 
+    // Check if a candidate's traject is archived
+    function isArchived(uid) {
+      return exists(/databases/$(database)/documents/assignments/$(uid)) &&
+             get(/databases/$(database)/documents/assignments/$(uid)).data.status == "In archief";
+    }
+
     // Allow general reads for authenticated users (UI lists, context, etc.)
     match /{document=**} {
       allow read: if isSignedIn();
@@ -25,13 +31,39 @@ service cloud.firestore {
     // Candidate uploads collection
     match /users/{uid}/uploads/{uploadId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if (isSignedIn() && request.auth.uid == uid && isCollecting(uid)) || isAdmin();
+      allow create, update, delete: if ((isSignedIn() && request.auth.uid == uid && isCollecting(uid) && !isArchived(uid)) || isAdmin());
     }
 
     // Base user record: allow admin to manage user fields (name, phone, links)
     match /users/{uid} {
       allow read: if isSignedIn();
+      // Admin can manage full document
       allow create, update, delete: if isAdmin();
+
+      // Additionally, allow the user to update a very limited set of self-service fields
+      // without touching admin-managed fields. This enables profile photo updates from the client.
+      allow update: if isSignedIn() && request.auth.uid == uid &&
+        // Only allow changing photo-related fields
+        request.resource.data.keys().hasOnly(['photoURL', 'photoStoragePath', 'photoUpdatedAt']) &&
+        // Prevent accidental deletion of other fields by requiring that existing keys persist
+  resource.data.diff(request.resource.data).removedKeys().size() == 0;
+    }
+
+    // Admin-managed subdocument for trajectory/profile details
+    match /users/{uid}/profile/details {
+      allow read: if isSignedIn();
+      // Admin can fully manage this document
+      allow create, update, delete: if isAdmin();
+
+      // Candidates may only write questionnaire-related fields during collecting phase
+      allow create: if isSignedIn() && request.auth.uid == uid && isCollecting(uid) && !isArchived(uid) &&
+        request.resource.data.keys().hasOnly(['questionnaire', 'questionnaireCompleted', 'questionnaireUpdatedAt']);
+
+      allow update: if isSignedIn() && request.auth.uid == uid && isCollecting(uid) && !isArchived(uid) &&
+        // Only allow changing questionnaire-related fields
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['questionnaire', 'questionnaireCompleted', 'questionnaireUpdatedAt']) &&
+        // Disallow deleting any existing non-questionnaire fields
+  resource.data.diff(request.resource.data).removedKeys().hasOnly([]);
     }
 
     // Admin overlay profile for staff-managed fields
@@ -40,13 +72,20 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Candidate questionnaire document (primary source for responses)
+    match /users/{uid}/profile/questionnaire {
+      allow read: if isSignedIn();
+      // Candidate can manage their own questionnaire during collecting and if not archived; admin always allowed
+      allow create, update, delete: if ((isSignedIn() && request.auth.uid == uid && isCollecting(uid) && !isArchived(uid)) || isAdmin());
+    }
+
     // Candidate profile root doc (educationItems, links, overigeDocumenten, etc.)
     match /profiles/{uid} {
       allow read: if isSignedIn();
 
       // Allow the candidate to update their own profile only when collecting
       // Allow admin full write access at all times
-      allow create, update, delete: if (isSignedIn() && request.auth.uid == uid && isCollecting(uid)) || isAdmin();
+      allow create, update, delete: if ((isSignedIn() && request.auth.uid == uid && isCollecting(uid) && !isArchived(uid)) || isAdmin());
     }
 
     // Candidate assignments (used for traject status)
@@ -57,10 +96,67 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Assignment mirrors for role-based dashboards
+    match /assignmentsByCoach/{coachId}/customers/{customerId} {
+      // Allow reads to admin, the coach, or the candidate
+      allow read: if isAdmin() || (isSignedIn() && (request.auth.uid == coachId || request.auth.uid == customerId));
+      // Only admin may write these mirror docs from the client
+      allow create, update, delete: if isAdmin();
+    }
+    match /assignmentsByCoordinator/{coordinatorId}/customers/{customerId} {
+      allow read: if isAdmin() || (isSignedIn() && (request.auth.uid == coordinatorId || request.auth.uid == customerId));
+      allow create, update, delete: if isAdmin();
+    }
+    match /assignmentsByAssessor/{assessorId}/customers/{customerId} {
+      allow read: if isAdmin() || (isSignedIn() && (request.auth.uid == assessorId || request.auth.uid == customerId));
+      allow create, update, delete: if isAdmin();
+    }
+
     // Public trajectory data (read-only for everyone)
     match /trajects/{id} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // Messaging: threads and messages
+    function threadDoc(threadId) {
+      return get(/databases/$(database)/documents/threads/$(threadId));
+    }
+    function isThreadParticipant(threadId) {
+      // Use top-level exists() to avoid CLI linter warnings and then read data
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/threads/$(threadId)) &&
+             request.auth.uid in threadDoc(threadId).data.participants;
+    }
+
+    // Threads: participants can read and write; admin can read all
+    match /threads/{threadId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+
+      // Create: a participant initiates with themselves included in participants
+      allow create: if isSignedIn() &&
+        request.resource.data.participants is list &&
+        request.resource.data.participants.hasAny([request.auth.uid]);
+
+      // Update: only participants (or admin)
+      allow update, delete: if isAdmin() || isThreadParticipant(threadId);
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Read: only participants (or admin)
+        allow read: if isAdmin() || isThreadParticipant(threadId);
+
+        // Create: sender must be authenticated, be a participant, and senderId must match auth uid
+        allow create: if isSignedIn() && isThreadParticipant(threadId) &&
+          request.resource.data.senderId == request.auth.uid;
+
+        // Update: allow marking read flags by the receiver only
+        allow update: if isSignedIn() && isThreadParticipant(threadId) &&
+          request.auth.uid == resource.data.receiverId;
+
+        // Deleting messages is not permitted by default
+        allow delete: if false;
+      }
     }
   }
 }

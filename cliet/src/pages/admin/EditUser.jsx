@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, Save, ArrowLeft, UserCircle2, Image as ImageIcon } from "lucide-react";
 import ModalForm from "../../components/ModalForm";
-import { fetchAdminProfile, updateAdminProfile, updateCustomerResumeCore, fetchUserDoc, fetchUsersByRole } from "../../lib/firestoreAdmin";
+import { fetchAdminProfile, updateAdminProfile, updateCustomerResumeCore, fetchUserDoc, fetchUsersByRole, updateUserEmail } from "../../lib/firestoreAdmin";
 import { subscribeCustomerResume, uploadCustomerProfilePhoto } from "../../lib/firestoreCustomer";
 import { subscribeAssignmentByCustomerId } from "../../lib/firestoreCoach";
 import { TRAJECT_STATUS, normalizeTrajectStatus } from "../../lib/trajectStatus";
@@ -65,6 +65,7 @@ export default function AdminEditUser() {
   const [assessors, setAssessors] = useState([]);
   const [assessorsLoading, setAssessorsLoading] = useState(false);
   const [assessorsError, setAssessorsError] = useState(null);
+  // No coach linking on this page; handled in TrajectEdit
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -127,12 +128,14 @@ export default function AdminEditUser() {
         const aId = data.assessorId || "";
         setAssessorId(aId || "");
         setInitialAssessorId(aId || "");
+  // coach linkage managed in EVC-traject wijzigen page
       } else {
         setAssignment(null);
         setStatusValue(TRAJECT_STATUS.COLLECTING);
         setInitialStatus(TRAJECT_STATUS.COLLECTING);
         setAssessorId("");
         setInitialAssessorId("");
+  // coach linkage managed in EVC-traject wijzigen page
       }
     });
     return () => {
@@ -154,6 +157,8 @@ export default function AdminEditUser() {
       setAssessorsLoading(false);
     }
   };
+
+  // no coach picker here
 
   const photoURL = profile?.photoURL || resume?.photoURL || "";
 
@@ -194,9 +199,16 @@ export default function AdminEditUser() {
     setError(null);
     setStatus(null);
     try {
+      // If email changed, update via backend to keep Auth and Firestore in sync
+      const initialEmail = (profile?.email || "").trim().toLowerCase();
+      const nextEmail = (form.email || "").trim().toLowerCase();
+      if (nextEmail && initialEmail && nextEmail !== initialEmail) {
+        await updateUserEmail(userId, form.email.trim());
+      }
       // Profile + resume core fields
       await updateAdminProfile(userId, form);
       await updateCustomerResumeCore(userId, form);
+      // Coach linking is handled in TrajectEdit
       // Optional status update
       if (applyStatusChange && isAdmin) {
         await updateAssignmentStatus({ customerId: userId, status: statusValue, assessorId: assessorId || undefined });
@@ -321,6 +333,7 @@ export default function AdminEditUser() {
 
             {isAdmin ? (
               <div className="mt-4 space-y-3">
+                {/* Begeleider selectie is verplaatst naar EVC-traject wijzigen */}
                 <Field label="Trajectstatus">
                   <select
                     value={statusValue}
@@ -331,6 +344,8 @@ export default function AdminEditUser() {
                     <option value={TRAJECT_STATUS.REVIEW}>Ter beoordeling</option>
                     <option value={TRAJECT_STATUS.QUALITY}>Ter goedkeuring</option>
                     <option value={TRAJECT_STATUS.COMPLETE}>Afgerond</option>
+                    {/* Admin-only terminal status, now part of the status set */}
+                    <option value={TRAJECT_STATUS.ARCHIVED}>In archief</option>
                   </select>
                 </Field>
 

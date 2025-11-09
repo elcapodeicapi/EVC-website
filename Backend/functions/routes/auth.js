@@ -59,6 +59,14 @@ router.delete(
 	authController.adminDeleteUser
 );
 
+// Update user email (admin only)
+router.put(
+	"/admin/users/:uid/email",
+	authenticate,
+	authorizeRoles("admin"),
+	authController.adminUpdateUserEmail
+);
+
 // Optional: quick health route to list providers (useful when testing emulators)
 router.get("/providers", async (req, res) => {
 	try {

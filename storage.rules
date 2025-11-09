@@ -4,6 +4,12 @@ service firebase.storage {
     function isSignedIn() {
       return request.auth != null;
     }
+    function isThreadParticipant(uid, threadId) {
+      // Ensure the thread exists and the user is one of its participants
+      return uid != null &&
+             firestore.exists(/databases/(default)/documents/threads/$(threadId)) &&
+             uid in firestore.get(/databases/(default)/documents/threads/$(threadId)).data.participants;
+    }
     // Mirror Firestore assignment status check
     function isCollecting(uid) {
       return firestore.exists(/databases/(default)/documents/assignments/$(uid)) &&
@@ -28,6 +34,12 @@ service firebase.storage {
     match /profilePhotos/{uid}/{rest=**} {
       // Profile photo changes are also locked outside collecting
       allow write: if isSignedIn() && request.auth.uid == uid && isCollecting(uid);
+    }
+
+    // Messaging attachments: participants in the thread may upload
+    match /messages/{threadId}/{messageId}/{rest=**} {
+      allow write: if isSignedIn() && isThreadParticipant(request.auth.uid, threadId);
+      // Reads are already allowed globally above; tighten if needed later.
     }
   }
 }

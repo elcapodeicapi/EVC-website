@@ -25,6 +25,8 @@ const initialFormState = {
   password: "",
   role: "customer",
   trajectId: "",
+  startDate: "",
+  endDate: "",
 };
 
 const StatusBanner = ({ status }) => {
@@ -116,6 +118,8 @@ const AdminCreateUser = () => {
         password: form.password,
         role: form.role,
         trajectId: form.role === "customer" ? form.trajectId : null,
+        startDate: (form.role === "customer" || form.role === "user") ? form.startDate : null,
+        endDate: (form.role === "customer" || form.role === "user") ? form.endDate : null,
       };
       await post("/auth/admin/users", body);
       setStatus({ type: "success", message: "Account aangemaakt" });
@@ -220,7 +224,7 @@ const AdminCreateUser = () => {
                 ))}
               </select>
             </div>
-            {form.role === "customer" ? (
+            {(form.role === "customer" || form.role === "user") ? (
               <div className="grid gap-2">
                 <label htmlFor="user-traject" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Traject
@@ -244,15 +248,51 @@ const AdminCreateUser = () => {
                 <p className="text-xs text-slate-400">
                   Wijs deze kandidaat aan een traject toe. Dit bepaalt welke competenties zichtbaar zijn.
                 </p>
+                <div className="grid gap-2 sm:grid-cols-2 sm:gap-4 mt-2">
+                  <div className="grid gap-2">
+                    <label htmlFor="evc-start-date" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Startdatum</label>
+                    <input
+                      id="evc-start-date"
+                      name="startDate"
+                      type="date"
+                      value={form.startDate}
+                      onChange={handleChange}
+                      required
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="evc-end-date" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Einddatum</label>
+                    <input
+                      id="evc-end-date"
+                      name="endDate"
+                      type="date"
+                      value={form.endDate}
+                      onChange={handleChange}
+                      required
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    />
+                  </div>
+                </div>
+                {form.startDate && form.endDate && form.endDate <= form.startDate ? (
+                  <p className="text-xs font-medium text-red-600">Einddatum moet later zijn dan startdatum.</p>
+                ) : null}
               </div>
             ) : null}
-            <button
+            {(() => {
+              const isCandidate = form.role === "customer" || form.role === "user";
+              const datesOk = !isCandidate || (form.startDate && form.endDate && form.endDate > form.startDate);
+              const canSubmit = datesOk && !loading;
+              return (
+                <button
               type="submit"
-              disabled={loading}
+              disabled={!canSubmit}
               className="w-full rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
             >
               {loading ? "Account aanmaken..." : "Account aanmaken"}
             </button>
+              );
+            })()}
           </form>
         </section>
 

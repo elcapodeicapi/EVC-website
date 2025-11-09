@@ -81,12 +81,20 @@ export async function ensureThread({
   }
 
   const existing = snapshot.data() || {};
+  // Ensure participants array includes both users (migrate legacy threads)
+  const existingParticipants = Array.isArray(existing.participants)
+    ? existing.participants.filter(Boolean).map(String)
+    : [];
+  const nextParticipants = Array.from(
+    new Set([...(existingParticipants || []), String(customerId), String(coachId)])
+  );
   const mergedProfiles = {
     ...(existing.participantProfiles || {}),
     ...participantProfiles,
   };
 
   await updateDoc(threadRef, {
+    participants: nextParticipants,
     participantProfiles: mergedProfiles,
     customerId: existing.customerId || customerId,
     coachId: existing.coachId || coachId,
@@ -125,38 +133,88 @@ export function subscribeThreadsForUser(userId, role, observer) {
     ? query(threadsRef, orderBy("updatedAt", "desc"))
     : query(threadsRef, where("participants", "array-contains", userId), orderBy("updatedAt", "desc"));
 
-  return onSnapshot(
-    threadsQuery,
-    async (snapshot) => {
-      try {
-        const userIndex = await getUsersIndex().catch(() => new Map());
-        const threads = snapshot.docs
-          .map((docSnap) => mapThreadDoc(docSnap))
-          .filter(Boolean)
-          .map((thread) => {
-            const profiles = thread.participantProfiles || {};
-            const otherParticipantId = thread.participants.find((id) => id !== userId) || null;
-            const otherProfile = profiles[otherParticipantId] || userIndex.get(otherParticipantId) || {};
-            return {
-              ...thread,
-              otherParticipantId,
-              otherParticipantName:
-                otherProfile.name || otherProfile.email || (otherParticipantId ? otherParticipantId.slice(0, 6) : ""),
-              otherParticipantRole: otherProfile.role || null,
-            };
-          })
-          .sort((a, b) => {
-            const timeA = a.lastMessageAt ? a.lastMessageAt.getTime() : 0;
-            const timeB = b.lastMessageAt ? b.lastMessageAt.getTime() : 0;
-            return timeB - timeA;
-          });
-        observer({ data: threads, error: null });
-      } catch (error) {
-        observer({ data: [], error });
+  // For coaches, also listen to their active customer assignments to filter threads to only linked candidates
+  const isCoach = String(role).toLowerCase() === "coach";
+  let activeCustomerIds = new Set();
+  let latestThreadsSnap = null;
+  let unsubThreads = null;
+  let unsubAssignments = null;
+
+  const recompute = async () => {
+    const snapshot = latestThreadsSnap;
+    if (!snapshot) return;
+    try {
+      const userIndex = await getUsersIndex().catch(() => new Map());
+      let docs = snapshot.docs;
+      // Filter coach threads by active linked customers
+      if (isCoach && activeCustomerIds.size > 0) {
+        docs = docs.filter((docSnap) => {
+          const data = docSnap.data() || {};
+          const participants = Array.isArray(data.participants) ? data.participants : [];
+          const other = participants.find((id) => id !== userId) || null;
+          return other && activeCustomerIds.has(other);
+        });
       }
+      const threads = docs
+        .map((docSnap) => mapThreadDoc(docSnap))
+        .filter(Boolean)
+        .map((thread) => {
+          const profiles = thread.participantProfiles || {};
+          const otherParticipantId = thread.participants.find((id) => id !== userId) || null;
+          const otherProfile = profiles[otherParticipantId] || userIndex.get(otherParticipantId) || {};
+          return {
+            ...thread,
+            otherParticipantId,
+            otherParticipantName:
+              otherProfile.name || otherProfile.email || (otherParticipantId ? otherParticipantId.slice(0, 6) : ""),
+            otherParticipantRole: otherProfile.role || null,
+          };
+        })
+        .sort((a, b) => {
+          const timeA = a.lastMessageAt ? a.lastMessageAt.getTime() : 0;
+          const timeB = b.lastMessageAt ? b.lastMessageAt.getTime() : 0;
+          return timeB - timeA;
+        });
+      observer({ data: threads, error: null });
+    } catch (error) {
+      observer({ data: [], error });
+    }
+  };
+
+  unsubThreads = onSnapshot(
+    threadsQuery,
+    (snapshot) => {
+      latestThreadsSnap = snapshot;
+      void recompute();
     },
     (error) => observer({ data: [], error })
   );
+
+  if (isCoach) {
+    const assignmentsRef = collection(db, "assignmentsByCoach", userId, "customers");
+    unsubAssignments = onSnapshot(
+      assignmentsRef,
+      (snapshot) => {
+        const ids = new Set();
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data() || {};
+          const cid = data.customerId || docSnap.id;
+          if (cid) ids.add(cid);
+        });
+        activeCustomerIds = ids;
+        void recompute();
+      },
+      () => {
+        activeCustomerIds = new Set();
+        void recompute();
+      }
+    );
+  }
+
+  return () => {
+    if (typeof unsubThreads === "function") unsubThreads();
+    if (typeof unsubAssignments === "function") unsubAssignments();
+  };
 }
 
 const mapMessageDoc = (docSnap) => {

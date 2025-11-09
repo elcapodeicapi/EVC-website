@@ -35,6 +35,13 @@ export const ping = onRequest({ region: "europe-west1" }, (_req, res) => {
 export { sendWelcomeEmail } from "./email/sendWelcomeEmail.mjs";
 // Scheduled: warn candidates 2 weeks before 3-month end
 export { sendTrajectoryWarningEmail } from "./email/sendTrajectoryWarning.mjs";
+// Scheduled: archive expired trajectories
+export { archiveExpiredTrajects } from "./scheduler/archiveExpiredTrajects.mjs";
+// Auth blocking: prevent archived candidates from signing in
+// Note: beforeUserSignedIn (blocking functions) require Identity Platform (GCIP) to be enabled
+// for the project. Deploying this export on a non-GCIP project causes a 400 OPERATION_NOT_ALLOWED.
+// To enable once GCIP is turned on, uncomment the line below.
+export { blockArchivedCandidateSignIn } from "./auth/blockArchivedSignIn.mjs";
 
 // --- Firestore -> Auth custom claims sync ---
 // Keep roles in Firebase Auth custom claims in sync with Firestore users/{uid}.role

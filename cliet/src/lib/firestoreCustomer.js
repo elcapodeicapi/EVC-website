@@ -393,6 +393,15 @@ export async function deleteCustomerEvidence({ userId, uploadId, storagePath }) 
   await deleteDoc(uploadDocRef);
 }
 
+// Unlink an existing upload from a competency by clearing its competencyId (keeps the file and doc)
+export async function unlinkUploadFromCompetency({ userId, uploadId }) {
+  if (!userId) throw new Error("userId is verplicht");
+  if (!uploadId) throw new Error("uploadId is verplicht");
+
+  const uploadDocRef = doc(db, "users", userId, "uploads", uploadId);
+  await updateDoc(uploadDocRef, { competencyId: null });
+}
+
 // Upload a customer's profile photo via Firebase Storage and update profile/user docs.
 export async function uploadCustomerProfilePhoto(userId, file) {
   if (!userId) throw new Error("Missing user id");

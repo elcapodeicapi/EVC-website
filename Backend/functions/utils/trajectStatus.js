@@ -4,6 +4,7 @@ const TRAJECT_STATUS_LABELS = {
   QUALITY: "Ter kwaliteitscontrole",
   ASSESSMENT: "Ter beoordeling assessor",
   COMPLETE: "Beoordeling gereed",
+  ARCHIVED: "In archief",
 };
 
 const TRAJECT_STATUS = Object.freeze({
@@ -12,6 +13,7 @@ const TRAJECT_STATUS = Object.freeze({
   QUALITY: TRAJECT_STATUS_LABELS.QUALITY,
   ASSESSMENT: TRAJECT_STATUS_LABELS.ASSESSMENT,
   COMPLETE: TRAJECT_STATUS_LABELS.COMPLETE,
+  ARCHIVED: TRAJECT_STATUS_LABELS.ARCHIVED,
   APPROVAL: TRAJECT_STATUS_LABELS.QUALITY,
 });
 
@@ -21,6 +23,7 @@ const TRAJECT_STATUS_SEQUENCE = [
   TRAJECT_STATUS.QUALITY,
   TRAJECT_STATUS.ASSESSMENT,
   TRAJECT_STATUS.COMPLETE,
+  TRAJECT_STATUS.ARCHIVED,
 ];
 
 const DEFAULT_TRAJECT_STATUS = TRAJECT_STATUS.COLLECTING;
@@ -51,6 +54,10 @@ const LEGACY_STATUS_MAP = new Map([
   ["completed", TRAJECT_STATUS.COMPLETE],
   ["gereed", TRAJECT_STATUS.COMPLETE],
   ["beoordeling gereed", TRAJECT_STATUS.COMPLETE],
+  ["archived", TRAJECT_STATUS.ARCHIVED],
+  ["in archief", TRAJECT_STATUS.ARCHIVED],
+  ["in_archief", TRAJECT_STATUS.ARCHIVED],
+  ["archief", TRAJECT_STATUS.ARCHIVED],
 ]);
 
 const ROLE_ALIASES = {
@@ -63,6 +70,8 @@ const STATUS_PIPELINE = [
   { status: TRAJECT_STATUS.QUALITY, ownerRoles: ["kwaliteitscoordinator"] },
   { status: TRAJECT_STATUS.ASSESSMENT, ownerRoles: ["assessor"] },
   { status: TRAJECT_STATUS.COMPLETE, ownerRoles: ["assessor"] },
+  // Archived is terminal; admin can always transition (handled in canTransitionStatus)
+  { status: TRAJECT_STATUS.ARCHIVED, ownerRoles: ["admin"] },
 ];
 
 function normalizeTrajectStatus(value) {
