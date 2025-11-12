@@ -23,6 +23,13 @@ service cloud.firestore {
              get(/databases/$(database)/documents/assignments/$(uid)).data.status == "In archief";
     }
 
+    // Check if the authenticated user is the assigned coach for the candidate
+    function isCoachOf(uid) {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/assignments/$(uid)) &&
+             get(/databases/$(database)/documents/assignments/$(uid)).data.coachId == request.auth.uid;
+    }
+
     // Allow general reads for authenticated users (UI lists, context, etc.)
     match /{document=**} {
       allow read: if isSignedIn();
@@ -55,15 +62,55 @@ service cloud.firestore {
       // Admin can fully manage this document
       allow create, update, delete: if isAdmin();
 
-      // Candidates may only write questionnaire-related fields during collecting phase
-      allow create: if isSignedIn() && request.auth.uid == uid && isCollecting(uid) && !isArchived(uid) &&
-        request.resource.data.keys().hasOnly(['questionnaire', 'questionnaireCompleted', 'questionnaireUpdatedAt']);
+      // Helper to validate allowed evcTrajectory shape for candidate updates
+      function isEvcTrajectoryStructSafe() {
+        return request.resource.data.keys().hasAny(['evcTrajectory']) &&
+               request.resource.data.evcTrajectory.keys().hasOnly([
+                 // Candidate-editable core fields
+                 'contactPerson',
+                 'currentRole',
+                 'domains',
+                 'qualification',
+                 'voluntaryParticipation',
+                 'updatedAt',
+                 // Admin/overlay fields that may already exist and should not block updates
+                 'startDate',
+                 'endDate',
+                 'coachId',
+                 'assessorId',
+                 'kwaliteitscoordinatorId'
+               ]) &&
+               // If qualification is present, restrict its keys too
+               (
+                 !(request.resource.data.evcTrajectory.keys().hasAny(['qualification'])) ||
+                 request.resource.data.evcTrajectory.qualification.keys().hasOnly(['name','number','validity'])
+               );
+      }
 
-      allow update: if isSignedIn() && request.auth.uid == uid && isCollecting(uid) && !isArchived(uid) &&
-        // Only allow changing questionnaire-related fields
-        request.resource.data.diff(resource.data).changedKeys().hasOnly(['questionnaire', 'questionnaireCompleted', 'questionnaireUpdatedAt']) &&
-        // Disallow deleting any existing non-questionnaire fields
-  resource.data.diff(request.resource.data).removedKeys().hasOnly([]);
+      // Candidates may write questionnaire or evcTrajectory fields during collecting (and not archived)
+      // Create path (when doc is first created via merge): allow either questionnaire-only or evcTrajectory-only payload
+  allow create: if isSignedIn() && (request.auth.uid == uid || isCoachOf(uid)) && isCollecting(uid) && !isArchived(uid) && (
+        // Questionnaire-only create
+        request.resource.data.keys().hasOnly(['questionnaire', 'questionnaireCompleted', 'questionnaireUpdatedAt']) ||
+        // evcTrajectory-only create (optionally includes updatedAt)
+        (request.resource.data.keys().hasOnly(['evcTrajectory','updatedAt']) && isEvcTrajectoryStructSafe())
+      );
+
+      // Update path: allow questionnaire-only OR evcTrajectory updates. For evcTrajectory we only forbid actual deletion of questionnaire keys.
+  allow update: if isSignedIn() && (request.auth.uid == uid || isCoachOf(uid)) && isCollecting(uid) && !isArchived(uid) && (
+        // Questionnaire-only updates
+        (
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['questionnaire', 'questionnaireCompleted', 'questionnaireUpdatedAt']) &&
+          resource.data.diff(request.resource.data).removedKeys().hasOnly([])
+        ) ||
+        // EVC trajectory updates (may include top-level updatedAt). Missing questionnaire keys is OK as long as they are not removed.
+        (
+          request.resource.data.keys().hasAny(['evcTrajectory']) &&
+          isEvcTrajectoryStructSafe() &&
+          // Ensure we are not deleting existing questionnaire keys
+          !resource.data.diff(request.resource.data).removedKeys().hasAny(['questionnaire','questionnaireCompleted','questionnaireUpdatedAt'])
+        )
+      );
     }
 
     // Admin overlay profile for staff-managed fields

@@ -15,6 +15,7 @@ import {
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { arrayUnion, updateDoc } from "firebase/firestore";
 import { db, storage } from "../firebase";
+import { auth } from "../firebase";
 import { DEFAULT_TRAJECT_STATUS, normalizeTrajectStatus } from "./trajectStatus";
 import { normalizeQuestionnaireResponses, questionnaireIsComplete } from "./questionnaire";
 
@@ -1207,8 +1208,45 @@ export function subscribeCustomerQuestionnaire(userId, observer) {
 }
 
 export async function updateCustomerProfileDetails(userId, payload) {
-  if (!userId) throw new Error("Missing user id");
-  const profileRef = doc(db, "users", userId, "profile", "details");
+  // Default to current user's uid if not explicitly provided
+  let uid = userId;
+  if (!uid) {
+    uid = auth?.currentUser?.uid || null;
+  }
+  if (!uid) throw new Error("Missing user id");
+  const profileRef = doc(db, "users", uid, "profile", "details");
+
+  // Log auth mismatch if any (helps diagnose impersonation token issues)
+  if (auth?.currentUser?.uid && auth.currentUser.uid !== uid) {
+    // eslint-disable-next-line no-console
+    console.warn("[EVC update] Auth UID (", auth.currentUser.uid, ") differs from target UID (", uid, ")");
+  }
+
+  // Preflight: check assignment status to surface clearer error than generic permission-denied
+  try {
+    const assignmentSnap = await getDoc(doc(db, "assignments", uid));
+    const exists = assignmentSnap?.exists?.() || false;
+    const data = exists ? assignmentSnap.data() || {} : {};
+    const status = data.status || null;
+    const archived = status === "In archief";
+    const collecting = status === "Bewijzen verzamelen";
+    // eslint-disable-next-line no-console
+    console.log("[EVC preflight] uid=", uid, "exists=", exists, "status=", status);
+    if (!exists) {
+      throw new Error("Je traject is nog niet gekoppeld. Neem contact op met je begeleider.");
+    }
+    if (archived) {
+      throw new Error("Je traject staat in het archief. Aanpassingen zijn niet meer toegestaan.");
+    }
+    if (!collecting) {
+      throw new Error("Je traject bevindt zich niet in de fase ‘Bewijzen verzamelen’. Aanpassen is tijdelijk niet mogelijk.");
+    }
+  } catch (preErr) {
+    // If preflight throws a friendly error, rethrow. Otherwise proceed and let rules enforce.
+    if (preErr && preErr.message && !/Missing or insufficient permissions/i.test(preErr.message)) {
+      throw preErr;
+    }
+  }
 
   const evc = payload?.evcTrajectory ? payload.evcTrajectory : payload || {};
   const domainsValue = typeof evc.domains === "string" ? evc.domains.trim() : Array.isArray(evc.domains) ? evc.domains.join(", ") : "";
@@ -1219,21 +1257,28 @@ export async function updateCustomerProfileDetails(userId, payload) {
     validity: evc.qualification?.validity || "",
   };
 
-  await setDoc(
-    profileRef,
-    {
-      evcTrajectory: {
-        contactPerson: evc.contactPerson || "",
-        currentRole: evc.currentRole || "",
-        domains: domainsValue,
-        qualification,
-        voluntaryParticipation: Boolean(evc.voluntaryParticipation),
+  try {
+    await setDoc(
+      profileRef,
+      {
+        evcTrajectory: {
+          contactPerson: evc.contactPerson || "",
+          currentRole: evc.currentRole || "",
+          domains: domainsValue,
+          qualification,
+          voluntaryParticipation: Boolean(evc.voluntaryParticipation),
+          updatedAt: Timestamp.now(),
+        },
         updatedAt: Timestamp.now(),
       },
-      updatedAt: Timestamp.now(),
-    },
-    { merge: true }
-  );
+      { merge: true }
+    );
+  } catch (err) {
+    // Log details for easier debugging (permission errors, missing auth, etc.)
+    // eslint-disable-next-line no-console
+    console.error("updateCustomerProfileDetails failed for uid", uid, ":", err?.message || err);
+    throw err;
+  }
 }
 
 export async function saveCustomerQuestionnaireResponses(userId, responses, options = {}) {

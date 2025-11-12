@@ -1,8 +1,37 @@
 import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
+let authReadyPromise = null;
+function waitForAuthReady(timeoutMs = 4000) {
+  if (authReadyPromise) return authReadyPromise;
+  authReadyPromise = new Promise((resolve) => {
+    let settled = false;
+    let unsub = null;
+    try {
+      unsub = onAuthStateChanged(auth, () => {
+        if (settled) return;
+        settled = true;
+        try { unsub && unsub(); } catch {}
+        resolve();
+      });
+    } catch (_) {
+      // If listener setup fails, just resolve after timeout
+    }
+    setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try { unsub && unsub(); } catch {}
+      resolve();
+    }, timeoutMs);
+  });
+  return authReadyPromise;
+}
+
 async function getBearerToken({ forceRefresh = false } = {}) {
+  // Ensure Firebase Auth rehydrates from persistence before attempting to read currentUser
+  await waitForAuthReady();
   const user = auth?.currentUser || null;
   if (!user) return null;
   try {

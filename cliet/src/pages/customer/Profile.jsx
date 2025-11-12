@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { get, put } from "../../lib/api";
+import { auth } from "../../firebase";
 import { isCollectingStatus } from "../../lib/trajectStatus";
 import { subscribeCustomerProfileDetails, subscribeCustomerResume, updateCustomerProfileDetails, uploadCustomerProfilePhoto, uploadCustomerCertificateFile, uploadCustomerOtherDocumentsBatch, deleteCustomerOtherDocument, migrateLegacyEducationProfile, addEducationItem, addEducationItemAttachments, deleteEducationItem } from "../../lib/firestoreCustomer";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -128,10 +129,17 @@ const CustomerProfile = () => {
     setEvcSaving(true);
     setEvcStatus(null);
     try {
+      // Debug instrumentation: verify auth vs target customer
+      // eslint-disable-next-line no-console
+  console.log("[EVC save] auth.uid=", auth?.currentUser?.uid || "(none)");
+      // eslint-disable-next-line no-console
+      console.log("[EVC save] customerId=", customerId, "assignment.status=", assignment?.status);
       await updateCustomerProfileDetails(customerId, { evcTrajectory: evcDetails });
       setEvcStatus({ type: "success", message: "EVC-trajectgegevens opgeslagen" });
       setEvcEditMode(false);
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("EVC details save failed:", error?.message || error);
       setEvcStatus({ type: "error", message: error?.message || "Opslaan mislukt" });
     } finally {
       setEvcSaving(false);

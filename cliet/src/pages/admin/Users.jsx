@@ -19,7 +19,7 @@ import { subscribeTrajects, subscribeUsers, subscribeAssignments } from "../../l
 import { getTrajectStatusBadgeClass, getTrajectStatusLabel } from "../../lib/trajectStatus";
 import { post, del as apiDelete } from "../../lib/api";
 import { auth } from "../../firebase";
-import { signInWithCustomToken } from "firebase/auth";
+import { signInWithCustomToken, setPersistence, browserLocalPersistence } from "firebase/auth";
 
 const ROLE_FILTERS = [
   { value: "all", label: "Alle rollen" },
@@ -486,7 +486,8 @@ const AdminUsers = () => {
         };
         localStorage.setItem("impersonationBackup", JSON.stringify(backup));
 
-        await signInWithCustomToken(auth, customToken);
+  try { await setPersistence(auth, browserLocalPersistence); } catch (_) { /* persistence already set or unsupported */ }
+  await signInWithCustomToken(auth, customToken);
         if (response?.user) {
           localStorage.setItem("user", JSON.stringify(response.user));
         }

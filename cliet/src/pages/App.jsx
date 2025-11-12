@@ -63,7 +63,7 @@ import {
 		CheckCircle2,
 		CircleHelp,
 } from "lucide-react";
-import { onAuthStateChanged, signOut, signInWithCustomToken } from "firebase/auth";
+import { onAuthStateChanged, signOut, signInWithCustomToken, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { auth } from "../firebase";
 import { subscribeAdminProfile } from "../lib/firestoreAdmin";
 import { subscribeCustomerContext } from "../lib/firestoreCustomer";
@@ -826,9 +826,10 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 		}
 
 		let adminSignInError = null;
-		if (backup?.adminCustomToken) {
+				if (backup?.adminCustomToken) {
 			try {
-				await signInWithCustomToken(auth, backup.adminCustomToken);
+						try { await setPersistence(auth, browserLocalPersistence); } catch (_) { /* persistence already set or unsupported */ }
+						await signInWithCustomToken(auth, backup.adminCustomToken);
 				try {
 					await post("/auth/track-login", {});
 				} catch (_) {
