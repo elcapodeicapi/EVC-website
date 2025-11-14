@@ -1177,6 +1177,8 @@ const CustomerTrajectOverview = () => {
               <div className="space-y-4">
                 {competencies.map((competency) => {
                   const uploads = uploadsByCompetency[competency.id] || [];
+                  const linkedCount = (linkedByCompetency[competency.id] || []).length;
+                  const evidenceCount = uploads.length + linkedCount;
                   const titleParts = [];
                   if (competency.code) titleParts.push(competency.code);
                   if (competency.title) titleParts.push(competency.title);
@@ -1187,7 +1189,7 @@ const CustomerTrajectOverview = () => {
                           {titleParts.length > 0 ? titleParts.join(" • ") : competency.title || competency.code || "Competentie"}
                         </p>
                         <span className="rounded-full bg-white px-2 py-1 text-[0.65rem] font-semibold text-slate-600">
-                          {uploads.length} bewijsstuk{uploads.length === 1 ? "" : "ken"}
+                          {evidenceCount} bewijsstuk{evidenceCount === 1 ? "" : "ken"}
                         </span>
                       </header>
                       {(linkedByCompetency[competency.id] || []).length > 0 ? (

@@ -949,6 +949,8 @@ const CustomerPlanning = () => {
             const key = item.id || item.code || String(index);
             const isExpanded = expandedIds.includes(key);
             const uploads = getUploadsFor(item, key);
+            const linkedCount = (linkedByCompetency[key] || []).length;
+            const evidenceCount = (uploads?.length || 0) + linkedCount;
             const detailId = `competency-${key}`;
 
             return (
@@ -976,8 +978,20 @@ const CustomerPlanning = () => {
                       {item.code ? `${item.code} - ${item.name || item.title}` : item.name || item.title || "Onbenoemde competentie"}
                     </h3>
                   </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition">
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 border border-slate-200">
+                      <Paperclip className="h-3.5 w-3.5 text-brand-600" />
+                      {evidenceCount > 0 ? (
+                        <span>
+                          {evidenceCount} bewijsstuk{evidenceCount === 1 ? "" : "ken"}
+                        </span>
+                      ) : (
+                        <span>Geen bewijsstukken</span>
+                      )}
+                    </div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition">
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    </div>
                   </div>
                 </button>
 
