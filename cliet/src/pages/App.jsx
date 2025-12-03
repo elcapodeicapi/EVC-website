@@ -14,6 +14,7 @@ import {
 	useNavigate,
 	useLocation,
 } from "react-router-dom";
+import { useEffect as useEffectReact } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
@@ -38,6 +39,7 @@ import CustomerCriteriumInterview from "./customer/CriteriumInterview";
 import CustomerManual from "./customer/Manual";
 import CustomerReady from "./customer/Klaar";
 import CustomerVragenlijst from "./customer/Vragenlijst";
+import Login from "./Login";
 import CoachDashboard from "./coach/Dashboard";
 import CoachCustomers from "./coach/Customers";
 import CoachCustomerCompetency from "./coach/CustomerCompetency";
@@ -1428,14 +1430,33 @@ const CustomerLayout = () => {
 	);
 };
 
+// Simple auth guard: blocks access if no Firebase user is present.
+const RequireAuth = () => {
+	const location = useLocation();
+	const [isAuthed, setIsAuthed] = React.useState(() => Boolean(auth?.currentUser));
+	useEffectReact(() => {
+		let mounted = true;
+		const unsub = onAuthStateChanged(auth, (user) => {
+			if (!mounted) return;
+			setIsAuthed(Boolean(user));
+		});
+		return () => { mounted = false; try { unsub && unsub(); } catch {} };
+	}, []);
+	if (!isAuthed) {
+		return <Navigate to="/" replace state={{ from: location }} />;
+	}
+	return <Outlet />;
+};
+
 const App = () => {
 	return (
 		<BrowserRouter>
 			<Routes>
 				<Route path="/" element={<Home />} />
-				{/* <Route path="/login" element={<Login />} /> */}
+				<Route path="/login" element={<Login />} />
 				<Route path="/testing/create-account" element={<TestCreateAccount />} />
-				<Route path="/admin" element={<AdminLayout />}>
+								<Route element={<RequireAuth />}>
+									<Route path="/admin" element={<AdminLayout />}>
 					<Route index element={<AdminDashboard />} />
 					<Route path="assignments" element={<AdminAssignments />} />
 					<Route path="trajects" element={<AdminTrajects />} />
@@ -1445,9 +1466,11 @@ const App = () => {
 					<Route path="edit-user/:id" element={<AdminEditUser />} />
 					<Route path="traject-wijzigen/:userId" element={<AdminTrajectEdit />} />
 					<Route path="users/create" element={<AdminCreateUser />} />
-				</Route>
+									</Route>
+								</Route>
 
-				<Route path="/coach" element={<CoachLayout />}>
+								<Route element={<RequireAuth />}>
+									<Route path="/coach" element={<CoachLayout />}>
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
@@ -1456,12 +1479,14 @@ const App = () => {
 					<Route path="messages" element={<CoachMessages />} />
 					<Route path="manual" element={<CustomerManual />} />
 									<Route path="profile" element={<CoachProfile />} />
-				</Route>
+									</Route>
+								</Route>
 
-				<Route
-					path="/kwaliteitscoordinator"
-					element={<CoachLayout roleOverride="kwaliteitscoordinator" basePath="/kwaliteitscoordinator" />}
-				>
+				<Route element={<RequireAuth />}>
+				  <Route
+					  path="/kwaliteitscoordinator"
+					  element={<CoachLayout roleOverride="kwaliteitscoordinator" basePath="/kwaliteitscoordinator" />}
+				  >
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
@@ -1470,12 +1495,14 @@ const App = () => {
 					<Route path="messages" element={<CoachMessages />} />
 					<Route path="manual" element={<CustomerManual />} />
 									<Route path="profile" element={<CoachProfile />} />
+				  </Route>
 				</Route>
 
-				<Route
-					path="/assessor"
-					element={<CoachLayout roleOverride="assessor" basePath="/assessor" />}
-				>
+				<Route element={<RequireAuth />}>
+				  <Route
+					  path="/assessor"
+					  element={<CoachLayout roleOverride="assessor" basePath="/assessor" />}
+				  >
 					<Route index element={<CoachDashboard />} />
 					<Route path="customers" element={<CoachCustomers />} />
 					<Route path="customers/:customerId" element={<CoachCustomerCompetency />} />
@@ -1484,9 +1511,11 @@ const App = () => {
 					<Route path="messages" element={<CoachMessages />} />
 					<Route path="manual" element={<CustomerManual />} />
 									<Route path="profile" element={<CoachProfile />} />
+				  </Route>
 				</Route>
 
-				<Route path="/customer" element={<CustomerLayout />}>
+								<Route element={<RequireAuth />}>
+									<Route path="/customer" element={<CustomerLayout />}>
 					<Route index element={<Navigate to="/customer/dashboard" replace />} />
 					<Route path="dashboard" element={<CustomerDashboard />} />
 					<Route path="profile" element={<CustomerProfile />} />
@@ -1498,7 +1527,8 @@ const App = () => {
 					<Route path="criterium-interview" element={<CustomerCriteriumInterview />} />
 					<Route path="contact" element={<CustomerMessages />} />
 					<Route path="manual" element={<CustomerManual />} />
-				</Route>
+									</Route>
+								</Route>
 
 					{/* Deactivated account page */}
 					<Route path="/account-deactivated" element={<AccountDeactivated />} />
