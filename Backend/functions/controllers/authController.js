@@ -351,8 +351,31 @@ exports.adminCreateUser = async (req, res) => {
       );
     }
 
+    // Send welcome email using the admin-provided password (do not generate/overwrite).
+    let welcomeEmail = { sent: false, provider: null, error: null };
+    try {
+      const module = await import("../email/sendWelcomeEmail.mjs");
+      const result = await module.sendWelcomeEmailDirect({
+        uid: userRecord.uid,
+        email,
+        name,
+        password,
+      });
+      welcomeEmail = { sent: true, provider: result?.provider || null, error: null };
+    } catch (emailErr) {
+      console.error("[adminCreateUser] Welcome email failed", {
+        uid: userRecord.uid,
+        email,
+        error: emailErr?.message || emailErr,
+      });
+      welcomeEmail = { sent: false, provider: null, error: emailErr?.message || String(emailErr) };
+    }
+
     return res.status(201).json({
-      message: "User account created",
+      message: welcomeEmail.sent
+        ? "User account created"
+        : "User account created, but welcome email failed",
+      welcomeEmail,
       user: {
         email,
         role: normalizedRole,
