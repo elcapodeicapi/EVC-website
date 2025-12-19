@@ -5,6 +5,7 @@
 
 
 import sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
 import { createRequire } from "node:module";
 import { randomBytes } from "node:crypto";
 
@@ -13,6 +14,16 @@ const require = createRequire(import.meta.url);
 const functions = require("firebase-functions/v1");
 const firebaseHelpers = require("../firebase");
 const { getDb, getAuth } = firebaseHelpers;
+
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not set (required when USE_RESEND=true)");
+  }
+
+  const resend = new Resend(apiKey);
+  return resend;
+}
 
 // -- Lazy SendGrid setup
 let sendgridConfigured = false;
@@ -46,6 +57,25 @@ function generateTempPassword(length = 12) {
 // Small helper to retry async operations
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isUseResendEnabled() {
+  return String(process.env.USE_RESEND || "").toLowerCase() === "true";
+}
+
+async function sendWelcomeEmailWithResend({ from, to, subject, html }) {
+  const resend = getResendClient();
+  const toList = Array.isArray(to) ? to : [to];
+  return resend.emails.send({
+    from,
+    to: toList,
+    subject,
+    html,
+  });
+}
+
+async function sendWelcomeEmailWithSendGrid(msg) {
+  return sgMail.send(msg);
 }
 
 
@@ -181,9 +211,29 @@ export const sendWelcomeEmail = functions
     };
 
     try {
-      await sgMail.send(msg);
-      functions.logger.info("Welcome email sent successfully", { uid, email });
+      if (isUseResendEnabled()) {
+        await sendWelcomeEmailWithResend({
+          from: msg.from,
+          to: [email],
+          subject: msg.subject,
+          html: msg.html,
+        });
+        functions.logger.info("Welcome email sent successfully (Resend)", { uid, email });
+      } else {
+        await sendWelcomeEmailWithSendGrid(msg);
+        functions.logger.info("Welcome email sent successfully", { uid, email });
+      }
     } catch (err) {
-      functions.logger.error("Error sending email", { uid, email, error: err?.message || err });
+      const provider = isUseResendEnabled() ? "Resend" : "SendGrid";
+      functions.logger.error("Error sending welcome email", {
+        uid,
+        email,
+        provider,
+        error: err?.message || err,
+      });
+
+      if (provider === "Resend") {
+        throw new Error(`Resend welcome email failed: ${err?.message || String(err)}`);
+      }
     }
   });

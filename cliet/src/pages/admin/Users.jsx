@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users as UsersIcon,
@@ -193,6 +193,11 @@ const AdminUsers = () => {
   const [impersonationError, setImpersonationError] = useState(null);
   const [impersonationTarget, setImpersonationTarget] = useState(null);
 
+  const tableScrollRef = useRef(null);
+  const topScrollRef = useRef(null);
+  const topSpacerRef = useRef(null);
+  const syncingScrollRef = useRef(false);
+
     useEffect(() => {
       setUsersLoading(true);
       const unsubscribe = subscribeUsers(({ data, error }) => {
@@ -263,6 +268,45 @@ const AdminUsers = () => {
       });
       return map;
     }, [trajects]);
+
+  useEffect(() => {
+    const scrollContainer = tableScrollRef.current;
+    const topSpacer = topSpacerRef.current;
+    if (!scrollContainer || !topSpacer) return;
+
+    const updateWidths = () => {
+      // Make the top scrollbar match the table scroll width.
+      topSpacer.style.width = `${scrollContainer.scrollWidth}px`;
+    };
+
+    updateWidths();
+    const handleResize = () => updateWidths();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [page, pageSize, searchTerm, roleFilter, sortState, usersLoading, trajectsLoading]);
+
+  const handleTopScroll = (event) => {
+    if (syncingScrollRef.current) return;
+    const top = event.currentTarget;
+    const bottom = tableScrollRef.current;
+    if (!bottom) return;
+    syncingScrollRef.current = true;
+    bottom.scrollLeft = top.scrollLeft;
+    syncingScrollRef.current = false;
+  };
+
+  const handleTableScroll = (event) => {
+    if (syncingScrollRef.current) return;
+    const bottom = event.currentTarget;
+    const top = topScrollRef.current;
+    if (!top) return;
+    syncingScrollRef.current = true;
+    top.scrollLeft = bottom.scrollLeft;
+    syncingScrollRef.current = false;
+  };
 
     const customerCountsByCoach = useMemo(() => {
       const map = new Map();
@@ -595,7 +639,15 @@ const AdminUsers = () => {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
-            <div className="overflow-x-auto">
+            <div
+              ref={topScrollRef}
+              onScroll={handleTopScroll}
+              aria-hidden="true"
+              className="overflow-x-auto border-b border-slate-200 bg-slate-50"
+            >
+              <div ref={topSpacerRef} className="h-4" />
+            </div>
+            <div ref={tableScrollRef} onScroll={handleTableScroll} className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50">
                   <tr>

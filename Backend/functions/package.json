@@ -22,6 +22,7 @@
     "firebase-functions": "^6.6.0",
     "multer": "^2.0.2",
     "path-match": "^1.2.4",
+    "resend": "^6.6.0",
     "root": "file:../.."
   },
   "devDependencies": {
