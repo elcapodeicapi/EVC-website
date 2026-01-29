@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 
 // Eagerly import all .txt files as raw strings (Vite: use query + import to avoid deprecation)
 const RAW_FILES = import.meta.glob("../../data/*.txt", {
