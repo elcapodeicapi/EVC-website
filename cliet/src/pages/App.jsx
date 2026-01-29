@@ -28,6 +28,7 @@ import AdminUsers from "./admin/Users";
 import AdminTrajectEdit from "./admin/TrajectEdit";
 import AdminEditUser from "./admin/EditUser";
 import AdminCreateUser from "./admin/CreateUser";
+import AdminResendWelcomeEmail from "./admin/ResendWelcomeEmail";
 import TestCreateAccount from "./TestCreateAccount";
 import CustomerDashboard from "./customer/Dashboard";
 import CustomerPlanning from "./customer/Planning";
@@ -1463,6 +1464,7 @@ const App = () => {
 					<Route path="profile" element={<AdminProfile />} />
 					<Route path="manual" element={<CustomerManual />} />
 					<Route path="users" element={<AdminUsers />} />
+						<Route path="users/resend-welcome" element={<AdminResendWelcomeEmail />} />
 					<Route path="edit-user/:id" element={<AdminEditUser />} />
 					<Route path="traject-wijzigen/:userId" element={<AdminTrajectEdit />} />
 					<Route path="users/create" element={<AdminCreateUser />} />

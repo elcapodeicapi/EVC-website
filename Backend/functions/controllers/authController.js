@@ -590,3 +590,101 @@ exports.adminUpdateUserEmail = async (req, res) => {
     return res.status(400).json({ error: err.message || "E-mail bijwerken mislukt" });
   }
 };
+
+function isPasswordValid(password) {
+  if (typeof password !== "string") return false;
+  const trimmed = password.trim();
+  if (trimmed.length < 8) return false;
+  // Keep requirements minimal/low-risk; Firebase Auth will enforce additional rules if configured.
+  return true;
+}
+
+// POST /auth/admin/users/:uid/welcome-email
+// Body: { newPassword: string }
+// Sets the target user's Auth password to the admin-entered password and sends a new welcome email.
+exports.adminResendWelcomeEmail = async (req, res) => {
+  try {
+    const { uid } = req.params || {};
+    const { newPassword } = req.body || {};
+    if (!uid) return res.status(400).json({ error: "uid is required" });
+    if (!isPasswordValid(newPassword)) {
+      return res.status(400).json({ error: "Wachtwoord is ongeldig (minimaal 8 tekens)" });
+    }
+
+    const db = getDb();
+    const auth = getAuth();
+
+    // Load user profile for role/email/name
+    const userRef = db.collection("users").doc(uid);
+    const snap = await userRef.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: "Gebruiker niet gevonden" });
+    }
+    const data = snap.data() || {};
+    const role = String(data.role || "").toLowerCase();
+    const allowedRoles = new Set(["customer", "user", "assessor"]);
+    if (!allowedRoles.has(role)) {
+      return res.status(400).json({ error: "Alleen kandidaten of assessors kunnen een welkomstmail krijgen" });
+    }
+
+    // Prefer Auth as source of truth for email
+    let email = (data.email || "").toString().trim();
+    try {
+      const userRecord = await auth.getUser(uid);
+      if (userRecord?.email) email = userRecord.email;
+    } catch (e) {
+      const code = String(e?.errorInfo?.code || e?.code || "").toLowerCase();
+      if (code.includes("not-found")) {
+        return res.status(404).json({ error: "Gebruiker bestaat niet (Auth)" });
+      }
+      throw e;
+    }
+    if (!email) {
+      return res.status(400).json({ error: "Gebruiker heeft geen e-mail" });
+    }
+
+    const name = (data.name || "").toString();
+
+    // 1) Set the real credential (never log the password)
+    await auth.updateUser(uid, { password: newPassword });
+
+    // 2) Send email using existing template/provider toggle.
+    // Note: sendWelcomeEmailDirect is an internal helper exported from the email module.
+    try {
+      const emailModule = await import("../email/sendWelcomeEmail.mjs");
+      const result = await emailModule.sendWelcomeEmailDirect({
+        uid,
+        email,
+        name,
+        password: newPassword,
+      });
+
+      return res.json({
+        success: true,
+        passwordUpdated: true,
+        emailSent: true,
+        provider: result?.provider || null,
+        uid,
+        email,
+        role,
+      });
+    } catch (mailErr) {
+      console.error("[adminResendWelcomeEmail] Welcome email failed", {
+        uid,
+        email,
+        error: mailErr?.message || mailErr,
+      });
+      return res.status(502).json({
+        success: false,
+        passwordUpdated: true,
+        emailSent: false,
+        error: mailErr?.message || "Welkomstmail verzenden mislukt",
+        uid,
+        email,
+        role,
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Welkomstmail opnieuw sturen mislukt" });
+  }
+};

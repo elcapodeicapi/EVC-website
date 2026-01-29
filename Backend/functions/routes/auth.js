@@ -67,6 +67,14 @@ router.put(
 	authController.adminUpdateUserEmail
 );
 
+// Resend welcome email with admin-chosen new password (admin only)
+router.post(
+	"/admin/users/:uid/welcome-email",
+	authenticate,
+	authorizeRoles("admin"),
+	authController.adminResendWelcomeEmail
+);
+
 // Optional: quick health route to list providers (useful when testing emulators)
 router.get("/providers", async (req, res) => {
 	try {

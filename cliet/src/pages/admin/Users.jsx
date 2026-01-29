@@ -10,6 +10,7 @@ import {
   Eye,
   Pencil,
   Trash2,
+  Mail,
   Loader2,
   UserCog,
   Table,
@@ -740,6 +741,14 @@ const AdminUsers = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
+                            {isAdmin && (["customer", "user", "assessor"].includes(row.roleKey)) && (
+                              <ActionButton
+                                icon={Mail}
+                                label="Stuur nieuwe welkomstmail"
+                                onClick={() => navigate(`/admin/users/resend-welcome?uid=${encodeURIComponent(row.id)}`)}
+                                tone="brand"
+                              />
+                            )}
                             {isAdmin && (["customer", "user", "coach", "kwaliteitscoordinator", "assessor"].includes(row.roleKey)) && (
                               <ActionButton icon={Eye} label="Open als gebruiker" onClick={() => handleImpersonate(row)} />
                             )}
