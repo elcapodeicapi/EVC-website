@@ -475,7 +475,7 @@ const CustomerDashboard = () => {
               <button
                 type="button"
                 onClick={markStatusNoticeAsSeen}
-                className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-700 shadow-sm transition hover:bg-sky-50"
+                className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-700 shadow-xs transition hover:bg-sky-50"
               >
                 Markeer als gelezen
               </button>
@@ -515,7 +515,7 @@ const CustomerDashboard = () => {
                     // best-effort; errors will not clear the banner
                   }
                 }}
-                className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-50"
+                className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-700 shadow-xs transition hover:bg-amber-50"
               >
                 Markeer als gelezen
               </button>
@@ -523,7 +523,7 @@ const CustomerDashboard = () => {
           </div>
         </div>
       ) : null}
-      <section className="relative overflow-hidden rounded-3xl border border-evc-blue-200/40 bg-white shadow-sm">
+      <section className="relative overflow-hidden rounded-3xl border border-evc-blue-200/40 bg-white shadow-xs">
         <div className="absolute -top-12 right-0 h-40 w-40 rounded-full bg-evc-blue-200/40 blur-3xl" aria-hidden="true" />
         <div className="absolute -bottom-10 left-6 h-32 w-32 rounded-full bg-evc-blue-100/50 blur-3xl" aria-hidden="true" />
         <div className="relative flex flex-col gap-6 px-8 py-12 sm:px-12 lg:flex-row lg:items-center">
@@ -558,7 +558,7 @@ const CustomerDashboard = () => {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Stand van zaken</h2>

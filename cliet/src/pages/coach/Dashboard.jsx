@@ -193,7 +193,7 @@ const CoachDashboard = () => {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-10 text-white shadow-card">
+      <section className="rounded-3xl bg-linear-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-10 text-white shadow-card">
         <p className="text-sm uppercase tracking-[0.35em] text-white/70">Welkom terug</p>
         <h2 className="mt-2 text-3xl font-semibold text-white">{heroTitle}</h2>
         <p className="mt-3 max-w-2xl text-ms text-white/80">

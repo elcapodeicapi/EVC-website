@@ -1,4 +1,4 @@
-const admin = require("firebase-admin");
+const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { getDb, getAuth } = require("../firebase");
 
 const MANAGED_ROLES = new Set(["admin", "coach", "customer", "user", "kwaliteitscoordinator", "assessor"]);
@@ -51,8 +51,8 @@ async function upsertUserLoginMetadata(uid, metadata = {}) {
   }
   // Use server timestamp when available; fall back to Timestamp.now() or Date to avoid crashes in environments
   // where FieldValue may be undefined due to SDK/runtime differences.
-  const serverTsFn = admin?.firestore?.FieldValue?.serverTimestamp;
-  const timestampNow = admin?.firestore?.Timestamp?.now;
+  const serverTsFn = FieldValue.serverTimestamp;
+  const timestampNow = Timestamp.now;
   const lastLoggedIn = typeof serverTsFn === "function"
     ? serverTsFn()
     : (typeof timestampNow === "function" ? timestampNow() : new Date());
@@ -243,7 +243,7 @@ exports.adminCreateUser = async (req, res) => {
     if (isCandidate) {
       const start = new Date(`${startYmd}T00:00:00.000Z`);
       const end = new Date(`${endYmd}T00:00:00.000Z`);
-      const TS = admin.firestore.Timestamp;
+      const TS = Timestamp;
       baseUserPayload.evcStartDate = TS.fromDate(start);
       baseUserPayload.evcEndDate = TS.fromDate(end);
     }
@@ -278,12 +278,12 @@ exports.adminCreateUser = async (req, res) => {
           statusUpdatedBy: req.user?.uid || null,
           statusUpdatedByRole: "admin",
           // Mirror EVC traject dates for reference
-          evcStartDate: admin.firestore.Timestamp.fromDate(new Date(`${startYmd}T00:00:00.000Z`)),
-          evcEndDate: admin.firestore.Timestamp.fromDate(new Date(`${endYmd}T00:00:00.000Z`)),
+          evcStartDate: Timestamp.fromDate(new Date(`${startYmd}T00:00:00.000Z`)),
+          evcEndDate: Timestamp.fromDate(new Date(`${endYmd}T00:00:00.000Z`)),
           statusHistory: [
             {
               status,
-              changedAt: admin.firestore.Timestamp.now(),
+              changedAt: Timestamp.now(),
               changedBy: req.user?.uid || null,
               changedByRole: "admin",
             },
@@ -511,7 +511,7 @@ exports.adminUpdateUserEmail = async (req, res) => {
 
     // Then update Firestore. If this fails, rollback Auth.
     try {
-      const serverTsFn = admin?.firestore?.FieldValue?.serverTimestamp;
+      const serverTsFn = FieldValue.serverTimestamp;
       const updatedAt = typeof serverTsFn === "function" ? serverTsFn() : new Date();
       await userRef.set({ email: newEmail, updatedAt }, { merge: true });
     } catch (firestoreErr) {

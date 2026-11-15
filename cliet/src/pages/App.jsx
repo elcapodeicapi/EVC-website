@@ -1020,7 +1020,7 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 							<select
 								value={selectedCustomerId}
 								onChange={(event) => setSelectedCustomerId(event.target.value)}
-								className="h-10 rounded-full border border-white/30 bg-white px-3 text-sm font-medium text-slate-900 shadow-sm focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
+								className="h-10 rounded-full border border-white/30 bg-white px-3 text-sm font-medium text-slate-900 shadow-xs focus:border-white/60 focus:outline-hidden focus:ring-2 focus:ring-white/30"
 							>
 								{customerOptions.map((option) => (
 									<option key={option.value} value={option.value}>
@@ -1075,7 +1075,7 @@ const CoachLayout = ({ roleOverride, basePath: basePathProp } = {}) => {
 					<select
 						value={selectedAssessorId}
 						onChange={(e) => setSelectedAssessorId(e.target.value)}
-						className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-100"
+						className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-300 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
 						disabled={assessorLoading}
 					>
 						<option value="">{assessorLoading ? "Laden..." : "Kies een assessor"}</option>
@@ -1398,15 +1398,15 @@ const CustomerLayout = () => {
 							<button
 								type="button"
 								onClick={handleCustomerLogout}
-								className="rounded-full bg-white px-3 py-1 font-semibold text-evc-blue-600 shadow-sm transition hover:bg-white/90"
+								className="rounded-full bg-white px-3 py-1 font-semibold text-evc-blue-600 shadow-xs transition hover:bg-white/90"
 							>
 								Log uit
 							</button>
-							<span className="rounded-full bg-white/10 px-3 py-1 font-medium text-white/90 shadow-sm">
+							<span className="rounded-full bg-white/10 px-3 py-1 font-medium text-white/90 shadow-xs">
 								Laatste activiteit: {activityLabel}
 							</span>
 							{resolvedCoach ? (
-								<span className="hidden rounded-full bg-white px-3 py-1 font-medium !text-black sm:inline">
+								<span className="hidden rounded-full bg-white px-3 py-1 font-medium text-black! sm:inline">
 									Begeleider {resolvedCoach.name}
 								</span>
 							) : null}

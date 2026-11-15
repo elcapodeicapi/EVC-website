@@ -67,7 +67,7 @@ const StatusWorkflowPanel = ({ assignment, role, loading, error, onAdvance, onRe
 
   if (!currentStatus) {
     return (
-      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Huidige status</p>
@@ -92,7 +92,7 @@ const StatusWorkflowPanel = ({ assignment, role, loading, error, onAdvance, onRe
   }
 
   return (
-    <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Huidige status</p>

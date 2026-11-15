@@ -6,7 +6,7 @@ const DashboardLayout = ({ sidebar, topbar, children, className = "", mainClassN
 
   return (
     <div className={clsx("min-h-screen bg-transparent text-slate-900", className)}>
-      <div className="lg:grid lg:grid-cols-[320px,1fr]">
+      <div className="lg:grid lg:grid-cols-[320px_1fr]">
         <div
           className={clsx(
             "fixed inset-y-0 left-0 z-40 w-80 max-w-full transform bg-white shadow-xl transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:translate-x-0 lg:shadow-none lg:transform-none",

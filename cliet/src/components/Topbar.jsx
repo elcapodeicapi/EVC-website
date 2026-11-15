@@ -17,7 +17,7 @@ const Topbar = ({
 }) => {
   const tonePalettes = {
     light: {
-      header: "bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70",
+      header: "bg-white/85 backdrop-blur-sm supports-backdrop-filter:bg-white/70",
       role: "text-slate-400",
       title: "text-slate-900",
       toggle:
@@ -29,7 +29,7 @@ const Topbar = ({
       rightSection: "text-slate-900",
     },
     brand: {
-      header: "bg-evc-blue-600/95 text-white backdrop-blur supports-[backdrop-filter]:bg-evc-blue-600/75",
+      header: "bg-evc-blue-600/95 text-white backdrop-blur-sm supports-backdrop-filter:bg-evc-blue-600/75",
       role: "text-white/70",
       title: "text-white",
       toggle:
@@ -85,7 +85,7 @@ const Topbar = ({
           <div className={clsx("flex items-center gap-3 rounded-full px-3 py-2 text-sm", palette.userChip)}>
             <div
               className={clsx(
-                "flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-xs font-semibold shadow-sm",
+                "flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-xs font-semibold shadow-xs",
                 palette.avatarWrapper,
                 !(user?.photoURL) && palette.initials
               )}

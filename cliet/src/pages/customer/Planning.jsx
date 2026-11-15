@@ -362,12 +362,12 @@ const CustomerPlanning = () => {
       {items.map((value, index) => (
         <li
           key={`${value}-${index}`}
-          className={`flex items-start gap-3 rounded-xl bg-white px-3 py-2 shadow-sm border border-slate-100`}
+          className={`flex items-start gap-3 rounded-xl bg-white px-3 py-2 shadow-xs border border-slate-100`}
         >
           <span
-            className={`${badgeSize} flex-shrink-0 rounded-full bg-evc-blue-600 mt-[6px]`}
+            className={`${badgeSize} shrink-0 rounded-full bg-evc-blue-600 mt-[6px]`}
           />
-          <span className="leading-relaxed break-words whitespace-pre-line">
+          <span className="leading-relaxed wrap-break-word whitespace-pre-line">
             {String(value)}
           </span>
         </li>
@@ -547,7 +547,7 @@ const CustomerPlanning = () => {
           🔒 Je traject bevindt zich in de beoordelingsfase. Aanpassingen aan bewijsstukken zijn tijdelijk niet mogelijk.
         </div>
       ) : null}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         
         <h1 className="mt-2 text-3xl font-semibold text-slate-900">Portfolio {participantName}</h1>
         <div className="mt-3 max-w-3xl space-y-4 text-sm text-slate-500">
@@ -577,7 +577,7 @@ const CustomerPlanning = () => {
       </section>
 
       {/* Section 1: Opleidingen, diploma's en certificaten */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <header className="mb-2">
           <h2 className="mt-1 text-xl font-semibold text-slate-900">Opleidingen, diploma's en certificaten</h2>
           <p className="text-sm text-slate-500">Overzicht van je opleidingen en officiële documenten.</p>
@@ -603,7 +603,7 @@ const CustomerPlanning = () => {
                       <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {it.attachments.map((att) => (
                           <li key={att.id || att.storagePath}>
-                            <a href={att.downloadURL} target="_blank" rel="noreferrer" className="inline-flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 shadow-sm hover:text-brand-600">
+                            <a href={att.downloadURL} target="_blank" rel="noreferrer" className="inline-flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 shadow-xs hover:text-brand-600">
                               <span aria-hidden>📎</span>
                               <span className="truncate">{att.name || "bijlage"}</span>
                             </a>
@@ -620,7 +620,7 @@ const CustomerPlanning = () => {
       </section>
 
       {/* Section 2: Relevante werkervaring */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <header className="mb-2">
           <h2 className="text-xl font-semibold text-slate-900">Relevante werkervaring</h2>
           <p className="text-sm text-slate-500">Belangrijke werkervaringen met toelichting.</p>
@@ -647,7 +647,7 @@ const CustomerPlanning = () => {
       
 
       {/* Section 4: Overige informatie en documenten (profiel) */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <header className="mb-2">
           <h2 className="text-xl font-semibold text-slate-900">Overige informatie en documenten</h2>
           <p className="text-sm text-slate-500">Overige bewijsstukken uit je profiel.</p>
@@ -688,7 +688,7 @@ const CustomerPlanning = () => {
         )}
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 className="text-3xl font-extrabold uppercase text-black-600 mb-2">
   Belangrijk! Klik hieronder en lees verder
 </h2>
@@ -956,7 +956,7 @@ const CustomerPlanning = () => {
             return (
               <article
                 key={key}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"
+                className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition hover:shadow-lg"
               >
                 <button
                   type="button"
@@ -1055,7 +1055,7 @@ const CustomerPlanning = () => {
                             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-slate-500">Gekoppeld uit profiel</p>
                             <ul className="space-y-2 text-xs text-slate-600">
                               {linkedByCompetency[key].map((entry) => (
-                                <li key={`${entry.__section}-${entry.id}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                                <li key={`${entry.__section}-${entry.id}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-xs">
                                   <div className="min-w-0">
                                     <p className="truncate text-xs font-semibold text-slate-700">{entry.title || entry.role || entry.organisation || "Profielitem"}</p>
                                     {entry.__section === "certificate" && entry.filePath ? (
@@ -1087,7 +1087,7 @@ const CustomerPlanning = () => {
                               return (
                                 <li
                                   key={downloadKey}
-                                  className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm"
+                                  className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-xs"
                                 >
                                   <Paperclip className="h-4 w-4 text-slate-400" />
                                   <div className="min-w-0 flex-1">
@@ -1151,7 +1151,7 @@ const CustomerPlanning = () => {
                               value={uploadNames[key] || ""}
                               onChange={(event) => handleUploadNameChange(key, event.target.value)}
                               placeholder="Bijvoorbeeld: Reflectieverslag week 3"
-                              className={`mt-2 w-full rounded-full border px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400 ${
+                              className={`mt-2 w-full rounded-full border px-4 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-brand-400 ${
                                 uploadNameErrors[key]
                                   ? "border-red-300 focus:ring-red-300"
                                   : "border-slate-200 focus:border-brand-400"
@@ -1174,9 +1174,9 @@ const CustomerPlanning = () => {
                             onChange={(event) => handleUpload(item.id || item.code || key, event)}
                           />
                           {/* Koppelen uit profiel */}
-                          <div className="grid gap-2 sm:grid-cols-[1fr,auto] sm:items-center">
+                          <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
                             <select
-                              className="w-full rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700 focus:border-brand-400 focus:outline-none"
+                              className="w-full rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-700 focus:border-brand-400 focus:outline-hidden"
                               value={linkSelections[key] || ""}
                               onChange={(e) => handleLinkSelect(key, e.target.value)}
                               disabled={!isEditable}

@@ -11,7 +11,7 @@ const CustomerCriteriumInterview = () => {
         </p>
       </header>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <p className="text-sm leading-relaxed text-slate-600">
           Dit vind je op deze pagina zodra jouw assessor deze heeft toegevoegd.
         </p>

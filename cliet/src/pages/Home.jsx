@@ -60,7 +60,7 @@ const Home = () => {
                     placeholder="jij@voorbeeld.nl"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-xs transition focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                     required
                   />
                 </div>
@@ -76,7 +76,7 @@ const Home = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-xs transition focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                     required
                   />
                 </div>
@@ -84,7 +84,7 @@ const Home = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="inline-flex w-full items-center justify-center rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-brand-300"
+                    className="inline-flex w-full items-center justify-center rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-200 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-brand-300"
                   >
                     {loading ? "Bezig met inloggen..." : "Inloggen"}
                   </button>
@@ -116,7 +116,7 @@ const Home = () => {
                 geformuleerd in een landelijk erkend ervaringscertificaat.
               </p>
             </div>
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 text-sm text-slate-600 shadow-sm">
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 text-sm text-slate-600 shadow-xs">
               <p className="font-semibold text-slate-800">Waarom het EVC-portaal?</p>
               <p className="mt-2 leading-relaxed">
                 Een moderne, veilige en gebruiksvriendelijke omgeving waarmee jij en je begeleider inzicht houden in

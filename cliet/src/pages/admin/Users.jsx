@@ -584,7 +584,7 @@ const AdminUsers = () => {
           </div>
         ) : null}
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-1 items-center gap-3">
               <div className="relative w-full max-w-sm">
@@ -594,7 +594,7 @@ const AdminUsers = () => {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Zoek op naam, e-mail, traject of begeleider"
-                  className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-xs transition focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 />
               </div>
               <div className="relative">
@@ -602,7 +602,7 @@ const AdminUsers = () => {
                 <select
                   value={roleFilter}
                   onChange={(event) => setRoleFilter(event.target.value)}
-                  className="w-44 rounded-full border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="w-44 rounded-full border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-xs transition focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 >
                   {ROLE_FILTERS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -620,7 +620,7 @@ const AdminUsers = () => {
                 id="page-size"
                 value={pageSize}
                 onChange={(event) => setPageSize(Number(event.target.value))}
-                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-xs transition focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
               >
                 {PAGE_SIZE_OPTIONS.map((size) => (
                   <option key={size} value={size}>
@@ -631,7 +631,7 @@ const AdminUsers = () => {
               <button
                 type="button"
                 onClick={handleCreateUser}
-                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500"
               >
                 <UserPlus className="h-4 w-4" />
                 Nieuwe gebruiker
@@ -812,7 +812,7 @@ const AdminUsers = () => {
                   type="button"
                   onClick={confirmDelete}
                   disabled={deletePending || ((deleteTarget?.roleKey === "admin" || deleteTarget?.id === currentUid) && !ackAdminDelete)}
-                  className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-1.5 text-sm font-semibold text-white shadow-xs transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {deletePending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Verwijderen…</>) : "Verwijderen"}
                 </button>
@@ -834,7 +834,7 @@ const AdminUsers = () => {
               <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
+                  className="h-4 w-4 rounded-sm border-slate-300 text-red-600 focus:ring-red-500"
                   checked={ackAdminDelete}
                   onChange={(e) => setAckAdminDelete(e.target.checked)}
                   disabled={deletePending}

@@ -414,7 +414,7 @@ const Customers = () => {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Zoek op naam of traject"
-            className="h-10 w-full min-w-[220px] rounded-full border border-slate-200 bg-white pl-10 pr-4 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="h-10 w-full min-w-[220px] rounded-full border border-slate-200 bg-white pl-10 pr-4 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
           />
         </div>
       </header>
@@ -573,7 +573,7 @@ const Customers = () => {
                 <div className="space-y-4">
                   <header className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-sm font-semibold text-slate-600 shadow-sm">
+                      <div className="h-12 w-12 overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-sm font-semibold text-slate-600 shadow-xs">
                         {photoURL ? (
                           <img src={photoURL} alt={displayName} className="h-full w-full object-cover" />
                         ) : (
@@ -966,7 +966,7 @@ const Customers = () => {
         <select
           value={selectedAssessorId}
           onChange={(e) => setSelectedAssessorId(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-300 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
           disabled={assessorLoading}
         >
           <option value="">{assessorLoading ? "Laden..." : "Kies een assessor"}</option>

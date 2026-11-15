@@ -1,65 +1,209 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap')
+layer(base);
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap')
+layer(base);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-/* Legacy layout and navbar styles merged from styles/global.css */
-/* Keep navbar dark, links white, and legacy layout helpers */
-.main-navbar, nav {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 12px 16px;
-  background: #222;
-  color: #fff;
-}
-.main-navbar .logo, nav .logo { font-weight: 700; }
-.main-navbar ul, nav ul { list-style: none; display: flex; gap: 12px; margin: 0; padding: 0; }
-.main-navbar a, nav a { color: #fff; text-decoration: none; }
-.content { padding: 16px; }
-.task { margin-bottom: 16px; }
-.task textarea { width: 100%; min-height: 90px; }
-.task-actions { display: flex; gap: 8px; margin-top: 8px; }
-.task-evidence { margin-top: 6px; color: #333; }
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
 
-/* Ensure nav descendants inherit white text (so base text rules don't force black) */
-nav :is(p, span, li, label, dd, dt, figcaption, small) { color: inherit; }
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
 
-html {
-  scroll-behavior: smooth;
-}
+  --color-evc-blue-50: #f1f5ff;
+  --color-evc-blue-100: #d9e6ff;
+  --color-evc-blue-200: #b2ceff;
+  --color-evc-blue-300: #8bb3ff;
+  --color-evc-blue-400: #6f9fff;
+  --color-evc-blue-500: #5d8fe3;
+  --color-evc-blue-600: #4d77cc;
+  --color-evc-blue-700: #3f60ac;
+  --color-evc-blue-800: #354f8e;
+  --color-evc-blue-900: #27386a;
 
-/* Ensure anchored sections aren't hidden under sticky headers */
-section[id] {
-  scroll-margin-top: 96px;
+  --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.08);
 }
 
-html,
-body,
-#root {
-  height: 100%;
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
 }
 
-body {
-  @apply bg-evc-blue-500 text-slate-900 font-sans antialiased;
+@utility text-body {
+  @apply text-black text-[17px] leading-relaxed;
 }
 
-a {
-  @apply text-brand-600 hover:text-brand-500;
+@utility text-muted {
+  @apply text-black/80 text-[16px];
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+@utility heading {
+  @apply text-black font-semibold;
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full hover:bg-slate-400;
+@utility planning-page {
+  /* Alle standaardtekst binnen de planning page wordt zwart en leesbaar */
+  & :is(p, span, small, .text-sm, .text-xs) {
+    @apply text-black leading-relaxed;
+  }
+
+  /* Iets grotere tekst voor small-classes */
+  & .text-sm {
+    @apply text-base; /* ongeveer 16px */
+  }
+
+  /* Iets grotere tekst voor extra-small tekst */
+  & .text-xs {
+    @apply text-[15px];
+  }
+
+  /* Zorg dat kleine titeltjes of subtitels ook goed zichtbaar zijn */
+  & h3 {
+    @apply text-black font-semibold;
+  }
+  & h4 {
+    @apply text-black font-semibold;
+  }
 }
 
-/* Global typography adjustments (text-only, avoid UI surface changes) */
+@utility text-sm {
+  /* Alle standaardtekst binnen de planning page wordt zwart en leesbaar */
+  .planning-page :is(p, span, small, &, .text-xs) {
+    @apply text-black leading-relaxed;
+  }
+
+  /* Iets grotere tekst voor small-classes */
+  .planning-page & {
+    @apply text-base; /* ongeveer 16px */
+  }
+}
+
+@utility text-xs {
+  /* Alle standaardtekst binnen de planning page wordt zwart en leesbaar */
+  .planning-page :is(p, span, small, .text-sm, &) {
+    @apply text-black leading-relaxed;
+  }
+
+  /* Iets grotere tekst voor extra-small tekst */
+  .planning-page & {
+    @apply text-[15px];
+  }
+}
+
+@utility section-label {
+  @apply text-sm font-bold uppercase tracking-wider text-black font-[Poppins];
+}
+
+@layer utilities {
+  /* Legacy layout and navbar styles merged from styles/global.css */
+  /* Keep navbar dark, links white, and legacy layout helpers */
+  .main-navbar,
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 12px 16px;
+    background: #222;
+    color: #fff;
+  }
+  .main-navbar .logo,
+  nav .logo {
+    font-weight: 700;
+  }
+  .main-navbar ul,
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+  }
+  .main-navbar a,
+  nav a {
+    color: #fff;
+    text-decoration: none;
+  }
+  .content {
+    padding: 16px;
+  }
+  .task {
+    margin-bottom: 16px;
+  }
+  .task textarea {
+    width: 100%;
+    min-height: 90px;
+  }
+  .task-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .task-evidence {
+    margin-top: 6px;
+    color: #333;
+  }
+
+  /* Ensure nav descendants inherit white text (so base text rules don't force black) */
+  nav :is(p, span, li, label, dd, dt, figcaption, small) {
+    color: inherit;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Ensure anchored sections aren't hidden under sticky headers */
+  section[id] {
+    scroll-margin-top: 96px;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-evc-blue-500 text-slate-900 font-sans antialiased;
+  }
+
+  a {
+    @apply text-brand-600 hover:text-brand-500;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full hover:bg-slate-400;
+  }
+
+  /* Global typography adjustments (text-only, avoid UI surface changes) */
+}
 @layer base {
   /* Larger, darker body text across the app (text-only) */
   body, :where(p, span, li, label, dd, dt, figcaption) {
@@ -104,49 +248,26 @@ a {
   }
 }
 
-/* If placeholders turned black, force them back to neutral (slate-500) */
-::placeholder { color: #6b7280 !important; }
-
-/* Sidebar and nav restoration (in case these utility classes are present globally) */
-.sidebar, nav.sidebar, .app-sidebar {
-  background-color: #0f172a; /* slate-900 */
-  color: #f8fafc; /* slate-50 */
-}
-.sidebar a { color: #e2e8f0; } /* slate-200 */
-.sidebar a:hover { color: #ffffff; }
-
-/* Semantic text utilities (opt-in, no background changes) */
-@layer components {
-  .text-body { @apply text-black text-[17px] leading-relaxed; }
-  .text-muted { @apply text-black/80 text-[16px]; }
-  .heading { @apply text-black font-semibold; }
-}
-@layer components {
-  /* Alle standaardtekst binnen de planning page wordt zwart en leesbaar */
-  .planning-page :is(p, span, small, .text-sm, .text-xs) {
-    @apply text-black leading-relaxed;
+@layer utilities {
+  /* If placeholders turned black, force them back to neutral (slate-500) */
+  ::placeholder {
+    color: #6b7280 !important;
   }
 
-  /* Iets grotere tekst voor small-classes */
-  .planning-page .text-sm {
-    @apply text-base; /* ongeveer 16px */
+  /* Sidebar and nav restoration (in case these utility classes are present globally) */
+  .sidebar,
+  nav.sidebar,
+  .app-sidebar {
+    background-color: #0f172a; /* slate-900 */
+    color: #f8fafc; /* slate-50 */
+  }
+  .sidebar a {
+    color: #e2e8f0;
+  } /* slate-200 */
+  .sidebar a:hover {
+    color: #ffffff;
   }
 
-  /* Iets grotere tekst voor extra-small tekst */
-  .planning-page .text-xs {
-    @apply text-[15px];
-  }
-
-  /* Zorg dat kleine titeltjes of subtitels ook goed zichtbaar zijn */
-  .planning-page h3, 
-  .planning-page h4 {
-    @apply text-black font-semibold;
-  }
-  
-}
-@layer components {
-  .section-label {
-    @apply text-sm font-bold uppercase tracking-wider text-black font-[Poppins];
-  }
+  /* Semantic text utilities (opt-in, no background changes) */
 }
 

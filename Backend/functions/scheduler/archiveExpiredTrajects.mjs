@@ -23,8 +23,8 @@ export const archiveExpiredTrajects = functions
     const db = getDb();
 
     const todayStart = amsterdamMidnight(new Date());
-    const admin = require("firebase-admin");
-    const tsCutoff = admin.firestore.Timestamp.fromDate(todayStart);
+    const { Timestamp } = require("firebase-admin/firestore");
+    const tsCutoff = Timestamp.fromDate(todayStart);
 
     // We search for users (customers) whose evcEndDate < todayStart
     const roles = ["customer", "user"]; // legacy 'user' means candidate

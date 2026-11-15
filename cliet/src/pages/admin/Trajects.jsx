@@ -366,7 +366,7 @@ const AdminTrajects = () => {
       </div>
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <form onSubmit={handleSubmit} className="relative space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="relative space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
           {loadingDetail && (
             <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/70">
               <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -419,7 +419,7 @@ const AdminTrajects = () => {
               onChange={handleChange}
               disabled={formDisabled}
               placeholder="Bijvoorbeeld: Sociaal Werk Niveau 5"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
             />
           </div>
 
@@ -435,7 +435,7 @@ const AdminTrajects = () => {
               disabled={formDisabled}
               rows={3}
               placeholder="Optioneel. Geef een korte toelichting voor begeleiders."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
             />
           </div>
 
@@ -451,7 +451,7 @@ const AdminTrajects = () => {
                 type="button"
                 onClick={handleAddGroup}
                 disabled={formDisabled}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-xs transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Plus className="h-4 w-4" />
                 Nieuw cluster
@@ -459,7 +459,7 @@ const AdminTrajects = () => {
             </div>
 
             {form.competencyGroups.map((group, groupIndex) => (
-              <div key={group.id} className="space-y-4 rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div key={group.id} className="space-y-4 rounded-2xl border border-slate-200 p-5 shadow-xs">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-brand-500">Cluster {groupIndex + 1}</p>
@@ -485,7 +485,7 @@ const AdminTrajects = () => {
                       onChange={(event) => handleGroupChange(group.id, "code", event.target.value)}
                       disabled={formDisabled}
                       placeholder="Bijv. B1-K1"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                     />
                   </div>
                   <div className="space-y-2">
@@ -495,14 +495,14 @@ const AdminTrajects = () => {
                       onChange={(event) => handleGroupChange(group.id, "title", event.target.value)}
                       disabled={formDisabled}
                       placeholder="Bijv. Analyseren van ondersteuningsvragen"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   {group.competencies.map((competency, competencyIndex) => (
-                    <div key={competency.id} className="space-y-4 rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <div key={competency.id} className="space-y-4 rounded-xl border border-slate-200 p-4 shadow-xs">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Competentie {competencyIndex + 1}</p>
@@ -527,7 +527,7 @@ const AdminTrajects = () => {
                             onChange={(event) => handleCompetencyChange(group.id, competency.id, "code", event.target.value)}
                             disabled={formDisabled}
                             placeholder="Bijv. B1-K1-W1"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                           />
                         </div>
                         <div className="space-y-2">
@@ -537,7 +537,7 @@ const AdminTrajects = () => {
                             onChange={(event) => handleCompetencyChange(group.id, competency.id, "title", event.target.value)}
                             disabled={formDisabled}
                             placeholder="Bijv. Ondersteuningsvragen analyseren"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                           />
                         </div>
                       </div>
@@ -551,7 +551,7 @@ const AdminTrajects = () => {
                             disabled={formDisabled}
                             rows={2}
                             placeholder="Optioneel. Beschrijf het werkproces kort."
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                           />
                         </div>
                         <div className="space-y-2">
@@ -562,7 +562,7 @@ const AdminTrajects = () => {
                             disabled={formDisabled}
                             rows={2}
                             placeholder="Wat moet er bereikt worden?"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                           />
                         </div>
                       </div>
@@ -576,7 +576,7 @@ const AdminTrajects = () => {
                             disabled={formDisabled}
                             rows={2}
                             placeholder="Welke kennis is nodig?"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                           />
                         </div>
                         <div className="space-y-2">
@@ -587,7 +587,7 @@ const AdminTrajects = () => {
                             disabled={formDisabled}
                             rows={2}
                             placeholder="Welke houding wordt verwacht?"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                           />
                         </div>
                       </div>
@@ -621,7 +621,7 @@ const AdminTrajects = () => {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CircleCheck className="h-4 w-4" />}
               {isEditing ? "Wijzigingen opslaan" : "Traject opslaan"}
@@ -629,7 +629,7 @@ const AdminTrajects = () => {
           </div>
         </form>
 
-        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Trajecten</h2>
             <button
@@ -660,10 +660,10 @@ const AdminTrajects = () => {
                     <button
                       type="button"
                       onClick={() => loadTrajectDetail(traject.id)}
-                      className={`w-full text-left transition focus:outline-none focus:ring-2 focus:ring-brand-200 ${
+                      className={`w-full text-left transition focus:outline-hidden focus:ring-2 focus:ring-brand-200 ${
                         isActive
-                          ? "rounded-xl border border-brand-300 bg-brand-50 p-4 shadow-sm"
-                          : "rounded-xl border border-slate-200 p-4 shadow-sm hover:border-brand-200 hover:bg-brand-50/60"
+                          ? "rounded-xl border border-brand-300 bg-brand-50 p-4 shadow-xs"
+                          : "rounded-xl border border-slate-200 p-4 shadow-xs hover:border-brand-200 hover:bg-brand-50/60"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">

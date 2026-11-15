@@ -392,7 +392,7 @@ const CustomerReady = () => {
         </div>
       ) : null}
 
-      <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div className="flex items-start gap-3 rounded-2xl bg-evc-blue-50 px-4 py-3 text-sm text-evc-blue-900">
           <Sparkles className="mt-0.5 h-5 w-5" />
           <p>
@@ -406,7 +406,7 @@ const CustomerReady = () => {
             {requirementItems.map((item) => (
               <li
                 key={item.key}
-                className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
                   {item.completed ? (
@@ -423,7 +423,7 @@ const CustomerReady = () => {
                   <button
                     type="button"
                     onClick={item.onAction}
-                    className="inline-flex w-full items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-evc-blue-600 shadow-sm transition hover:bg-evc-blue-50 sm:w-auto"
+                    className="inline-flex w-full items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-evc-blue-600 shadow-xs transition hover:bg-evc-blue-50 sm:w-auto"
                   >
                     {item.actionLabel}
                   </button>
@@ -444,7 +444,7 @@ const CustomerReady = () => {
         )}
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-600">Huidige status</p>
@@ -464,7 +464,7 @@ const CustomerReady = () => {
               type="button"
               onClick={handleSubmit}
               disabled={disableSubmit}
-              className={`inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-evc-blue-200 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 ${
+              className={`inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition focus:outline-hidden focus:ring-2 focus:ring-evc-blue-200 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 ${
                 disableSubmit ? "bg-slate-400" : "bg-evc-blue-600 hover:bg-evc-blue-500"
               }`}
             >

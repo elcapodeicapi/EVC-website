@@ -120,9 +120,9 @@ export const sendTrajectoryWarningEmail = functions
     const targetDayStart = addDays(todayAms, 14); // 14 days from today
     const targetDayEnd = addDays(targetDayStart, 1);
 
-    const admin = require("firebase-admin");
-    const tsStart = admin.firestore.Timestamp.fromDate(targetDayStart);
-    const tsEnd = admin.firestore.Timestamp.fromDate(targetDayEnd);
+    const { Timestamp } = require("firebase-admin/firestore");
+    const tsStart = Timestamp.fromDate(targetDayStart);
+    const tsEnd = Timestamp.fromDate(targetDayEnd);
 
     async function fetchRole(role) {
       try {

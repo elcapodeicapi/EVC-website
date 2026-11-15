@@ -40,7 +40,7 @@ const StatsCard = ({ title, value, trend, description, icon: Icon, variant = "br
           <span>{trend.caption}</span>
         </div>
       ) : null}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-transparent via-white/40 to-transparent opacity-0 transition group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-br from-transparent via-white/40 to-transparent opacity-0 transition group-hover:opacity-100" />
     </div>
   );
 };

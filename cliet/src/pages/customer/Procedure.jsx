@@ -10,7 +10,7 @@ const customerLinks = [
 const Procedure = () => {
   return (
     <div className="space-y-10">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <h1 className="text-2xl font-semibold text-slate-900">Hoe werkt jouw EVC-traject?</h1>
         <p className="mt-2 text-sm text-slate-500">
           Volg onderstaande stappen en gebruik de links om snel naar de belangrijkste onderdelen te gaan.

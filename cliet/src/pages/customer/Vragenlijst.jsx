@@ -191,7 +191,7 @@ const CustomerVragenlijst = () => {
       </div>
       <section className="space-y-6">
         {QUESTIONNAIRE_SECTIONS.map((section) => (
-          <article key={section.id} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <article key={section.id} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">{section.title}</h2>
@@ -209,7 +209,7 @@ const CustomerVragenlijst = () => {
               value={responses[section.id] || ""}
               onChange={handleChange(section.id)}
               rows={6}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-xs transition focus:border-evc-blue-400 focus:outline-hidden focus:ring-2 focus:ring-evc-blue-100"
               placeholder="Schrijf uw antwoord hier..."
             />
           </article>

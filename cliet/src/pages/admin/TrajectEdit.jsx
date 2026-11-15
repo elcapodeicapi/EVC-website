@@ -163,14 +163,14 @@ const TrajectEdit = () => {
         </div>
       ) : null}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Begeleider koppelen</label>
             <select
               value={form.coachId}
               onChange={handleChange("coachId")}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
             >
               <option value="">— Geen —</option>
               {coachOptions.map((c) => (
@@ -206,7 +206,7 @@ const TrajectEdit = () => {
               type="date"
               value={form.startDate}
               onChange={handleChange("startDate")}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
             />
           </div>
           <div className="grid gap-1.5">
@@ -215,7 +215,7 @@ const TrajectEdit = () => {
               type="date"
               value={form.endDate}
               onChange={handleChange("endDate")}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
             />
             {form.endDate ? (
               <p className="text-xs text-slate-500">{remaining != null ? (remaining >= 0 ? `${remaining} dagen resterend` : `${Math.abs(remaining)} dagen verlopen`) : ""}</p>
@@ -227,7 +227,7 @@ const TrajectEdit = () => {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+            className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
           >
             {saving ? "Opslaan..." : "Wijzigingen opslaan"}
           </button>

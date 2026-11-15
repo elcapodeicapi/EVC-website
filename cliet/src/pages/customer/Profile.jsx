@@ -612,17 +612,17 @@ const CustomerProfile = () => {
           </p>
         </div>
         {coach ? (
-          <div className="rounded-3xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700 shadow-sm">
+          <div className="rounded-3xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700 shadow-xs">
             Begeleid door <strong>{coach.name}</strong>
           </div>
         ) : null}
       </header>
       <ChangePasswordModal open={passwordOpen} onClose={() => setPasswordOpen(false)} />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="h-24 w-24 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-sm">
+            <div className="h-24 w-24 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-xs">
               {form.photoURL ? (
                 <img src={form.photoURL} alt={customerName} className="h-full w-full object-cover" />
               ) : (
@@ -639,7 +639,7 @@ const CustomerProfile = () => {
           <div className="flex flex-col gap-2 text-sm sm:items-end">
               <label
               htmlFor="profile-photo-upload"
-              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold !text-white shadow-sm transition ${
+              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold text-white! shadow-xs transition ${
                 photoUploading ? "bg-slate-400" : isEditable ? "bg-brand-600 hover:bg-brand-500" : "bg-slate-300 cursor-not-allowed"
               }`}
             >
@@ -660,7 +660,7 @@ const CustomerProfile = () => {
         {photoStatus ? <div className="mt-4"><StatusBanner state={photoStatus} /></div> : null}
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-slate-900">EVC-traject details</h2>
@@ -683,7 +683,7 @@ const CustomerProfile = () => {
                 type="button"
                 onClick={handleEvcPrimaryAction}
                 disabled={evcLoading || evcSaving}
-                className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+                className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
               >
                 {evcEditMode ? (evcSaving ? "Opslaan..." : "Opslaan") : "Wijzigen"}
               </button>
@@ -714,7 +714,7 @@ const CustomerProfile = () => {
                     value={evcDetails.contactPerson || ""}
                     onChange={handleEvcFieldChange("contactPerson")}
                     placeholder="Naam contactpersoon"
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -727,7 +727,7 @@ const CustomerProfile = () => {
                     value={evcDetails.currentRole || ""}
                     onChange={handleEvcFieldChange("currentRole")}
                     placeholder="Bijvoorbeeld: Teamleider sociaal werk"
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
               </div>
@@ -742,7 +742,7 @@ const CustomerProfile = () => {
                   value={evcDetails.domains || ""}
                   onChange={handleEvcFieldChange("domains")}
                   placeholder="Bijvoorbeeld: Jeugdzorg, Maatschappelijk werk"
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 />
               </div>
 
@@ -757,7 +757,7 @@ const CustomerProfile = () => {
                     value={evcDetails.qualification?.name || ""}
                     onChange={handleQualificationChange("name")}
                     placeholder="Volledige naam"
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -770,7 +770,7 @@ const CustomerProfile = () => {
                     value={evcDetails.qualification?.number || ""}
                     onChange={handleQualificationChange("number")}
                     placeholder="Bijvoorbeeld: 25645"
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -783,7 +783,7 @@ const CustomerProfile = () => {
                     value={evcDetails.qualification?.validity || ""}
                     onChange={handleQualificationChange("validity")}
                     placeholder="Bijvoorbeeld: 2026"
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
               </div>
@@ -791,11 +791,11 @@ const CustomerProfile = () => {
               <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 <input
                   type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  className="mt-1 h-4 w-4 rounded-sm border-slate-300 text-brand-600 focus:ring-brand-500"
                   checked={Boolean(evcDetails.voluntaryParticipation)}
                   onChange={handleParticipationChange}
                 />
-                <span className="!font-bold !text-black">
+                <span className="font-bold! text-black!">
                   Ik neem vrijwillig deel aan dit EVC-traject
                   </span>
               </label>
@@ -836,8 +836,8 @@ const CustomerProfile = () => {
       </section>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
+          <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
             <div className="space-y-8">
               <div>
                 <h2 className="text-base font-semibold text-slate-900">Persoonsgegevens</h2>
@@ -852,7 +852,7 @@ const CustomerProfile = () => {
                       type="date"
                       value={form.dateOfBirth || ""}
                       onChange={handleChange}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                     />
                   </div>
                   <div className="grid gap-2">
@@ -864,7 +864,7 @@ const CustomerProfile = () => {
                       name="placeOfBirth"
                       value={form.placeOfBirth || ""}
                       onChange={handleChange}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                       placeholder="Bijvoorbeeld: Alkmaar"
                     />
                   </div>
@@ -877,7 +877,7 @@ const CustomerProfile = () => {
                       name="nationality"
                       value={form.nationality || ""}
                       onChange={handleChange}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                       placeholder="Bijvoorbeeld: NL"
                     />
                   </div>
@@ -905,7 +905,7 @@ const CustomerProfile = () => {
                       name="phoneFixed"
                       value={form.phoneFixed || ""}
                       onChange={handleChange}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                       placeholder="Bijvoorbeeld: 0201234567"
                     />
                   </div>
@@ -918,7 +918,7 @@ const CustomerProfile = () => {
                       name="phoneMobile"
                       value={form.phoneMobile || ""}
                       onChange={handleChange}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                       placeholder="Bijvoorbeeld: 0612345678"
                     />
                   </div>
@@ -952,10 +952,10 @@ const CustomerProfile = () => {
                       name="street"
                       value={form.street || ""}
                       onChange={handleChange}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                     />
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-[1fr,0.8fr]">
+                  <div className="grid gap-4 sm:grid-cols-[1fr_0.8fr]">
                     <div className="grid gap-2">
                       <label htmlFor="houseNumber" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                         Huisnummer
@@ -965,7 +965,7 @@ const CustomerProfile = () => {
                         name="houseNumber"
                         value={form.houseNumber || ""}
                         onChange={handleChange}
-                        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                       />
                     </div>
                     <div className="grid gap-2">
@@ -977,7 +977,7 @@ const CustomerProfile = () => {
                         name="addition"
                         value={form.addition || ""}
                         onChange={handleChange}
-                        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                       />
                     </div>
                   </div>
@@ -990,7 +990,7 @@ const CustomerProfile = () => {
                       name="postalCode"
                       value={form.postalCode || ""}
                       onChange={handleChange}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                       placeholder="Bijv. 1822 BW"
                     />
                   </div>
@@ -1003,7 +1003,7 @@ const CustomerProfile = () => {
                       name="city"
                       value={form.city || ""}
                       onChange={handleChange}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                     />
                   </div>
                 </div>
@@ -1037,7 +1037,7 @@ const CustomerProfile = () => {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
           <div className="space-y-6">
             <div>
               <h2 className="text-base font-semibold text-slate-900">Opleiding of cursus</h2>
@@ -1073,7 +1073,7 @@ const CustomerProfile = () => {
                         <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                           {it.attachments.map((att) => (
                             <li key={att.id || att.storagePath}>
-                              <a href={att.downloadURL} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 shadow-sm hover:text-brand-600">
+                              <a href={att.downloadURL} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 shadow-xs hover:text-brand-600">
                                 <span aria-hidden>📎</span>
                                 <span className="truncate">{att.name || "bijlage"}</span>
                               </a>
@@ -1096,7 +1096,7 @@ const CustomerProfile = () => {
                     value={eduItemDraft.title}
                     onChange={(e) => setEduItemDraft((prev) => ({ ...prev, title: e.target.value }))}
                     placeholder="Opleiding of cursus"
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                   <input
                     type="number"
@@ -1107,14 +1107,14 @@ const CustomerProfile = () => {
                     placeholder="Afgesloten in (jaar)"
                     min={1965}
                     max={new Date().getFullYear()}
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div className="grid gap-2 md:grid-cols-2">
                   <select
                     value={eduItemDraft.diplomaObtained ? "yes" : "no"}
                     onChange={(e) => setEduItemDraft((prev) => ({ ...prev, diplomaObtained: e.target.value === "yes" }))}
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   >
                     <option value="yes">Diploma/certificaat behaald</option>
                     <option value="no">Geen diploma/certificaat</option>
@@ -1122,7 +1122,7 @@ const CustomerProfile = () => {
                   <select
                     value={eduItemDraft.type}
                     onChange={(e) => setEduItemDraft((prev) => ({ ...prev, type: e.target.value }))}
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   >
                     {[
                       "Algemeen onderwijs",
@@ -1141,7 +1141,7 @@ const CustomerProfile = () => {
                   onChange={(e) => setEduItemDraft((prev) => ({ ...prev, note: e.target.value }))}
                   placeholder="Toelichting / onderbouwing"
                   rows={3}
-                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 />
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <label className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${isEditable ? "cursor-pointer border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-600" : "cursor-not-allowed border-slate-200 text-slate-400"}`}>
@@ -1157,7 +1157,7 @@ const CustomerProfile = () => {
                     type="button"
                     onClick={handleAddEducationItem}
                     disabled={!isEditable || eduItemSaving}
-                    className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+                    className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
                   >
                     {eduItemSaving ? "Opslaan..." : isEditable ? "Toevoegen" : "Vergrendeld"}
                   </button>
@@ -1184,7 +1184,7 @@ const CustomerProfile = () => {
         </section>
 
         {/* Overige informatie en documenten */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-6">
               <div>
@@ -1241,7 +1241,7 @@ const CustomerProfile = () => {
                     value={otherDraft.omschrijving}
                     onChange={(e) => setOtherDraft((prev) => ({ ...prev, omschrijving: e.target.value }))}
                     placeholder="Titel of omschrijving"
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div className="grid gap-1.5">
@@ -1250,7 +1250,7 @@ const CustomerProfile = () => {
                     type="date"
                     value={otherDraft.datum}
                     onChange={(e) => setOtherDraft((prev) => ({ ...prev, datum: e.target.value }))}
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div className="grid gap-1.5">
@@ -1260,7 +1260,7 @@ const CustomerProfile = () => {
                     value={otherDraft.toelichting}
                     onChange={(e) => setOtherDraft((prev) => ({ ...prev, toelichting: e.target.value }))}
                     placeholder="Korte toelichting"
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div className="grid gap-1.5">
@@ -1274,7 +1274,7 @@ const CustomerProfile = () => {
                   type="button"
                   onClick={addOtherDocument}
                   disabled={!isEditable || otherUploading}
-                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
                 >
                   {otherUploading ? "Bezig met uploaden..." : isEditable ? "Upload en voeg toe" : "Vergrendeld"}
                 </button>
@@ -1288,7 +1288,7 @@ const CustomerProfile = () => {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
           <div className="space-y-6">
             <div>
               <h2 className="text-base font-semibold text-slate-900">Relevante werkervaring</h2>
@@ -1341,27 +1341,27 @@ const CustomerProfile = () => {
                   value={workDraft.role}
                   onChange={(event) => setWorkDraft((prev) => ({ ...prev, role: event.target.value }))}
                   placeholder="Functietitel"
-                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 />
                 <input
                   type="text"
                   value={workDraft.organisation}
                   onChange={(event) => setWorkDraft((prev) => ({ ...prev, organisation: event.target.value }))}
                   placeholder="Organisatie"
-                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <input
                     type="month"
                     value={workDraft.startDate}
                     onChange={(event) => setWorkDraft((prev) => ({ ...prev, startDate: event.target.value }))}
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                   <input
                     type="month"
                     value={workDraft.endDate}
                     onChange={(event) => setWorkDraft((prev) => ({ ...prev, endDate: event.target.value }))}
-                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <textarea
@@ -1369,12 +1369,12 @@ const CustomerProfile = () => {
                   onChange={(event) => setWorkDraft((prev) => ({ ...prev, note: event.target.value }))}
                   placeholder="Toelichting"
                   rows={3}
-                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="rounded-xl border border-slate-200 px-4 py-2 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 />
                 <button
                   type="button"
                   onClick={addWorkExperience}
-                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500"
+                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500"
                 >
                   Voeg werkervaring toe
                 </button>
@@ -1387,7 +1387,7 @@ const CustomerProfile = () => {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-full bg-lime-500 px-6 py-3 text-sm font-semibold text-white shadow transition hover:bg-lime-400 disabled:cursor-not-allowed disabled:bg-lime-300"
+            className="rounded-full bg-lime-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-lime-400 disabled:cursor-not-allowed disabled:bg-lime-300"
           >
             {saving ? "Opslaan..." : "Opslaan"}
           </button>

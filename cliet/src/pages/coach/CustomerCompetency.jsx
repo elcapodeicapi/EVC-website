@@ -796,7 +796,7 @@ const CustomerTrajectOverview = () => {
 
   const renderOverview = () => (
     <div className="space-y-6">
-      <section className="grid gap-6 rounded-3xl bg-white p-6 shadow-card lg:grid-cols-[220px,1fr]">
+      <section className="grid gap-6 rounded-3xl bg-white p-6 shadow-card lg:grid-cols-[220px_1fr]">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="h-28 w-28 overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-2xl font-semibold text-slate-600">
             {photoURL ? (
@@ -977,7 +977,7 @@ const CustomerTrajectOverview = () => {
               <h3 className="text-lg font-semibold text-slate-900">Contact</h3>
               <p className="text-sm text-slate-500">Contactgegevens en direct chatten met de kandidaat.</p>
             </header>
-            <div className="grid gap-6 lg:grid-cols-[280px,1fr]">
+            <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
               <aside className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Gegevens</p>
                 <ul className="space-y-2 text-sm text-slate-700">
@@ -1005,7 +1005,7 @@ const CustomerTrajectOverview = () => {
                         formattedChatMessages.map((message) => (
                           <article
                             key={message.id}
-                            className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-sm ${
+                            className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-xs ${
                               message.isOwn
                                 ? "border-evc-blue-100 bg-evc-blue-50/60"
                                 : message.isUnreadForCoach
@@ -1015,7 +1015,7 @@ const CustomerTrajectOverview = () => {
                           >
                             <div className={`${
                               message.isOwn ? "bg-evc-blue-600 text-white" : "bg-slate-200 text-slate-700"
-                            } flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold`}>
+                            } flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold`}>
                               {message.senderInitial}
                             </div>
                             <div className="flex-1 space-y-2">
@@ -1039,7 +1039,7 @@ const CustomerTrajectOverview = () => {
                                         href={att.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-evc-blue-700 shadow-sm hover:text-evc-blue-600"
+                                        className="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-evc-blue-700 shadow-xs hover:text-evc-blue-600"
                                       >
                                         <span aria-hidden>📎</span>
                                         <span className="truncate">{att.name || "bijlage"}</span>
@@ -1072,7 +1072,7 @@ const CustomerTrajectOverview = () => {
                           value={chatTitle}
                           onChange={(e) => setChatTitle(e.target.value)}
                           placeholder="Bijvoorbeeld: Update beoordeling"
-                          className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+                          className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-hidden focus:ring-2 focus:ring-evc-blue-100"
                         />
                       </div>
                       <div className="grid gap-2">
@@ -1083,7 +1083,7 @@ const CustomerTrajectOverview = () => {
                           value={chatBody}
                           onChange={(e) => setChatBody(e.target.value)}
                           placeholder="Schrijf je bericht"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+                          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-hidden focus:ring-2 focus:ring-evc-blue-100"
                         />
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1101,7 +1101,7 @@ const CustomerTrajectOverview = () => {
                         <button
                           type="submit"
                           disabled={chatSending}
-                          className="inline-flex items-center gap-2 rounded-full bg-evc-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-evc-blue-500 disabled:cursor-not-allowed disabled:bg-evc-blue-300"
+                          className="inline-flex items-center gap-2 rounded-full bg-evc-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-evc-blue-500 disabled:cursor-not-allowed disabled:bg-evc-blue-300"
                         >
                           {chatSending ? "Versturen…" : "Verstuur bericht"}
                         </button>
@@ -1140,7 +1140,7 @@ const CustomerTrajectOverview = () => {
                   {uploadsByCompetency["__unassigned__"].map((upload) => {
                     const key = upload.id || upload.storagePath || upload.fileName || upload.name;
                     return (
-                      <li key={key} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                      <li key={key} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-xs">
                         <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium text-slate-900">{upload.displayName || upload.name || upload.fileName || "Bestand"}</p>
@@ -1197,7 +1197,7 @@ const CustomerTrajectOverview = () => {
                           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-slate-500">Gekoppeld uit profiel</p>
                           <ul className="mt-2 space-y-2 text-sm text-slate-700">
                             {linkedByCompetency[competency.id].map((entry) => (
-                              <li key={`${entry.__section}-${entry.id}`} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                              <li key={`${entry.__section}-${entry.id}`} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-xs">
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate font-medium text-slate-900">{entry.title || entry.role || entry.organisation || "Profielitem"}</p>
                                   {entry.__section === "certificate" && entry.filePath ? (
@@ -1220,7 +1220,7 @@ const CustomerTrajectOverview = () => {
                             const uploadedAtLabel = upload.uploadedAt ? formatDateTime(upload.uploadedAt) : null;
                             const isBusy = downloadInProgress === key;
                             return (
-                              <li key={key} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                              <li key={key} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-xs">
                                 <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate font-medium text-slate-900">{upload.displayName || upload.name || upload.fileName || "Bestand"}</p>
@@ -1398,7 +1398,7 @@ const CustomerTrajectOverview = () => {
             }}
             rows={12}
             placeholder="Schrijf je observaties en afspraken."
-            className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
           />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs">
@@ -1414,7 +1414,7 @@ const CustomerTrajectOverview = () => {
               type="button"
               onClick={handleSaveNote}
               disabled={noteSaving}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:opacity-60"
             >
               <Save className="h-4 w-4" /> {noteSaving ? "Opslaan..." : "Bewaar notitie"}
             </button>
@@ -1445,7 +1445,7 @@ const CustomerTrajectOverview = () => {
   const navButtonClass = (isActive) =>
     clsx(
       "rounded-full px-4 py-2 text-xs font-semibold transition",
-      isActive ? "bg-brand-600 text-white shadow" : "bg-white text-slate-600 hover:bg-brand-50"
+      isActive ? "bg-brand-600 text-white shadow-sm" : "bg-white text-slate-600 hover:bg-brand-50"
     );
 
   return (
@@ -1620,7 +1620,7 @@ const CustomerTrajectOverview = () => {
             const normalizedBase = basePath.startsWith("/") ? basePath.replace(/\/$/, "") : `/${basePath.replace(/\/$/, "")}`;
             navigate(`${normalizedBase}/customers`);
           }}
-          className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-500"
+          className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-brand-500"
         >
           Terug naar overzicht
           <ArrowRight className="h-3.5 w-3.5" />

@@ -20,8 +20,6 @@ export const auth = getAuth(app);
 // proxies/ad blockers that interfere with streaming channels.
 export const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true,
-  // Disable fetch streams for wider compatibility across browsers/extensions
-  useFetchStreams: false,
 });
 export const storage = getStorage(app);
 

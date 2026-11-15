@@ -145,7 +145,7 @@ export default function AdminResendWelcomeEmail() {
 
       <StatusBanner status={status} />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-brand-600">
             <Mail className="h-5 w-5" />
@@ -172,7 +172,7 @@ export default function AdminResendWelcomeEmail() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Zoek op naam of e-mail"
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
             />
           </div>
 
@@ -187,7 +187,7 @@ export default function AdminResendWelcomeEmail() {
                 value={selectedUid}
                 onChange={(e) => setSelectedUid(e.target.value)}
                 disabled={loadingUsers}
-                className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:text-slate-400"
               >
                 <option value="">Selecteer een kandidaat of assessor</option>
                 {filteredUsers.map((u) => (
@@ -215,7 +215,7 @@ export default function AdminResendWelcomeEmail() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Minimaal 8 tekens"
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 pr-12 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 pr-12 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
               />
               <button
                 type="button"
@@ -237,7 +237,7 @@ export default function AdminResendWelcomeEmail() {
             <button
               type="submit"
               disabled={!canSend}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
               Verstuur welkomstmail

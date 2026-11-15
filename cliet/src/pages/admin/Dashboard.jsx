@@ -385,7 +385,7 @@ const AdminDashboard = () => {
 	<DashboardStat label="Zonder begeleider" value={loading ? "-" : withoutCoach} helper="Geen begeleider gekoppeld" />
       </div>
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -394,7 +394,7 @@ const AdminDashboard = () => {
               placeholder="Zoek op kandidaat, begeleider of traject..."
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-xs transition focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
             />
           </div>
         </div>
@@ -402,7 +402,7 @@ const AdminDashboard = () => {
           <select
             value={selectedTraject}
             onChange={(event) => setSelectedTraject(event.target.value)}
-            className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 sm:w-56"
+            className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-xs transition focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100 sm:w-56"
           >
             {trajectOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -413,7 +413,7 @@ const AdminDashboard = () => {
           <select
             value={selectedCoach}
             onChange={(event) => setSelectedCoach(event.target.value)}
-            className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 sm:w-48"
+            className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-xs transition focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100 sm:w-48"
           >
             {coachOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -424,7 +424,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
@@ -512,7 +512,7 @@ const AdminDashboard = () => {
 
 const DashboardStat = ({ label, value, helper }) => {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
       <p className="mt-1 text-xs text-slate-500">{helper}</p>

@@ -211,7 +211,7 @@ const CoachProfile = () => {
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-card">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="h-24 w-24 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-sm">
+            <div className="h-24 w-24 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-xs">
               {photoURL ? (
                 <img src={photoURL} alt={coach?.name || coach?.email || "Begeleider"} className="h-full w-full object-cover" />
               ) : (
@@ -233,7 +233,7 @@ const CoachProfile = () => {
           <div className="flex flex-col gap-2 text-sm sm:items-end">
             <label
               htmlFor="coach-profile-photo-upload"
-              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold !text-white shadow-sm transition ${
+              className={`inline-flex cursor-pointer items-center justify-center rounded-full px-5 py-2 font-semibold text-white! shadow-xs transition ${
                 photoUploading ? "bg-slate-400" : "bg-brand-600 hover:bg-brand-500"
               }`}
             >
@@ -257,7 +257,7 @@ const CoachProfile = () => {
           </div>
         ) : null}
       </section>
-      <section className="rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-10 text-white shadow-card">
+      <section className="rounded-3xl bg-linear-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-10 text-white shadow-card">
   <p className="text-sm uppercase tracking-[0.35em] text-white/70">Begeleidersprofiel</p>
         <div className="mt-4 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
@@ -269,7 +269,7 @@ const CoachProfile = () => {
             {performanceCards.map((card) => (
               <div
                 key={card.id}
-                className="flex flex-col items-center justify-center rounded-2xl bg-white/10 px-4 py-3 text-center shadow-inner backdrop-blur"
+                className="flex flex-col items-center justify-center rounded-2xl bg-white/10 px-4 py-3 text-center shadow-inner backdrop-blur-sm"
               >
                 {card.icon ? <card.icon className="h-5 w-5 text-white/80" /> : null}
                 <dt className="mt-2 text-xs uppercase tracking-[0.3em] text-white/70">{card.label}</dt>
@@ -309,7 +309,7 @@ const CoachProfile = () => {
                     type="button"
                     onClick={() => setEditMode(true)}
                     disabled={saving}
-                    className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+                    className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
                   >
                     Wijzigen
                   </button>
@@ -319,7 +319,7 @@ const CoachProfile = () => {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-8 xl:grid-cols-[1.4fr,1fr]">
+          <div className="mt-6 grid gap-8 xl:grid-cols-[1.4fr_1fr]">
             <div className="space-y-8">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Persoonsgegevens</h3>
@@ -327,24 +327,24 @@ const CoachProfile = () => {
                   <div className="grid gap-2">
                     <label htmlFor="name" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Naam</label>
                     <input id="name" name="name" value={form.name} onChange={handleChange} disabled={!editMode}
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="dateOfBirth" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Geboortedatum</label>
                     <input id="dateOfBirth" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} disabled={!editMode}
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="placeOfBirth" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Geboorteplaats</label>
                     <input id="placeOfBirth" name="placeOfBirth" value={form.placeOfBirth} onChange={handleChange} disabled={!editMode}
                       placeholder="Bijv. Alkmaar"
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="nationality" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Nationaliteit</label>
                     <input id="nationality" name="nationality" value={form.nationality} onChange={handleChange} disabled={!editMode}
                       placeholder="Bijv. NL"
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                 </div>
               </div>
@@ -365,13 +365,13 @@ const CoachProfile = () => {
                     <label htmlFor="phoneFixed" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Telefoon (vast)</label>
                     <input id="phoneFixed" name="phoneFixed" value={form.phoneFixed} onChange={handleChange} disabled={!editMode}
                       placeholder="0201234567"
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="phoneMobile" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Telefoon (mobiel)</label>
                     <input id="phoneMobile" name="phoneMobile" value={form.phoneMobile} onChange={handleChange} disabled={!editMode}
                       placeholder="0612345678"
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                   <div className="md:col-span-2 grid gap-2">
                     <label htmlFor="email" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">E-mailadres</label>
@@ -383,7 +383,7 @@ const CoachProfile = () => {
                     <label htmlFor="bio" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Bio</label>
                     <textarea id="bio" name="bio" rows={3} value={form.bio} onChange={handleChange} disabled={!editMode}
                       placeholder="Korte beschrijving van je rol en expertise"
-                      className={`rounded-2xl border px-4 py-3 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-2xl border px-4 py-3 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                 </div>
               </div>
@@ -396,36 +396,36 @@ const CoachProfile = () => {
                   <div className="grid gap-2">
                     <label htmlFor="street" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Straatnaam</label>
                     <input id="street" name="street" value={form.street} onChange={handleChange} disabled={!editMode}
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-[1fr,0.8fr]">
+                  <div className="grid gap-4 sm:grid-cols-[1fr_0.8fr]">
                     <div className="grid gap-2">
                       <label htmlFor="houseNumber" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Huisnummer</label>
                       <input id="houseNumber" name="houseNumber" value={form.houseNumber} onChange={handleChange} disabled={!editMode}
-                        className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                        className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                     </div>
                     <div className="grid gap-2">
                       <label htmlFor="addition" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Toevoeging</label>
                       <input id="addition" name="addition" value={form.addition} onChange={handleChange} disabled={!editMode}
-                        className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                        className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                     </div>
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="postalCode" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Postcode</label>
                     <input id="postalCode" name="postalCode" value={form.postalCode} onChange={handleChange} disabled={!editMode}
                       placeholder="Bijv. 1822 BW"
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="city" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Woonplaats</label>
                     <input id="city" name="city" value={form.city} onChange={handleChange} disabled={!editMode}
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="location" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Locatie (weergave)</label>
                     <input id="location" name="location" value={form.location} onChange={handleChange} disabled={!editMode}
                       placeholder="Bijv. Regio Alkmaar"
-                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-none ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
+                      className={`rounded-xl border px-4 py-2.5 text-sm shadow-inner focus:outline-hidden ${editMode ? "border-slate-200 text-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-100" : "border-slate-100 bg-slate-50 text-slate-500"}`} />
                   </div>
                 </div>
               </div>
@@ -438,7 +438,7 @@ const CoachProfile = () => {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full bg-lime-500 px-6 py-3 text-sm font-semibold text-white shadow transition hover:bg-lime-400 disabled:cursor-not-allowed disabled:bg-lime-300"
+              className="rounded-full bg-lime-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-lime-400 disabled:cursor-not-allowed disabled:bg-lime-300"
             >
               {saving ? "Opslaan..." : "Opslaan"}
             </button>
@@ -446,7 +446,7 @@ const CoachProfile = () => {
         ) : null}
       </form>
 
-      <section className="grid gap-6 lg:grid-cols-[1.2fr,1fr]">
+      <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <article className="rounded-3xl bg-white p-6 shadow-card">
           <h3 className="text-base font-semibold text-slate-900">Contactgegevens</h3>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -517,7 +517,7 @@ const CoachProfile = () => {
             {upcomingSessions.map((session) => (
               <article
                 key={session.id || `${session.customer}-${session.date}`}
-                className="rounded-2xl border border-slate-100 p-4 shadow-sm transition hover:border-brand-300 hover:shadow-md"
+                className="rounded-2xl border border-slate-100 p-4 shadow-xs transition hover:border-brand-300 hover:shadow-md"
               >
                 <p className="text-sm font-semibold text-slate-900">{session.customer || "Kandidaat"}</p>
                 <p className="text-xs text-slate-500">{session.date || "Datum onbekend"}</p>

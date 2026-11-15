@@ -11,7 +11,7 @@
     ];
     candidates.forEach((file) => {
       if (fs.existsSync(file)) {
-        dotenv.config({ path: file, override: false });
+        dotenv.config({ path: file, override: false, quiet: true });
       }
     });
   } catch (error) {

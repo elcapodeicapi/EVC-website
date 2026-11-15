@@ -125,14 +125,14 @@ const Assignments = () => {
 
       {renderStatusBanner()}
 
-      <form onSubmit={handleAssign} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-4 sm:items-end">
+      <form onSubmit={handleAssign} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs sm:grid-cols-4 sm:items-end">
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kandidaat</label>
           <select
             name="customerId"
             value={form.customerId}
             onChange={handleChange}
-            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
             disabled={loadingCustomers || customers.length === 0}
           >
             {loadingCustomers ? <option value="">Laden...</option> : null}
@@ -150,7 +150,7 @@ const Assignments = () => {
             name="coachId"
             value={form.coachId}
             onChange={handleChange}
-            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
             disabled={loadingCoaches || coaches.length === 0}
           >
             {loadingCoaches ? <option value="">Laden...</option> : null}
@@ -166,7 +166,7 @@ const Assignments = () => {
           <button
             type="submit"
             disabled={creating || !form.customerId || !form.coachId}
-            className="inline-flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
           >
             {creating ? "Bezig..." : "Toewijzen"}
           </button>
@@ -189,7 +189,7 @@ const Assignments = () => {
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>

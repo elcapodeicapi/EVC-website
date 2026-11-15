@@ -1,4 +1,8 @@
-const admin = require("firebase-admin");
+// Modular Admin SDK entry points (the legacy `admin.*` namespace was removed in firebase-admin 14).
+const { initializeApp, getApps } = require("firebase-admin/app");
+const { getFirestore: adminGetFirestore } = require("firebase-admin/firestore");
+const { getAuth: adminGetAuth } = require("firebase-admin/auth");
+const { getStorage: adminGetStorage } = require("firebase-admin/storage");
 let dotenvLoaded = false;
 function maybeLoadDotenv() {
   if (dotenvLoaded) return;
@@ -17,10 +21,10 @@ function maybeLoadDotenv() {
   try {
     // Load default .env if explicitly configured
     if (process.env.DOTENV_CONFIG_PATH) {
-      dotenv.config({ path: process.env.DOTENV_CONFIG_PATH, override: false });
+      dotenv.config({ path: process.env.DOTENV_CONFIG_PATH, override: false, quiet: true });
     } else {
       // Best-effort: load .env from repo root if present
-      dotenv.config({ override: false });
+      dotenv.config({ override: false, quiet: true });
     }
   } catch (_) {
     // ignore dotenv issues in emulator; envs are optional
@@ -104,8 +108,8 @@ function ensureAppInitialized() {
     }
   }
 
-  if (!admin.apps.length) {
-    admin.initializeApp(options);
+  if (!getApps().length) {
+    initializeApp(options);
     if (isFunctionsEmulator) {
       // eslint-disable-next-line no-console
       console.log("\u{1F525} Running with local emulators");
@@ -131,19 +135,19 @@ function logEmulatorTargets() {
 function getDb() {
   ensureAppInitialized();
   logEmulatorTargets();
-  return admin.firestore();
+  return adminGetFirestore();
 }
 
 function getAuth() {
   ensureAppInitialized();
   logEmulatorTargets();
-  return admin.auth();
+  return adminGetAuth();
 }
 
 function getStorage() {
   ensureAppInitialized();
   logEmulatorTargets();
-  return admin.storage();
+  return adminGetStorage();
 }
 
 function getBucket() {

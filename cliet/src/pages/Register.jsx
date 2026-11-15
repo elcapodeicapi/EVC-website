@@ -51,7 +51,7 @@
 // 				</Link>,
 // 			]}
 // 		>
-// 			<section className="mx-auto w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+// 			<section className="mx-auto w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-xs">
 // 				<div className="flex items-center gap-3">
 // 					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-brand-600">
 // 						<UserPlus className="h-5 w-5" />
@@ -72,7 +72,7 @@
 // 							placeholder="Bijvoorbeeld: Kim de Vries"
 // 							value={name}
 // 							onChange={(event) => setName(event.target.value)}
-// 							className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+// 							className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
 // 							required
 // 						/>
 // 					</div>
@@ -86,7 +86,7 @@
 // 							placeholder="jij@voorbeeld.nl"
 // 							value={email}
 // 							onChange={(event) => setEmail(event.target.value)}
-// 							className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+// 							className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
 // 							required
 // 						/>
 // 					</div>
@@ -100,7 +100,7 @@
 // 							placeholder="Minimaal 8 tekens"
 // 							value={password}
 // 							onChange={(event) => setPassword(event.target.value)}
-// 							className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+// 							className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
 // 							required
 // 						/>
 // 					</div>
@@ -112,7 +112,7 @@
 // 							id="register-role"
 // 							value={role}
 // 							onChange={(event) => setRole(event.target.value)}
-// 							className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+// 							className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
 // 						>
 // 							<option value="user">Kandidaat</option>
 // 							<option value="admin">Beheerder</option>
@@ -121,7 +121,7 @@
 // 					<button
 // 						type="submit"
 // 						disabled={loading}
-// 						className="mt-4 w-full rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+// 						className="mt-4 w-full rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
 // 					>
 // 						{loading ? "Bezig..." : "Account aanmaken"}
 // 					</button>

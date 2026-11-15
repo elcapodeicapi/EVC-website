@@ -12,7 +12,7 @@ const CustomerWorkplaceVisit = () => {
         </p>
       </header>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <p className="text-sm leading-relaxed text-slate-600">
           Je vindt hieronder het verslag van het werkplekbezoek wanneer het gesprek is geweest en de assessor hier een gespreksverslag over heeft
           geschreven.

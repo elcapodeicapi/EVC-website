@@ -253,8 +253,8 @@ const CoachMessages = () => {
       {threadsLoading ? (
         <LoadingSpinner label="Gesprekken laden" />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[280px,1fr]">
-          <aside className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+          <aside className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-xs">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Gesprekken</p>
             <ul className="space-y-2">
               {sortedThreads.length === 0 ? (
@@ -285,7 +285,7 @@ const CoachMessages = () => {
                             </p>
                           </div>
                           {unreadCount > 0 ? (
-                            <span className="inline-flex min-w-[2rem] justify-center rounded-full bg-amber-500 px-2 py-1 text-xs font-semibold text-white">
+                            <span className="inline-flex min-w-8 justify-center rounded-full bg-amber-500 px-2 py-1 text-xs font-semibold text-white">
                               {unreadCount}
                             </span>
                           ) : null}
@@ -298,7 +298,7 @@ const CoachMessages = () => {
             </ul>
           </aside>
 
-          <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <section className="rounded-3xl border border-slate-200 bg-white shadow-xs">
             {activeThread ? (
               <div className="flex flex-col gap-6 px-6 py-6">
                 <header>
@@ -334,7 +334,7 @@ const CoachMessages = () => {
                               handleMessageClick(message);
                             }
                           }}
-                          className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-evc-blue-200 ${
+                          className={`flex gap-4 rounded-2xl border px-4 py-4 shadow-xs transition focus:outline-hidden focus:ring-2 focus:ring-evc-blue-200 ${
                             message.isOwn
                               ? "border-evc-blue-100 bg-evc-blue-50/60"
                               : message.isUnreadForCoach
@@ -342,7 +342,7 @@ const CoachMessages = () => {
                                 : "border-slate-100 bg-slate-50"
                           } ${message.isUnreadForCoach ? "ring-2 ring-amber-200" : ""}`}
                         >
-                          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
                             message.isOwn ? "bg-evc-blue-600 text-white" : "bg-slate-200 text-slate-700"
                           }`}>
                             {message.senderInitial}
@@ -382,7 +382,7 @@ const CoachMessages = () => {
                                       href={att.url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-evc-blue-700 shadow-sm hover:text-evc-blue-600"
+                                      className="inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-evc-blue-700 shadow-xs hover:text-evc-blue-600"
                                     >
                                       <span aria-hidden>📎</span>
                                       <span className="truncate">{att.name || "bijlage"}</span>
@@ -419,7 +419,7 @@ const CoachMessages = () => {
                       value={title}
                       onChange={(event) => setTitle(event.target.value)}
                       placeholder="Bijvoorbeeld: Update beoordeling"
-                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-hidden focus:ring-2 focus:ring-evc-blue-100"
                     />
                   </div>
 
@@ -433,7 +433,7 @@ const CoachMessages = () => {
                       value={body}
                       onChange={(event) => setBody(event.target.value)}
                       placeholder="Schrijf je bericht"
-                      className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+                      className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-evc-blue-400 focus:outline-hidden focus:ring-2 focus:ring-evc-blue-100"
                     />
                   </div>
 
@@ -452,7 +452,7 @@ const CoachMessages = () => {
                     <button
                       type="submit"
                       disabled={sending}
-                      className="inline-flex items-center gap-2 rounded-full bg-evc-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-evc-blue-500 disabled:cursor-not-allowed disabled:bg-evc-blue-300"
+                      className="inline-flex items-center gap-2 rounded-full bg-evc-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-evc-blue-500 disabled:cursor-not-allowed disabled:bg-evc-blue-300"
                     >
                       {sending ? "Versturen…" : "Verstuur bericht"}
                     </button>

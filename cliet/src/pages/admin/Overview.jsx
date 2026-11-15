@@ -140,7 +140,7 @@ const Overview = () => {
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
@@ -211,7 +211,7 @@ const Overview = () => {
                         onClick={() => handleImpersonate(user)}
                         className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition ${
                           canImpersonate && impersonationTarget !== user.id
-                            ? "bg-brand-600 text-white shadow-sm hover:bg-brand-500"
+                            ? "bg-brand-600 text-white shadow-xs hover:bg-brand-500"
                             : "cursor-not-allowed bg-slate-100 text-slate-400"
                         }`}
                         disabled={!canImpersonate || impersonationTarget === user.id}

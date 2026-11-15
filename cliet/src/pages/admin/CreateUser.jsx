@@ -149,7 +149,7 @@ const AdminCreateUser = () => {
       <StatusBanner status={status} />
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-brand-600">
               <UserPlus className="h-5 w-5" />
@@ -170,7 +170,7 @@ const AdminCreateUser = () => {
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 placeholder="Bijvoorbeeld: Kim de Vries"
                 required
               />
@@ -185,7 +185,7 @@ const AdminCreateUser = () => {
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 placeholder="jij@voorbeeld.nl"
                 required
               />
@@ -200,7 +200,7 @@ const AdminCreateUser = () => {
                 type="password"
                 value={form.password}
                 onChange={handleChange}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                 placeholder="Minimaal 8 tekens"
                 required
               />
@@ -215,7 +215,7 @@ const AdminCreateUser = () => {
                 name="role"
                 value={form.role}
                 onChange={handleChange}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
               >
                 {ROLE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -235,7 +235,7 @@ const AdminCreateUser = () => {
                   value={form.trajectId}
                   onChange={handleChange}
                   disabled={loadingTrajects || trajects.length === 0}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:text-slate-400"
                   required
                 >
                   {trajects.length === 0 ? <option value="">Geen trajecten beschikbaar</option> : null}
@@ -258,7 +258,7 @@ const AdminCreateUser = () => {
                       value={form.startDate}
                       onChange={handleChange}
                       required
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                     />
                   </div>
                   <div className="grid gap-2">
@@ -270,7 +270,7 @@ const AdminCreateUser = () => {
                       value={form.endDate}
                       onChange={handleChange}
                       required
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 shadow-inner focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                     />
                   </div>
                 </div>
@@ -287,7 +287,7 @@ const AdminCreateUser = () => {
                 <button
               type="submit"
               disabled={!canSubmit}
-              className="w-full rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+              className="w-full rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
             >
               {loading ? "Account aanmaken..." : "Account aanmaken"}
             </button>
@@ -296,7 +296,7 @@ const AdminCreateUser = () => {
           </form>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Bestaande gebruikers</h2>
             <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">

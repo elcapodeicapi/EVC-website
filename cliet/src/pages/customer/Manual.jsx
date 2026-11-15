@@ -288,7 +288,7 @@ const ManualPage = () => {
             <button
               type="button"
               onClick={handleDownloadPdf}
-              className="rounded-full bg-evc-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-evc-blue-500"
+              className="rounded-full bg-evc-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-evc-blue-500"
             >
               Download als PDF
             </button>
@@ -297,7 +297,7 @@ const ManualPage = () => {
       </header>
 
       {!hasContent ? (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
           <p className="text-sm leading-relaxed text-slate-600">
             Geen handleiding gevonden voor jouw rol. Voeg een handleiding-bestand toe in <code>cliet/src/data/</code> met naam {candidateFilenamesForRole(role)[0]}.
           </p>
@@ -305,7 +305,7 @@ const ManualPage = () => {
       ) : (
         <div className="space-y-6">
           {/* Top TOC */}
-          <nav aria-label="Inhoudsopgave" className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <nav aria-label="Inhoudsopgave" className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xs">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Inhoudsopgave</p>
             <ul className="mt-2 flex flex-col space-y-1 list-none m-0 p-0 text-sm">
               {parsed.map((sec) => {
@@ -354,12 +354,12 @@ const ManualPage = () => {
             {parsed.map((sec) => {
               const secAnchor = sec.slug || sec.id;
               return (
-              <section key={sec.id} id={secAnchor} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section key={sec.id} id={secAnchor} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <h2 className="text-xl font-semibold text-slate-900">
                   {sec.number}. {sec.title}
                 </h2>
                 {sec.body?.length ? (
-                  <article className="prose prose-sm mt-3 max-w-none break-words text-slate-700">
+                  <article className="prose prose-sm mt-3 max-w-none wrap-break-word text-slate-700">
                     {renderBody(sec.body)}
                   </article>
                 ) : null}
@@ -371,7 +371,7 @@ const ManualPage = () => {
                       {sub.number}. {sub.title}
                     </h3>
                     {sub.body?.length ? (
-                      <article className="prose prose-sm mt-2 max-w-none break-words text-slate-700">
+                      <article className="prose prose-sm mt-2 max-w-none wrap-break-word text-slate-700">
                         {renderBody(sub.body)}
                       </article>
                     ) : null}
@@ -383,7 +383,7 @@ const ManualPage = () => {
                           {sub2.number}. {sub2.title}
                         </h4>
                         {sub2.body?.length ? (
-                          <article className="prose prose-sm mt-1 max-w-none break-words text-slate-700">
+                          <article className="prose prose-sm mt-1 max-w-none wrap-break-word text-slate-700">
                             {renderBody(sub2.body)}
                           </article>
                         ) : null}

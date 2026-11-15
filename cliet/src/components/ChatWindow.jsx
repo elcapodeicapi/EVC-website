@@ -12,7 +12,7 @@ const ChatWindow = ({
   emptyLabel = "Geen gesprek geselecteerd",
 }) => {
   return (
-    <div className="grid h-[600px] grid-cols-1 overflow-hidden rounded-3xl bg-white shadow-card lg:grid-cols-[280px,1fr]">
+    <div className="grid h-[600px] grid-cols-1 overflow-hidden rounded-3xl bg-white shadow-card lg:grid-cols-[280px_1fr]">
       <aside className="border-r border-slate-100">
         <div className="px-4 py-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -54,7 +54,7 @@ const ChatWindow = ({
             </div>
           ) : (
             messages.map((message) => (
-              <div key={message.id} className={`max-w-md rounded-2xl px-4 py-3 text-sm shadow-sm ${message.from === "me" ? "self-end bg-brand-600 text-white" : "bg-slate-100 text-slate-700"}`}>
+              <div key={message.id} className={`max-w-md rounded-2xl px-4 py-3 text-sm shadow-xs ${message.from === "me" ? "self-end bg-brand-600 text-white" : "bg-slate-100 text-slate-700"}`}>
                 <p className="text-xs uppercase tracking-wide text-white/80">{message.author}</p>
                 <p className="mt-1 whitespace-pre-line">{message.body}</p>
                 <p className="mt-2 text-[10px] uppercase tracking-wide opacity-60">{message.timestamp}</p>
@@ -75,7 +75,7 @@ const ChatWindow = ({
               value={draft ?? ""}
               onChange={(event) => onDraftChange?.(event.target.value)}
               placeholder="Typ een bericht"
-              className="flex-1 border-none bg-transparent text-sm outline-none focus:ring-0"
+              className="flex-1 border-none bg-transparent text-sm outline-hidden focus:ring-0"
             />
             <button
               type="submit"

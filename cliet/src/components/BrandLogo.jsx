@@ -5,7 +5,7 @@ import LogoImage from "../data/EVC_logo.png";
 
 const toneMap = {
   light: {
-    shell: "bg-evc-blue-600 text-white ring-evc-blue-500/60 shadow-sm",
+    shell: "bg-evc-blue-600 text-white ring-evc-blue-500/60 shadow-xs",
     hover: "hover:bg-evc-blue-500",
     image: "h-6 w-auto",
   },

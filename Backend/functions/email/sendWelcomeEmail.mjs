@@ -7,13 +7,11 @@
 import sgMail from "@sendgrid/mail";
 import { Resend } from "resend";
 import { createRequire } from "node:module";
-import { randomBytes } from "node:crypto";
 
 
 const require = createRequire(import.meta.url);
 const functions = require("firebase-functions/v1");
-const firebaseHelpers = require("../firebase");
-const { getDb, getAuth } = firebaseHelpers;
+require("../firebase"); // initialises the Admin SDK
 
 function safeFunctionsConfig() {
   try {
@@ -60,18 +58,6 @@ function setupSendGrid(required = false) {
 }
 
 // -- Helpers ---------------------------------------------------------------
-function generateTempPassword(length = 12) {
-  const chars =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  const bytes = randomBytes(length);
-  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
-}
-
-// Small helper to retry async operations
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function isUseResendEnabled() {
   return String(process.env.USE_RESEND || "").toLowerCase() === "true";
 }
@@ -91,16 +77,6 @@ async function sendWelcomeEmailWithSendGrid(msg) {
   return sgMail.send(msg);
 }
 
-
-function shouldSend(user, data) {
-  if (!user.email) return false;
-  if (!data) return true;
-  const createdByAdmin =
-    data.createdBy === "admin" ||
-    data.isAdminCreated === true ||
-    Boolean(data.createdByAdminId);
-  return createdByAdmin || ["customer", "user"].includes(String(data.role).toLowerCase());
-}
 
 function buildWelcomeMessage({ email, name, password, mailFrom, websiteUrl }) {
   const safeWebsiteUrl = String(websiteUrl || "").trim() || "https://mijnevcgo.nl";
@@ -181,9 +157,9 @@ export async function sendWelcomeEmailDirect({ uid, email, name, password }) {
     });
 
     if (provider === "resend") {
-      throw new Error(`Resend welcome email failed: ${err?.message || String(err)}`);
+      throw new Error(`Resend welcome email failed: ${err?.message || String(err)}`, { cause: err });
     }
-    throw new Error(`SendGrid welcome email failed: ${err?.message || String(err)}`);
+    throw new Error(`SendGrid welcome email failed: ${err?.message || String(err)}`, { cause: err });
   }
 }
 

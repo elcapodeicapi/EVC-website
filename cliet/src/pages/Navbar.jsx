@@ -68,7 +68,7 @@
 // 	};
 
 // 	return (
-// 		<header className="sticky top-0 z-30 border-b border-evc-blue-500/40 bg-evc-blue-600/95 text-white backdrop-blur">
+// 		<header className="sticky top-0 z-30 border-b border-evc-blue-500/40 bg-evc-blue-600/95 text-white backdrop-blur-sm">
 // 			<div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
 // 				<div className="flex items-center gap-3">
 // 					<BrandLogo className="inline-flex shrink-0" tone="dark" />
@@ -162,7 +162,7 @@
 // 							<button
 // 								type="button"
 // 								onClick={handleLogout}
-// 								className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-white/20"
+// 								className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-white/20"
 // 							>
 // 								<LogOut className="h-4 w-4" />
 // 								<span>Afmelden</span>
@@ -171,7 +171,7 @@
 // 							<button
 // 								type="button"
 // 								onClick={handleLoginNavigate}
-// 								className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-white/20"
+// 								className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-white/20"
 // 							>
 // 								<LogIn className="h-4 w-4" />
 // 								<span>Inloggen</span>

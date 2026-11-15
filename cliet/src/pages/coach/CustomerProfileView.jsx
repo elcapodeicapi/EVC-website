@@ -12,7 +12,7 @@ const Field = ({ label, value }) => (
 );
 
 const List = ({ title, items, renderItem }) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+  <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
     <div className="mb-3 flex items-center gap-2">
       <FileText className="h-4 w-4 text-slate-400" />
       <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
@@ -100,7 +100,7 @@ const CustomerProfileView = () => {
       </header>
 
       {/* EVC-trajectdetails */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div className="mb-3 flex items-center gap-2">
           <IdCard className="h-4 w-4 text-slate-400" />
           <h3 className="text-sm font-semibold text-slate-900">EVC-trajectdetails</h3>
@@ -117,7 +117,7 @@ const CustomerProfileView = () => {
       </section>
 
       {/* Persoonsgegevens */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div className="mb-3 flex items-center gap-2">
           <UserRound className="h-4 w-4 text-slate-400" />
           <h3 className="text-sm font-semibold text-slate-900">Persoonsgegevens</h3>

@@ -15,14 +15,14 @@ const CoachSettings = () => {
               <span className="text-xs uppercase tracking-wide text-slate-400">Weergavenaam</span>
               <input
                 defaultValue="Isabelle Janssen"
-                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
               />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs uppercase tracking-wide text-slate-400">E-mailadres</span>
               <input
                 defaultValue="isabelle.janssen@example.com"
-                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
               />
             </label>
           </div>
@@ -41,7 +41,7 @@ const CoachSettings = () => {
         <textarea
           rows={4}
           placeholder="Bijv. Feedback op dinsdag en donderdag, 14:00 - 16:00"
-          className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
         />
         <button className="mt-4 inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-500">
           Voorkeuren opslaan

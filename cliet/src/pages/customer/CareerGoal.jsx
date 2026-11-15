@@ -113,7 +113,7 @@ const CustomerCareerGoal = () => {
       </header>
 
       <section className="space-y-6">
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
  
           <p className="mt-0.1 text-base font-semibold text-slate-500">
             Beschrijf je ambitie: welke stappen wil je zetten binnen je loopbaan en waarom past dit traject bij jou?
@@ -128,7 +128,7 @@ const CustomerCareerGoal = () => {
               value={content}
               onChange={(event) => setContent(event.target.value)}
               rows={12}
-              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-evc-blue-400 focus:outline-none focus:ring-2 focus:ring-evc-blue-100"
+              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-xs focus:border-evc-blue-400 focus:outline-hidden focus:ring-2 focus:ring-evc-blue-100"
             />
           )}
         </article>

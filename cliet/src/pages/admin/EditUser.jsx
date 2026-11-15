@@ -252,7 +252,7 @@ export default function AdminEditUser() {
           <button type="button" onClick={handleBack} className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300">
             <ArrowLeft className="h-4 w-4" /> Terug
           </button>
-          <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:opacity-60">
+          <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:opacity-60">
             {saving ? (<><Loader2 className="h-4 w-4 animate-spin" /> Opslaan…</>) : (<><Save className="h-4 w-4" /> Opslaan</>)}
           </button>
         </div>
@@ -271,47 +271,47 @@ export default function AdminEditUser() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+          <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs lg:col-span-2">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Naam" required>
-                <input type="text" value={form.name} onChange={handleChange("name")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="text" value={form.name} onChange={handleChange("name")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="E-mail" required>
-                <input type="email" value={form.email} onChange={handleChange("email")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="email" value={form.email} onChange={handleChange("email")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Mobiel">
-                <input type="tel" value={form.phoneMobile} onChange={handleChange("phoneMobile")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="tel" value={form.phoneMobile} onChange={handleChange("phoneMobile")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Vaste lijn">
-                <input type="tel" value={form.phoneFixed} onChange={handleChange("phoneFixed")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="tel" value={form.phoneFixed} onChange={handleChange("phoneFixed")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Geboortedatum">
-                <input type="date" value={form.dateOfBirth} onChange={handleChange("dateOfBirth")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="date" value={form.dateOfBirth} onChange={handleChange("dateOfBirth")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Geboorteplaats">
-                <input type="text" value={form.placeOfBirth} onChange={handleChange("placeOfBirth")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="text" value={form.placeOfBirth} onChange={handleChange("placeOfBirth")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Nationaliteit">
-                <input type="text" value={form.nationality} onChange={handleChange("nationality")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="text" value={form.nationality} onChange={handleChange("nationality")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Straat">
-                <input type="text" value={form.street} onChange={handleChange("street")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="text" value={form.street} onChange={handleChange("street")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Huisnummer">
-                <input type="text" value={form.houseNumber} onChange={handleChange("houseNumber")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="text" value={form.houseNumber} onChange={handleChange("houseNumber")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Toevoeging">
-                <input type="text" value={form.addition} onChange={handleChange("addition")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="text" value={form.addition} onChange={handleChange("addition")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Postcode">
-                <input type="text" value={form.postalCode} onChange={handleChange("postalCode")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="text" value={form.postalCode} onChange={handleChange("postalCode")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
               <Field label="Woonplaats">
-                <input type="text" value={form.city} onChange={handleChange("city")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+                <input type="text" value={form.city} onChange={handleChange("city")} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100" />
               </Field>
             </div>
           </section>
-          <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <div className="flex items-center gap-4">
               <div className="h-20 w-20 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
                 {photoURL ? (
@@ -338,7 +338,7 @@ export default function AdminEditUser() {
                   <select
                     value={statusValue}
                     onChange={(e) => setStatusValue(normalizeTrajectStatus(e.target.value))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                   >
                     <option value={TRAJECT_STATUS.COLLECTING}>Bewijzen verzamelen</option>
                     <option value={TRAJECT_STATUS.REVIEW}>Ter beoordeling</option>
@@ -355,7 +355,7 @@ export default function AdminEditUser() {
                       value={assessorId}
                       onChange={(e) => setAssessorId(e.target.value)}
                       onFocus={maybeLoadAssessors}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
                     >
                       <option value="">{assessorsLoading ? "Laden..." : "Kies een assessor"}</option>
                       {assessors.map((a) => (
@@ -397,7 +397,7 @@ export default function AdminEditUser() {
                 type="button"
                 onClick={() => performSave(true)}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:opacity-60"
               >
                 {saving ? (<><Loader2 className="h-4 w-4 animate-spin" /> Opslaan…</>) : "Bevestigen"}
               </button>

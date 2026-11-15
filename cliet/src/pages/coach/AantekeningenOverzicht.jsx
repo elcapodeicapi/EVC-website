@@ -114,7 +114,7 @@ const AantekeningenOverzicht = () => {
               setSelectedCustomerId(event.target.value || null);
               isDirtyRef.current = false;
             }}
-            className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-xs focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
           >
             {customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
@@ -159,7 +159,7 @@ const AantekeningenOverzicht = () => {
                 onChange={handleDraftChange}
                 placeholder="Schrijf hier je observaties, follow-up taken of aandachtspunten."
                 rows={12}
-                className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
               />
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-xs text-slate-500">
@@ -175,7 +175,7 @@ const AantekeningenOverzicht = () => {
                   type="button"
                   onClick={handleSave}
                   disabled={saving || !isDirtyRef.current}
-                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
+                  className="inline-flex items-center justify-center rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-brand-300"
                 >
                   {saving ? "Opslaan..." : "Bewaar notitie"}
                 </button>
