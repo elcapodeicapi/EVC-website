@@ -1,7 +1,8 @@
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "";
+// In production the API lives behind the Firebase Hosting rewrite at /api (see firebase.json).
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.PROD ? "/api" : "");
 
 let authReadyPromise = null;
 function waitForAuthReady(timeoutMs = 4000) {
