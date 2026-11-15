@@ -71,26 +71,9 @@ async function upsertUserLoginMetadata(uid, metadata = {}) {
 
 // JWT removed: API relies solely on Firebase ID tokens for authorization
 
-// POST /auth/register (password registration) — deprecated in favor of Firebase login; retained for parity
-exports.register = async (req, res) => {
-  try {
-    const { email, password, role = "user", name, trajectId = null } = req.body;
-  const userRecord = await getAuth().createUser({ email, password, displayName: name });
-	await getDb().collection("users").doc(userRecord.uid).set({
-      name,
-      email,
-      role,
-      createdAt: new Date(),
-      trajectId: trajectId || null,
-    });
-    return res.json({
-      message: "User registered",
-      redirectPath: getRedirectPath(role),
-      user: { uid: userRecord.uid, email, role, name, trajectId },
-    });
-  } catch (err) {
-    return res.status(400).json({ error: err.message });
-  }
+// Self-registration is disabled. Accounts are created by an admin (adminCreateUser).
+exports.registrationDisabled = (req, res) => {
+  return res.status(410).json({ error: "Registration is disabled. Ask an administrator for an account." });
 };
 
 // POST /auth/login
@@ -177,47 +160,6 @@ exports.firebaseLogin = async (req, res) => {
     });
   } catch (err) {
     return res.status(401).json({ error: err.message || "Invalid token" });
-  }
-};
-
-// POST /auth/register/firebase
-// Body: { idToken: string, role?: string, name?: string }
-exports.firebaseRegister = async (req, res) => {
-  try {
-  const { idToken, role = "user", name, trajectId = null } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ error: "Missing idToken" });
-    }
-  const decoded = await getAuth().verifyIdToken(idToken);
-    const uid = decoded.uid;
-    const email = decoded.email;
-
-    // Write/merge profile to Firestore
-  await getDb().collection("users").doc(uid).set(
-      {
-        name: name || decoded.name || "",
-        email,
-        role,
-        createdAt: new Date(),
-        trajectId: trajectId || null,
-      },
-      { merge: true }
-    );
-
-    return res.json({
-      message: "Registered via Firebase",
-      redirectPath: getRedirectPath(role),
-      user: {
-        uid,
-        email,
-        role,
-        name: name || decoded.name || "",
-        trajectId,
-        photoURL: decoded.picture || null,
-      },
-    });
-  } catch (err) {
-    return res.status(400).json({ error: err.message });
   }
 };
 

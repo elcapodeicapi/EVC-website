@@ -29,7 +29,6 @@ import AdminTrajectEdit from "./admin/TrajectEdit";
 import AdminEditUser from "./admin/EditUser";
 import AdminCreateUser from "./admin/CreateUser";
 import AdminResendWelcomeEmail from "./admin/ResendWelcomeEmail";
-import TestCreateAccount from "./TestCreateAccount";
 import CustomerDashboard from "./customer/Dashboard";
 import CustomerPlanning from "./customer/Planning";
 import CustomerMessages from "./customer/Messages";
@@ -1435,14 +1434,21 @@ const CustomerLayout = () => {
 const RequireAuth = () => {
 	const location = useLocation();
 	const [isAuthed, setIsAuthed] = React.useState(() => Boolean(auth?.currentUser));
+	// On a page reload Firebase restores the session asynchronously. Until the first
+	// auth callback fires we do not know yet whether the user is signed in.
+	const [authReady, setAuthReady] = React.useState(() => Boolean(auth?.currentUser));
 	useEffectReact(() => {
 		let mounted = true;
 		const unsub = onAuthStateChanged(auth, (user) => {
 			if (!mounted) return;
 			setIsAuthed(Boolean(user));
+			setAuthReady(true);
 		});
 		return () => { mounted = false; try { unsub && unsub(); } catch {} };
 	}, []);
+	if (!authReady) {
+		return null;
+	}
 	if (!isAuthed) {
 		return <Navigate to="/" replace state={{ from: location }} />;
 	}
@@ -1455,7 +1461,6 @@ const App = () => {
 			<Routes>
 				<Route path="/" element={<Home />} />
 				<Route path="/login" element={<Login />} />
-				<Route path="/testing/create-account" element={<TestCreateAccount />} />
 								<Route element={<RequireAuth />}>
 									<Route path="/admin" element={<AdminLayout />}>
 					<Route index element={<AdminDashboard />} />

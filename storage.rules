@@ -18,7 +18,8 @@ service firebase.storage {
 
     // Public reads are allowed for now (documents, materials), tighten if needed
     match /{allPaths=**} {
-      allow read: if true;
+      // Signed-in users only. Files were previously readable and listable by anyone on the internet.
+      allow read: if isSignedIn();
     }
 
     // Evidence uploads and other user-owned files: writes only while collecting

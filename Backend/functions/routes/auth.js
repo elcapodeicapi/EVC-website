@@ -26,10 +26,10 @@ async function allowBootstrapOrRequireAdmin(req, res, next) {
 }
 
 router.post("/login/firebase", authController.firebaseLogin);
-// Registration endpoints for client
-router.post("/register/firebase", authController.firebaseRegister);
-// Optional: legacy password-based registration (not recommended)
-router.post("/register", authController.register);
+// Self-registration is disabled: accounts are created by an admin via POST /auth/admin/users.
+// These endpoints used to accept a caller-chosen role, which allowed anyone to become admin.
+router.post("/register/firebase", authController.registrationDisabled);
+router.post("/register", authController.registrationDisabled);
 router.post("/login", authController.login);
 router.get("/me", authenticate, authController.me);
 router.post("/track-login", authenticate, authController.trackLogin);

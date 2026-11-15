@@ -37,22 +37,23 @@ function createApp() {
   const assignmentsRoutes = require("./routes/assignments");
 
   const allowedOrigins = [
-     "https://mijnevcgo.nl",
-     "https://evcwebsite12345.web.app",
-     "https://evcwebsite12345.firebaseapp.com",
-     "http://localhost:5000" // for local testing
+    "https://mijnevcgo.nl",
+    "https://evcwebsite12345.web.app",
+    "https://evcwebsite12345.firebaseapp.com",
+    "http://localhost:5000",
   ];
+  // Firebase Hosting preview channels of this project only (e.g. evcwebsite12345--pr-12-abc.web.app)
+  const previewHostPattern = /^evcwebsite12345--[a-z0-9-]+\.(web\.app|firebaseapp\.com)$/;
   function isAllowedOrigin(origin) {
     if (!origin) return true; // same-origin or server-to-server
     if (allowedOrigins.includes(origin)) return true;
     try {
       const u = new URL(origin);
-      const host = u.hostname.toLowerCase();
-      if (host.endsWith(".web.app") || host.endsWith(".firebaseapp.com")) return true;
+      if (u.protocol !== "https:") return false;
+      return previewHostPattern.test(u.hostname.toLowerCase());
     } catch (_) {
       return false;
     }
-    return false;
   }
 
   const app = express();

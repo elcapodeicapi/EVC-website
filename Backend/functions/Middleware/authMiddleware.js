@@ -22,7 +22,7 @@ exports.authenticate = async (req, res, next) => {
     req.user = { uid, firebaseUid: uid, id: uid, role: role || null };
     return next();
   } catch (e) {
-    return res.status(500).json({ error: e.message || "Auth error" });
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
 };
 

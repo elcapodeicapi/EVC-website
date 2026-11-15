@@ -7,3 +7,10 @@ package.json
 Backend/package-lock.json
 Backend/package.json
 .env
+
+# Never commit auth exports, debug logs or uploaded files
+users.json
+deploy_debug.txt
+*-debug.log
+Backend/uploads/
+Backend/functions/uploads/
