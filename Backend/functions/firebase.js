@@ -108,7 +108,9 @@ function ensureAppInitialized() {
     }
   }
 
-  if (!getApps().length) {
+  // firebase-functions can create its own named app first (e.g. for auth blocking triggers),
+  // so check for the default app specifically instead of "any app".
+  if (!getApps().some((existing) => existing.name === "[DEFAULT]")) {
     initializeApp(options);
     if (isFunctionsEmulator) {
       // eslint-disable-next-line no-console
