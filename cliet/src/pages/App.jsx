@@ -159,6 +159,9 @@ const normalizeUserRecord = (user) => {
 
 const AdminLayout = () => {
 	const navigate = useNavigate();
+	const { pathname } = useLocation();
+	// The users table has many columns: let it use the full width instead of max-w-7xl.
+	const isUsersOverview = pathname.replace(/\/+$/, "") === "/admin/users";
 	const [uid, setUid] = useState(null);
 	const [profile, setProfile] = useState(null);
 	const [profileError, setProfileError] = useState(null);
@@ -223,6 +226,7 @@ const AdminLayout = () => {
 		<DashboardLayout
 			className="bg-white"
 			mainClassName="bg-white"
+			contentClassName={isUsersOverview ? "max-w-none!" : undefined}
 			sidebar={
 				<Sidebar
 					tone="dark"

@@ -127,10 +127,10 @@ const ActionButton = ({ icon: Icon, label, onClick, tone = "slate" }) => {
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${tones[tone] || tones.slate}`}
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition ${tones[tone] || tones.slate}`}
       title={label}
     >
-      <Icon className="h-4 w-4" aria-hidden />
+      <Icon className="h-3.5 w-3.5" aria-hidden />
     </button>
   );
 };
@@ -143,7 +143,7 @@ const RoleBadge = ({ role }) => {
   if (role === "assessor") tone = "bg-sky-50 text-sky-700 border-sky-200";
   if (role === "admin") tone = "bg-amber-50 text-amber-700 border-amber-200";
   return (
-    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${tone}`}>
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${tone}`}>
       {label}
     </span>
   );
@@ -156,9 +156,13 @@ const TableHeaderButton = ({ label, sortKey, sortState, onSort, align = "left", 
   return (
     <th
       scope="col"
-      className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${alignment} ${className}`.trim()}
+      className={`px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${alignment} ${className}`.trim()}
     >
-      <button type="button" onClick={handleClick} className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={handleClick}
+        className={`flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide ${align === "right" ? "ml-auto" : ""}`}
+      >
         <span>{label}</span>
         <SortIndicator active={active} direction={sortState.direction} />
       </button>
@@ -649,7 +653,7 @@ const AdminUsers = () => {
               <div ref={topSpacerRef} className="h-4" />
             </div>
             <div ref={tableScrollRef} onScroll={handleTableScroll} className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <table className="min-w-full divide-y divide-slate-200 text-[13px] leading-snug">
                 <thead className="bg-slate-50">
                   <tr>
                     <TableHeaderButton label="Naam" sortKey="name" sortState={sortState} onSort={handleSort} />
@@ -660,13 +664,14 @@ const AdminUsers = () => {
                     <TableHeaderButton label="Account aangemaakt" sortKey="createdAt" sortState={sortState} onSort={handleSort} />
                     <TableHeaderButton label="Laatste login" sortKey="lastLoggedIn" sortState={sortState} onSort={handleSort} />
                     <TableHeaderButton
-                      label="Begeleiderbelasting"
+                      label="Kandidaten"
                       sortKey="coachCount"
                       sortState={sortState}
                       onSort={handleSort}
                       align="right"
+                      className="w-24"
                     />
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                       Opties
                     </th>
                   </tr>
@@ -690,12 +695,12 @@ const AdminUsers = () => {
                   ) : (
                     paginatedRows.map((row) => (
                       <tr key={row.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 font-semibold text-slate-900">{row.name}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.email}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2.5 text-[15px] font-semibold text-slate-900">{row.name}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">{row.email}</td>
+                        <td className="px-3 py-2.5">
                           <RoleBadge role={row.roleKey} />
                         </td>
-                        <td className="px-4 py-3 text-black">
+                        <td className="min-w-[10rem] px-3 py-2.5 text-[12px] text-black">
                           <div className="flex items-center gap-2">
                             <span>{row.trajectName}</span>
                             {isAdmin && (row.roleKey === "customer" || row.roleKey === "user") ? (
@@ -703,18 +708,18 @@ const AdminUsers = () => {
                                 type="button"
                                 onClick={() => navigate(`/admin/traject-wijzigen/${row.id}`)}
                                 title="EVC-traject wijzigen"
-                                className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-200 text-brand-600 transition hover:border-brand-300 hover:bg-brand-50"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brand-200 text-brand-600 transition hover:border-brand-300 hover:bg-brand-50"
 
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-3.5 w-3.5" />
                               </button>
                             ) : null}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2.5">
                           {(row.roleKey === "customer" || row.roleKey === "user") && row.assignment ? (
                             <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs  font-semibold uppercase tracking-wide ${getTrajectStatusBadgeClass(row.assignment.status)} `}>
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase leading-tight tracking-wide ${getTrajectStatusBadgeClass(row.assignment.status)} `}>
                                 {getTrajectStatusLabel(row.assignment.status)}
                               </span>
                               {isAdmin && (
@@ -725,22 +730,22 @@ const AdminUsers = () => {
                             <span className="text-slate-400">—</span>
                           )}
                           {row.assignment?.assessorId ? (
-                            <div className="mt-1 text-xs text-slate-500">
+                            <div className="mt-1 text-[11px] text-slate-500">
                               Toegewezen aan: {users.find((u) => u.id === row.assignment.assessorId)?.name || users.find((u) => u.id === row.assignment.assessorId)?.email || row.assignment.assessorId}
                             </div>
                           ) : null}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{row.createdAtLabel}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.lastLoggedInLabel}</td>
-                        <td className="px-4 py-3 text-right text-slate-600">
+                        <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">{row.createdAtLabel}</td>
+                        <td className="px-3 py-2.5 text-slate-600">{row.lastLoggedInLabel}</td>
+                        <td className="w-24 px-3 py-2.5 text-right text-slate-600">
                           {row.roleKey === "coach" ? (
                             <span className="font-semibold text-slate-900">{row.coachCount}</span>
                           ) : (
                             "—"
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center justify-end gap-1.5">
                             {isAdmin && (["customer", "user", "assessor"].includes(row.roleKey)) && (
                               <ActionButton
                                 icon={Mail}
