@@ -280,16 +280,21 @@ const AdminUsers = () => {
     if (!scrollContainer || !topSpacer) return;
 
     const updateWidths = () => {
-      // Make the top scrollbar match the table scroll width.
+      // Make the top scrollbar match the table scroll width. Reset it first: a stale (wider) spacer
+      // would otherwise keep the page wide, so after zooming back in the old width was measured again.
+      topSpacer.style.width = "0px";
       topSpacer.style.width = `${scrollContainer.scrollWidth}px`;
     };
 
     updateWidths();
-    const handleResize = () => updateWidths();
-    window.addEventListener("resize", handleResize);
+    // Browser zoom, window resizes and the sidebar all change the available width.
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => updateWidths()) : null;
+    observer?.observe(scrollContainer);
+    window.addEventListener("resize", updateWidths);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      observer?.disconnect();
+      window.removeEventListener("resize", updateWidths);
     };
   }, [page, pageSize, searchTerm, roleFilter, sortState, usersLoading, trajectsLoading]);
 

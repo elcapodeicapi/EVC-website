@@ -6,7 +6,8 @@ const DashboardLayout = ({ sidebar, topbar, children, className = "", mainClassN
 
   return (
     <div className={clsx("min-h-screen bg-transparent text-slate-900", className)}>
-      <div className="lg:grid lg:grid-cols-[320px_1fr]">
+      {/* minmax(0,1fr) + min-w-0: wide content (tables) scrolls inside the page instead of stretching it */}
+      <div className="lg:grid lg:grid-cols-[320px_minmax(0,1fr)]">
         <div
           className={clsx(
             "fixed inset-y-0 left-0 z-40 w-80 max-w-full transform bg-white shadow-xl transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:translate-x-0 lg:shadow-none lg:transform-none",
@@ -23,7 +24,7 @@ const DashboardLayout = ({ sidebar, topbar, children, className = "", mainClassN
             : null}
         </div>
 
-        <div className="flex min-h-screen flex-col lg:col-start-2">
+        <div className="flex min-h-screen min-w-0 flex-col lg:col-start-2">
           {topbar
             ? React.cloneElement(topbar, {
                 onToggleSidebar: () => setIsSidebarOpen((prev) => !prev),
